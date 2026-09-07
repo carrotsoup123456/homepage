@@ -27,7 +27,11 @@ const filteredNotes = computed(() =>
   <div class="container page">
     <section v-reveal>
       <h1 class="page-title">知识库 · 笔记</h1>
-      <p class="page-subtitle">我的学习笔记与技术积累（示例占位，点击查看）</p>
+      <p class="page-subtitle">我的学习笔记与技术积累（建设中，点击查看）</p>
+      <div class="wip-banner">
+        <span class="wip-badge">⏳ 建设中</span>
+        当前为示例占位内容，后续将陆续导入我的真实学习笔记与项目复盘。
+      </div>
     </section>
 
     <div v-if="filteredNotes.length" class="kb-layout" v-reveal>
@@ -80,7 +84,28 @@ const filteredNotes = computed(() =>
 }
 .page-subtitle {
   color: var(--color-text-muted);
-  margin-bottom: 32px;
+  margin-bottom: 20px;
+}
+.wip-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--color-text);
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  margin-bottom: 28px;
+}
+.wip-badge {
+  flex-shrink: 0;
+  background: var(--color-primary);
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 .kb-layout {
   display: grid;

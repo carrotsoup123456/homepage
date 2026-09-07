@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { marked } from 'marked'
 import { projects } from '../data/site.js'
@@ -14,6 +14,15 @@ const rendered = computed(() => {
   if (!project.value) return ''
   return marked.parse(project.value.long || '')
 })
+
+// 图片灯箱：当前放大的图片
+const viewer = ref(null)
+function openImage(img) {
+  viewer.value = img
+}
+function closeImage() {
+  viewer.value = null
+}
 </script>
 
 <template>
@@ -46,13 +55,23 @@ const rendered = computed(() => {
       <!-- 项目展示图 -->
       <section class="detail-gallery" v-reveal v-if="project.images && project.images.length">
         <h2 class="section-title">项目展示</h2>
+        <p class="gallery-hint">点击图片可查看完整大图</p>
         <div class="gallery-grid">
-          <figure v-for="(img, i) in project.images" :key="img.src + i" class="gallery-item">
+          <figure v-for="(img, i) in project.images" :key="img.src + i" class="gallery-item" @click="openImage(img)">
             <img :src="img.src" :alt="img.alt" loading="lazy" />
             <figcaption v-if="img.alt">{{ img.alt }}</figcaption>
           </figure>
         </div>
       </section>
+
+      <!-- 图片灯箱 -->
+      <transition name="fade">
+        <div v-if="viewer" class="lightbox" @click.self="closeImage">
+          <button class="lightbox-close" @click="closeImage" aria-label="关闭">✕</button>
+          <img :src="viewer.src" :alt="viewer.alt" class="lightbox-img" />
+          <p v-if="viewer.alt" class="lightbox-caption">{{ viewer.alt }}</p>
+        </div>
+      </transition>
 
       <section class="detail-highlights" v-reveal v-if="project.highlights.length">
         <h2 class="section-title">亮点</h2>
@@ -128,6 +147,11 @@ const rendered = computed(() => {
 .detail-gallery {
   margin-top: 8px;
 }
+.gallery-hint {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -140,16 +164,69 @@ const rendered = computed(() => {
   overflow: hidden;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  cursor: zoom-in;
 }
 .gallery-item img {
   display: block;
   width: 100%;
-  height: auto;
+  height: 240px;
+  object-fit: cover;
+  object-position: top;
 }
 .gallery-item figcaption {
   padding: 10px 12px;
   font-size: 0.85rem;
   color: var(--color-text-muted);
+}
+
+/* 图片灯箱 */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+.lightbox-img {
+  max-width: 92vw;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+}
+.lightbox-caption {
+  color: #ddd;
+  margin-top: 14px;
+  font-size: 0.9rem;
+}
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 .markdown h2 {
   margin: 24px 0 8px;
