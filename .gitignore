@@ -25,3 +25,6 @@ dist-ssr
 
 # DeepWorks temp
 .deepworks_tmp_*.log
+
+# 联系表单后端数据（用户留言，不入库）
+server/data/

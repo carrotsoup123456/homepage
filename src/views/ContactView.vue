@@ -3,14 +3,41 @@ import { ref } from 'vue'
 import { contacts } from '../data/site.js'
 
 const form = ref({ name: '', email: '', message: '' })
-const submitted = ref(false)
 
-// 本地提交：模拟发送（不真正发邮件），记录反馈便于后续复用
-function handleSubmit() {
-  if (!form.value.name || !form.value.message) return
-  submitted.value = true
-  // 这里可将数据存 localStorage 或后续接入后端
-  console.log('反馈收到：', JSON.stringify(form.value))
+// 提交状态: idle | sending | success | error
+const status = ref('idle')
+const submitMsg = ref('')
+
+// 后端接口地址（本地轻量后端，与主页 dev server 区分）
+const API_URL = import.meta.env.VITE_FEEDBACK_API || 'http://127.0.0.1:5175/api/feedback'
+
+async function handleSubmit() {
+  if (!form.value.name.trim() || !form.value.message.trim()) return
+  status.value = 'sending'
+  submitMsg.value = ''
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: form.value.name,
+        email: form.value.email,
+        message: form.value.message,
+      }),
+    })
+    const data = await res.json()
+    if (data.ok) {
+      status.value = 'success'
+      submitMsg.value = data.msg || '已收到你的留言！'
+      form.value = { name: '', email: '', message: '' }
+    } else {
+      status.value = 'error'
+      submitMsg.value = data.msg || '提交失败，请稍后再试。'
+    }
+  } catch (e) {
+    status.value = 'error'
+    submitMsg.value = '无法连接后端服务，请确认后端已启动。'
+  }
 }
 </script>
 
@@ -54,10 +81,13 @@ function handleSubmit() {
           <label>内容</label>
           <textarea v-model="form.message" required rows="5" placeholder="想对我说什么？"></textarea>
         </div>
-        <button class="btn btn-primary" type="submit">提交</button>
+        <button class="btn btn-primary" type="submit" :disabled="status === 'sending'">
+          {{ status === 'sending' ? '提交中…' : '提交' }}
+        </button>
       </form>
 
-      <p v-if="submitted" class="form-done">✅ 已收到你的留言！这只是本地演示，尚未真正发出。</p>
+      <p v-if="status === 'success'" class="form-done">✅ {{ submitMsg }}</p>
+      <p v-else-if="status === 'error'" class="form-error">⚠️ {{ submitMsg }}</p>
     </section>
   </div>
 </template>
@@ -133,6 +163,11 @@ function handleSubmit() {
 .form-done {
   margin-top: 16px;
   color: var(--color-primary);
+  font-weight: 600;
+}
+.form-error {
+  margin-top: 16px;
+  color: var(--color-danger, #dc2626);
   font-weight: 600;
 }
 
