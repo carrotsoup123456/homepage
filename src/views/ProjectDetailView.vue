@@ -36,6 +36,24 @@ const rendered = computed(() => {
         <div class="markdown" v-html="rendered"></div>
       </section>
 
+      <!-- 演示链接按钮（如有在线演示） -->
+      <section class="detail-action" v-reveal v-if="project.link">
+        <a :href="project.link" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+          🔗 {{ project.linkText || '查看在线演示' }}
+        </a>
+      </section>
+
+      <!-- 项目展示图 -->
+      <section class="detail-gallery" v-reveal v-if="project.images && project.images.length">
+        <h2 class="section-title">项目展示</h2>
+        <div class="gallery-grid">
+          <figure v-for="(img, i) in project.images" :key="img.src + i" class="gallery-item">
+            <img :src="img.src" :alt="img.alt" loading="lazy" />
+            <figcaption v-if="img.alt">{{ img.alt }}</figcaption>
+          </figure>
+        </div>
+      </section>
+
       <section class="detail-highlights" v-reveal v-if="project.highlights.length">
         <h2 class="section-title">亮点</h2>
         <div class="skill-tags">
@@ -97,6 +115,41 @@ const rendered = computed(() => {
 .detail-body {
   margin-bottom: 32px;
   color: var(--color-text);
+}
+.detail-action {
+  margin-bottom: 32px;
+}
+.detail-action .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+}
+.detail-gallery {
+  margin-top: 8px;
+}
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.gallery-item {
+  margin: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+.gallery-item img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.gallery-item figcaption {
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
 }
 .markdown h2 {
   margin: 24px 0 8px;

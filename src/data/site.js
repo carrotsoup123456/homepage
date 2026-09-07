@@ -31,6 +31,9 @@ export const projects = [
     desc: '使用机器学习预测 Polyam-N-Cu<sup>2+</sup> DAC 材料的饱和度，并让装置在「吸附」与「再生」两种模式间自动切换，确保持续不断的吸附功能。',
     tech: '机器学习',
     role: '项目组长',
+    images: [
+      { src: '/projects/carbon-brain/team.jpg', alt: 'Carbon Brain 项目团队合影' },
+    ],
     long: `使用监督学习模型对 **Polyam-N-Cu<sup>2+</sup> DAC**（双胺基铜位点材料）的吸附饱和度进行预测。系统根据预测结果自动在「吸附模式」与「再生模式」间切换，使材料持续保持高效的吸附能力。
 
 ### 我的职责
@@ -47,6 +50,12 @@ export const projects = [
     desc: '通过机器学习中的监督学习模型预测股市走向，并实时给出预测结果。',
     tech: 'LightGBM',
     role: '个人项目负责人',
+    link: 'http://127.0.0.1:5001/',
+    linkText: '查看在线演示',
+    images: [
+      { src: '/projects/stock/backtest.png', alt: 'ML 量化回测：策略总收益 112.74%' },
+      { src: '/projects/stock/paper.png', alt: '模拟盘持仓界面' },
+    ],
     long: `基于 **LightGBM** 等监督学习算法构建量化模型，对股票市场的短期走势进行预测，并以可视化方式实时输出预测结果。
 
 ### 我的职责
