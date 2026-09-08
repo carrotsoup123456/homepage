@@ -8,35 +8,44 @@ const form = ref({ name: '', email: '', message: '' })
 const status = ref('idle')
 const submitMsg = ref('')
 
-// 后端接口地址（本地轻量后端，与主页 dev server 区分）
-const API_URL = import.meta.env.VITE_FEEDBACK_API || 'http://127.0.0.1:5175/api/feedback'
+// Formspree endpoint（公网版联系表单）。
+// 占位 ID：注册 Formspree 后替换为真实值，例如 'https://formspree.io/f/xxxxxxx'
+// 也可通过环境变量 VITE_FORMSPREE_ENDPOINT 覆盖。
+const FORM_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT || 'https://formspree.io/f/YOUR_FORM_ID'
 
 async function handleSubmit() {
   if (!form.value.name.trim() || !form.value.message.trim()) return
   status.value = 'sending'
   submitMsg.value = ''
   try {
-    const res = await fetch(API_URL, {
+    // Formspree 支持 JSON 提交（Accept: application/json 以获取结构化响应）
+    const res = await fetch(FORM_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
       body: JSON.stringify({
         name: form.value.name,
         email: form.value.email,
         message: form.value.message,
+        // Formspree 约定字段
+        _replyto: form.value.email || 'no-reply@example.com',
+        _subject: '来自个人主页的留言',
       }),
     })
     const data = await res.json()
-    if (data.ok) {
+    if (res.ok) {
       status.value = 'success'
-      submitMsg.value = data.msg || '已收到你的留言！'
+      submitMsg.value = '已收到你的留言！我会尽快回复。'
       form.value = { name: '', email: '', message: '' }
     } else {
       status.value = 'error'
-      submitMsg.value = data.msg || '提交失败，请稍后再试。'
+      submitMsg.value = data?.errors?.[0]?.message || '提交失败，请稍后再试。'
     }
   } catch (e) {
     status.value = 'error'
-    submitMsg.value = '无法连接后端服务，请确认后端已启动。'
+    submitMsg.value = '无法连接表单服务，请稍后再试。'
   }
 }
 </script>

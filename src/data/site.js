@@ -4,12 +4,16 @@
 // 包含：站点信息、技能、项目（含详情）、经历（含图片）、教育、联系、知识库笔记。
 // ======================================================
 
+// 资源 base 前缀：兼容本地 dev('/') 与 GitHub Pages('/homepage/')
+// import.meta.env.BASE_URL 与 vite.config.js 的 base 保持一致
+const asset = (p) => `${import.meta.env.BASE_URL}${p.replace(/^\//, '')}`
+
 // ---- 站点信息 ----
 export const site = {
   name: '刘博康',
   tagline: '计算机科学与技术学生',
   bio: '你好！我是一名计算机科学与技术的大一新生，兴趣广泛，包括但不限于研究股票、架子鼓演奏、阅读。',
-  avatar: '/avatar.jpg',
+  avatar: asset('avatar.jpg'),
 }
 
 // ---- 技能 ----
@@ -32,7 +36,7 @@ export const projects = [
     tech: '机器学习',
     role: '项目组长',
     images: [
-      { src: '/projects/carbon-brain/team.jpg', alt: 'Carbon Brain 项目团队合影' },
+      { src: asset('projects/carbon-brain/team.jpg'), alt: 'Carbon Brain 项目团队合影' },
     ],
     long: `使用监督学习模型对 **Polyam-N-Cu<sup>2+</sup> DAC**（双胺基铜位点材料）的吸附饱和度进行预测。系统根据预测结果自动在「吸附模式」与「再生模式」间切换，使材料持续保持高效的吸附能力。
 
@@ -50,11 +54,9 @@ export const projects = [
     desc: '通过机器学习中的监督学习模型预测股市走向，并实时给出预测结果。',
     tech: 'LightGBM',
     role: '个人项目负责人',
-    link: 'http://127.0.0.1:5001/',
-    linkText: '查看在线演示',
     images: [
-      { src: '/projects/stock/backtest.png', alt: 'ML 量化回测：策略总收益 112.74%' },
-      { src: '/projects/stock/paper.png', alt: '模拟盘持仓界面' },
+      { src: asset('projects/stock/backtest.png'), alt: 'ML 量化回测：策略总收益 112.74%' },
+      { src: asset('projects/stock/paper.png'), alt: '模拟盘持仓界面' },
     ],
     long: `基于 **LightGBM** 等监督学习算法构建量化模型，对股票市场的短期走势进行预测，并以可视化方式实时输出预测结果。
 
@@ -74,11 +76,11 @@ export const experiences = [
     role: '架子鼓手',
     desc: '担任校管乐团与弦乐团鼓手，在校期间多次参与展演活动（图1、2、3）。带队参加中山市第六届中小学生艺术展演活动管（弦）乐比赛，校管乐团《La La Land》获三等奖、弦乐团《il vento d\u2019 oro》获二等奖（图4、5）。',
     images: [
-      { src: '/experience/band-1.jpg', alt: '架子鼓展演' },
-      { src: '/experience/band-2.jpg', alt: '校管弦乐团演出' },
-      { src: '/experience/band-3.jpg', alt: '舞台演出' },
-      { src: '/experience/award-2.jpg', alt: '二等奖获奖证书' },
-      { src: '/experience/award-3.jpg', alt: '三等奖获奖证书' },
+      { src: asset('experience/band-1.jpg'), alt: '架子鼓展演' },
+      { src: asset('experience/band-2.jpg'), alt: '校管弦乐团演出' },
+      { src: asset('experience/band-3.jpg'), alt: '舞台演出' },
+      { src: asset('experience/award-2.jpg'), alt: '二等奖获奖证书' },
+      { src: asset('experience/award-3.jpg'), alt: '三等奖获奖证书' },
     ],
   },
   {
@@ -87,7 +89,7 @@ export const experiences = [
     role: '组长',
     desc: '参与多校联办的青年商赛并担任组长，带领队伍获得比赛二等奖（图6）。',
     images: [
-      { src: '/experience/business.jpg', alt: '青年商赛现场' },
+      { src: asset('experience/business.jpg'), alt: '青年商赛现场' },
     ],
   },
   {
@@ -96,7 +98,7 @@ export const experiences = [
     role: '德意志联邦共和国代表',
     desc: '参加第六届星云模拟联合国大会—2015 叙利亚局势会议，担任德意志联邦共和国代表（图7）；签署多份对德贸易合作，带领欧盟建立难民工厂项目，妥善安置叙利亚难民。',
     images: [
-      { src: '/experience/mun.jpg', alt: '模拟联合国代表胸牌' },
+      { src: asset('experience/mun.jpg'), alt: '模拟联合国代表胸牌' },
     ],
   },
 ]
