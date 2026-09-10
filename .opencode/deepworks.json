@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "workspace": {
+    "name": "个人主页",
+    "createdAt": 1788428587768,
+    "preset": "starter"
+  },
+  "authorizedRoots": [
+    "/Users/liubokang/Desktop/deepworks项目/个人主页"
+  ],
+  "reload": null
+}

@@ -1,0 +1,14 @@
+# Dependencies
+**/node_modules/
+
+# Build output
+**/dist/
+
+# DeepWorks runtime: temp/scratch + archived per-version git dirs
+.deepworks/
+
+# Logs
+*.log
+
+# macOS
+.DS_Store

@@ -1,0 +1,394 @@
+/* ======================================================
+   全局样式 · 个人简历主页
+   作者：DeepWorks | V1
+   设计方向：简约、现代、响应式，适合课程展示
+   ====================================================== */
+
+:root {
+  /* 主题色板 */
+  --color-bg: #f6f8fb;
+  --color-surface: #ffffff;
+  --color-primary: #2563eb;   /* 主色（可替换品牌色） */
+  --color-primary-dark: #1d4ed8;
+  --color-text: #1e293b;      /* 正文 */
+  --color-text-muted: #64748b; /* 次要文字 */
+  --color-border: #e2e8f0;
+  --color-footer: #0f172a;
+
+  /* 空间与字体 */
+  --max-width: 1080px;
+  --section-gap: 96px;
+  --radius: 16px;
+  --shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+  --font-body: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* 容器与区块 */
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.section {
+  padding: var(--section-gap) 0;
+}
+
+.section-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--color-text);
+}
+
+.section-desc {
+  color: var(--color-text-muted);
+  margin-bottom: 40px;
+}
+
+/* 顶部导航 */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+
+.nav-brand {
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--color-text);
+  letter-spacing: 0.5px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 28px;
+  list-style: none;
+}
+
+.nav-links a {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.nav-links a:hover {
+  color: var(--color-primary);
+}
+
+/* 移动端折叠导航 */
+.nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+@media (max-width: 768px) {
+  .nav-links {
+    position: fixed;
+    inset: 64px 0 auto 0;
+    flex-direction: column;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    padding: 16px 24px;
+    gap: 16px;
+    transform: translateY(-150%);
+    transition: transform 0.3s ease;
+  }
+  .nav-links.open {
+    transform: translateY(0);
+  }
+  .nav-toggle {
+    display: block;
+  }
+}
+
+/* Hero 区域 */
+.hero {
+  text-align: center;
+  padding: 96px 0 72px;
+}
+
+.hero-avatar {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  margin: 0 auto 24px;
+  object-fit: cover;
+  background: var(--color-border);
+  border: 4px solid #fff;
+  box-shadow: var(--shadow);
+}
+
+.hero-name {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.hero-tagline {
+  font-size: 1.2rem;
+  color: var(--color-primary);
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.hero-bio {
+  max-width: 640px;
+  margin: 0 auto 28px;
+  color: var(--color-text-muted);
+}
+
+.hero-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-2px);
+}
+
+.btn-outline {
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn-outline:hover {
+  background: rgba(37, 99, 235, 0.08);
+  transform: translateY(-2px);
+}
+
+/* 卡片网格 */
+.card-grid {
+  display: grid;
+  gap: 24px;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 768px) {
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 28px;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(2, 6, 23, 0.1);
+}
+
+.card-icon {
+  font-size: 2rem;
+  margin-bottom: 14px;
+}
+
+.card h3 {
+  font-size: 1.15rem;
+  margin-bottom: 8px;
+}
+
+.card p {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+/* 时间线（经历/教育） */
+.timeline {
+  list-style: none;
+  position: relative;
+  padding-left: 28px;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--color-border);
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 32px;
+}
+
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -24px;
+  top: 8px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px var(--color-border);
+}
+
+.timeline-period {
+  font-size: 0.85rem;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.timeline-org {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.timeline-role {
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+/* 经历图片画廊 */
+.exp-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.exp-img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.exp-img:hover {
+  transform: scale(1.02);
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.12);
+}
+
+/* 技能标签 */
+.skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.skill-tag {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--color-primary-dark);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* 联系区 */
+.contact-links {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.contact-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 12px 20px;
+  border-radius: 999px;
+  color: var(--color-text);
+  font-weight: 500;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.contact-links a:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* 页脚 */
+.site-footer {
+  background: var(--color-footer);
+  color: #94a3b8;
+  text-align: center;
+  padding: 32px 24px;
+  font-size: 0.9rem;
+}
