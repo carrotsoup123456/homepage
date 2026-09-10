@@ -53,7 +53,7 @@ import { site, skills, contacts } from '../data/site.js'
   height: 120px;
   border-radius: 50%;
   object-fit: cover;
-  border: 4px solid #fff;
+  border: 4px solid var(--color-surface-2);
   box-shadow: var(--shadow);
   flex-shrink: 0;
 }

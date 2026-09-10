@@ -52,12 +52,5 @@ const navItems = [
 </template>
 
 <style scoped>
-.theme-toggle {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  color: var(--color-text);
-  padding: 4px;
-}
+/* 主题切换按钮样式见全局 style.css 的 .theme-toggle */
 </style>

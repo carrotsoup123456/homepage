@@ -14,7 +14,7 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
 <template>
   <footer class="site-footer">
-    <p>© 2026 刘博康 · 个人主页 V2</p>
+    <p>© 2026 刘博康 · 个人主页 V3</p>
 
     <!-- 返回顶部按钮 -->
     <Transition name="fade">
@@ -40,7 +40,7 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   border-radius: 50%;
   border: none;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   font-size: 1.3rem;
   cursor: pointer;
   box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);

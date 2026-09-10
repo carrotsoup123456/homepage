@@ -101,7 +101,7 @@ const filteredNotes = computed(() =>
 .wip-badge {
   flex-shrink: 0;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   padding: 3px 10px;
   border-radius: 999px;
   font-size: 0.78rem;
@@ -138,7 +138,7 @@ const filteredNotes = computed(() =>
 }
 .filter-chip.active {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   border-color: var(--color-primary);
 }
 .kb-list ul {
