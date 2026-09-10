@@ -30,3 +30,41 @@ export default {
     if (observer) observer.unobserve(el)
   },
 }
+
+// v-reveal-stagger：容器进入视口后，其子元素按顺序错峰渐入
+// 用法：v-reveal-stagger 或 v-reveal-stagger="{ step: 120 }"
+export const revealStagger = {
+  mounted(el, binding) {
+    const step = (binding.value && binding.value.step) || 90
+    const children = Array.from(el.children)
+    children.forEach((child, i) => {
+      child.classList.add('reveal')
+      child.style.transitionDelay = `${i * step}ms`
+    })
+
+    const revealAll = () =>
+      children.forEach((child) => child.classList.add('revealed'))
+
+    if (typeof IntersectionObserver === 'undefined') {
+      revealAll()
+      return
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            revealAll()
+            io.disconnect()
+          }
+        })
+      },
+      { threshold: 0.12 }
+    )
+    io.observe(el)
+    el._revealIO = io
+  },
+  unmounted(el) {
+    if (el._revealIO) el._revealIO.disconnect()
+  },
+}

@@ -578,6 +578,126 @@ img {
   }
 }
 
+/* ---------------- 首屏进场编排 ---------------- */
+@keyframes heroEnter {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cueEnter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 18px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+.hero-kicker,
+.hero-title,
+.hero-tagline-v3,
+.hero-actions-v3,
+.hero-portrait-wrap {
+  animation: heroEnter 1s var(--ease) both;
+}
+.hero-kicker {
+  animation-delay: 0.05s;
+}
+.hero-title {
+  animation-delay: 0.16s;
+}
+.hero-tagline-v3 {
+  animation-delay: 0.3s;
+}
+.hero-actions-v3 {
+  animation-delay: 0.44s;
+}
+.hero-portrait-wrap {
+  animation-delay: 0.26s;
+}
+.scroll-cue {
+  animation: cueEnter 1s var(--ease) 0.9s both;
+  z-index: 2;
+}
+
+/* ---------------- Hero 氛围层：森林萤火虫 + 鼠标柔光 ---------------- */
+.hero-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.fireflies {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.fireflies span {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #ffffff 0%,
+    #e8fff0 22%,
+    rgba(190, 255, 214, 0.85) 42%,
+    rgba(127, 194, 142, 0) 72%
+  );
+  box-shadow:
+    0 0 5px 1.5px rgba(226, 255, 238, 0.7),
+    0 0 16px 5px rgba(140, 210, 158, 0.34);
+  opacity: 0;
+  animation: firefly var(--dur, 8s) ease-in-out var(--delay, 0s) infinite;
+}
+@keyframes firefly {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.5);
+  }
+  12% {
+    opacity: var(--peak, 0.85);
+  }
+  45% {
+    opacity: var(--peak, 0.85);
+  }
+  80% {
+    opacity: calc(var(--peak, 0.85) * 0.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(
+        calc(var(--dx, 24px) * -0.5),
+        calc(var(--dy, -48px) * 1.7),
+        0
+      )
+      scale(0.6);
+  }
+}
+
+.hero-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s var(--ease);
+  background: radial-gradient(
+    380px circle at var(--mx, 50%) var(--my, 40%),
+    rgba(198, 255, 212, 0.24),
+    rgba(198, 255, 212, 0.08) 42%,
+    rgba(198, 255, 212, 0) 72%
+  );
+}
+.hero-v3:hover .hero-glow {
+  opacity: 1;
+}
+
 /* ---------------- 徽标 / 技能跑马灯 ---------------- */
 .marquee {
   overflow: hidden;
@@ -1068,8 +1188,19 @@ img {
   }
   .marquee-track,
   .float-tag,
-  .scroll-cue span {
+  .scroll-cue span,
+  .hero-kicker,
+  .hero-title,
+  .hero-tagline-v3,
+  .hero-actions-v3,
+  .hero-portrait-wrap,
+  .scroll-cue,
+  .fireflies span {
     animation: none;
+  }
+  .fireflies,
+  .hero-glow {
+    display: none;
   }
 }
 
