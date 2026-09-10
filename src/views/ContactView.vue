@@ -8,17 +8,18 @@ const form = ref({ name: '', email: '', message: '' })
 const status = ref('idle')
 const submitMsg = ref('')
 
-// Formspree endpoint（公网版联系表单）。
-// 占位 ID：注册 Formspree 后替换为真实值，例如 'https://formspree.io/f/xxxxxxx'
-// 也可通过环境变量 VITE_FORMSPREE_ENDPOINT 覆盖。
-const FORM_ENDPOINT = import.meta.env.VITE_FORMSPREE_ENDPOINT || 'https://formspree.io/f/YOUR_FORM_ID'
+// 公网版联系表单后端：FormSubmit（无需注册 / 无需邮箱验证循环）。
+// 留言会直接发送到下面的邮箱；首次提交会收到一封激活邮件，点击激活后永久生效。
+// 也可通过环境变量 VITE_FORM_ENDPOINT 覆盖（便于更换后端）。
+const FORM_ENDPOINT =
+  import.meta.env.VITE_FORM_ENDPOINT || 'https://formsubmit.co/ajax/carrotsoup@qq.com'
 
 async function handleSubmit() {
   if (!form.value.name.trim() || !form.value.message.trim()) return
   status.value = 'sending'
   submitMsg.value = ''
   try {
-    // Formspree 支持 JSON 提交（Accept: application/json 以获取结构化响应）
+    // FormSubmit 的 AJAX 接口：JSON 提交并返回结构化结果
     const res = await fetch(FORM_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -29,19 +30,24 @@ async function handleSubmit() {
         name: form.value.name,
         email: form.value.email,
         message: form.value.message,
-        // Formspree 约定字段
+        // FormSubmit 约定字段
         _replyto: form.value.email || 'no-reply@example.com',
         _subject: '来自个人主页的留言',
+        // 关闭 reCAPTCHA，保证 AJAX 静默提交（课程演示用）
+        _captcha: 'false',
+        _template: 'table',
       }),
     })
     const data = await res.json()
-    if (res.ok) {
+    // FormSubmit 返回 { success: "true" | true, message: "..." }
+    const ok = res.ok && (data.success === true || data.success === 'true')
+    if (ok) {
       status.value = 'success'
       submitMsg.value = '已收到你的留言！我会尽快回复。'
       form.value = { name: '', email: '', message: '' }
     } else {
       status.value = 'error'
-      submitMsg.value = data?.errors?.[0]?.message || '提交失败，请稍后再试。'
+      submitMsg.value = data?.message || '提交失败，请稍后再试。'
     }
   } catch (e) {
     status.value = 'error'
