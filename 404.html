@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>页面不存在 · 刘博康的个人主页</title>
+    <!--
+      这个文件只会在「路径不存在」时被 GitHub Pages 使用（例如手输 /homepage/abc）。
+      本站内容都在 /homepage/ 下用 # 号切换，所以这里把访客送回入口页面。
+      加了 <noscript> 兜底：即使脚本被禁用，meta refresh 也会跳转。
+    -->
+    <meta http-equiv="refresh" content="0; url=/homepage/" />
+    <link rel="canonical" href="https://carrotsoup123456.github.io/homepage/" />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #f6f1e7;
+        color: #2b2b2b;
+        font-family: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        text-align: center;
+      }
+      main { padding: 40px 24px; max-width: 460px; }
+      h1 { font-size: 1.4rem; margin: 0 0 8px; }
+      p { color: #6b6b6b; line-height: 1.7; margin: 0 0 20px; }
+      a {
+        display: inline-block;
+        padding: 10px 22px;
+        border-radius: 999px;
+        background: #2f5d50;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 600;
+      }
+    </style>
+    <script>
+      // 用 replace 而不是 location.href，避免在浏览器历史里留下一条多余记录
+      location.replace('/homepage/')
+    </script>
+  </head>
+  <body>
+    <main>
+      <h1>这个地址没有内容</h1>
+      <p>你访问的路径不在本站范围内，正在带你回到主页。</p>
+      <a href="/homepage/">立即前往主页</a>
+    </main>
+  </body>
+</html>

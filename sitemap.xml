@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  本站使用 hash 路由（地址形如 /homepage/#/about）。
+  搜索引擎把 # 之后的部分当作同一个页面的锚点，不会单独收录，
+  所以这里只登记站点入口一条记录，而不是为每个视图都编一条假地址。
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://carrotsoup123456.github.io/homepage/</loc>
+    <lastmod>2026-09-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

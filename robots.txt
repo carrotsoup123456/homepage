@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+# 本站是单页应用，所有内容都在同一个地址下（用 # 号切换视图），
+# 因此只需要一条站点地址，不需要逐页列出。
+Sitemap: https://carrotsoup123456.github.io/homepage/sitemap.xml
