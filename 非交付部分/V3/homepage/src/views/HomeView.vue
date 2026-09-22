@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { site, skills, projects, experiences, education, contacts } from '../data/site.js'
+import FeedbackWidget from '../components/FeedbackWidget.vue'
 
 // 资源路径（兼容 GitHub Pages 的 base 前缀）
 const base = import.meta.env.BASE_URL
@@ -344,6 +345,9 @@ onUnmounted(() => {
             >{{ c.icon }} {{ c.label }}</a
           >
         </div>
+
+        <!-- 整站反馈入口（对应课程要求：收集反馈 → 有依据地改进） -->
+        <FeedbackWidget page="首页" />
       </div>
     </section>
   </div>

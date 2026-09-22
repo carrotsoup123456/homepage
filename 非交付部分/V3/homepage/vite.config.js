@@ -11,4 +11,11 @@ export default defineConfig({
     port: 5174,
     host: true,
   },
+  // 最小测试配置（Vitest）：在模拟浏览器环境里跑 tests/ 下的用例。
+  // 只影响开发，不进入构建产物。
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    include: ['tests/**/*.spec.js'],
+  },
 })

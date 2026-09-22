@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { marked } from 'marked'
 import { projects } from '../data/site.js'
+import FeedbackWidget from '../components/FeedbackWidget.vue'
 
 const route = useRoute()
 
@@ -79,6 +80,8 @@ function closeImage() {
           <span v-for="h in project.highlights" :key="h" class="skill-tag">{{ h }}</span>
         </div>
       </section>
+
+      <FeedbackWidget page="项目详情" :item="project.id" />
     </template>
 
     <template v-else>
