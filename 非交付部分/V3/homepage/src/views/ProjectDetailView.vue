@@ -6,6 +6,7 @@ import { projects } from '../data/site.js'
 import { setPageMeta } from '../data/meta.js'
 import { imgSize } from '../data/image-sizes.js'
 import FeedbackWidget from '../components/FeedbackWidget.vue'
+import NotFoundView from './NotFoundView.vue'
 
 const route = useRoute()
 
@@ -23,7 +24,12 @@ const rendered = computed(() => {
 watch(
   project,
   (p) => {
-    if (!p) return
+    if (!p) {
+      // 地址里的项目 id 不存在（例如项目已经撤下）：这里也要说清楚，
+      // 否则标签页会一直挂着通用的「项目详情」，看起来像页面坏了。
+      setPageMeta({ title: '页面不存在', desc: '这个地址没有对应内容。', path: route.path })
+      return
+    }
     setPageMeta({
       title: p.title,
       desc: `${p.title}：${p.role || ''}${p.tech ? ' · ' + p.tech : ''}`.trim(),
@@ -143,8 +149,8 @@ onBeforeUnmount(() => {
     </template>
 
     <template v-else>
-      <p class="not-found">项目不存在。</p>
-      <RouterLink to="/" class="back-link">← 返回首页</RouterLink>
+      <!-- 找不到这个项目：复用全站同一个 404 页面，不要另做一套长相 -->
+      <NotFoundView />
     </template>
   </div>
 </template>

@@ -230,6 +230,29 @@ describe('找不到的地址', () => {
     expect(w.text()).toContain('/no-such-page')
     expect(w.findAll('a').length).toBeGreaterThanOrEqual(3)
   })
+
+  it('项目 id 不存在时也进同一个「页面不存在」页，并且标签页标题跟着改', async () => {
+    const r = createRouter({ history: createWebHashHistory(), routes })
+    r.push('/project/cc' + 'switch') // 已撤下、不再展示的项目，旧链接会走到这里
+    await r.isReady()
+
+    document.body.innerHTML = ''
+    const w = mount(ProjectDetailView, {
+      attachTo: document.body,
+      global: {
+        plugins: [r],
+        directives: { reveal, 'reveal-stagger': revealStagger },
+        stubs: { FeedbackWidget: true },
+      },
+    })
+    await w.vm.$nextTick()
+
+    // 不能是一个没有标题的空壳：要真的渲染出 404 页面，并且给一个说得清的标题
+    expect(w.text()).toContain('这个页面不存在')
+    expect(w.find('h1').text()).toBe('这个页面不存在')
+    expect(document.title).toContain('页面不存在')
+    expect(document.title).not.toContain('项目详情')
+  })
 })
 
 describe('搜索引擎与社交分享（静态文件）', () => {

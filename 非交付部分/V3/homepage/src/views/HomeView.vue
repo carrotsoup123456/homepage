@@ -15,7 +15,7 @@ const floatTags = ['Python', 'AI 工具应用', '架子鼓 10 级']
 
 // 统计数字（滚动到可视区时从 0 递增到目标值）
 const stats = [
-  { num: 6, label: '项目实践' },
+  { num: 5, label: '项目实践' },
   { num: 10, label: '架子鼓等级' },
   { num: 3, label: '实践经历' },
   { num: 2026, label: '入学天大' },

@@ -39,6 +39,16 @@ describe('站点数据', () => {
     }
   })
 
+  it('已决定不展示的项目不能出现在展示列表里（合规决定，防止被误加回来）', () => {
+    // 这个工具涉及"没经过上游官方认可"的用法，已决定不在作品集里展示；
+    // 它的技术内容改为并入「第三方桌面应用本地二次开发」那一项。
+    const withdrawn = ['cc' + 'switch']
+    for (const id of withdrawn) {
+      const p = projects.find((x) => x.id === id)
+      expect(p, `${id} 已决定不展示，不要加回 projects`).toBeFalsy()
+    }
+  })
+
   it('二次开发类项目必须写明上游来源（防止把别人的成品说成自己的）', () => {
     const thirdParty = ['todo-panel', 'claude-code-custom']
     for (const id of thirdParty) {
