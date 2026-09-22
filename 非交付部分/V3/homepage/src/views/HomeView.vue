@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { site, skills, projects, experiences, education, contacts } from '../data/site.js'
+import { imgSize } from '../data/image-sizes.js'
 import FeedbackWidget from '../components/FeedbackWidget.vue'
 
 // 资源路径（兼容 GitHub Pages 的 base 前缀）
@@ -176,7 +177,7 @@ onUnmounted(() => {
 
         <div class="hero-portrait-wrap">
           <div class="hero-frame">
-            <img v-if="site.avatar" :src="site.avatar" alt="刘博康" />
+            <img v-if="site.avatar" :src="site.avatar" alt="刘博康" v-bind="imgSize(site.avatar)" />
           </div>
           <span
             v-for="(t, i) in floatTags"
@@ -210,7 +211,12 @@ onUnmounted(() => {
       <div class="container manifesto-inner">
         <div class="manifesto-media">
           <div class="frame-card">
-            <img :src="mossImg" alt="苔藓与新芽的微距特写" loading="lazy" />
+            <img
+              :src="mossImg"
+              alt="苔藓与新芽的微距特写"
+              loading="lazy"
+              v-bind="imgSize(mossImg)"
+            />
           </div>
         </div>
         <div class="manifesto-copy">
@@ -273,6 +279,7 @@ onUnmounted(() => {
                 :src="p.images[0].src"
                 :alt="p.images[0].alt"
                 loading="lazy"
+                v-bind="imgSize(p.images[0].src)"
               />
             </div>
             <span class="media-badge">{{ p.role }}</span>
@@ -303,6 +310,7 @@ onUnmounted(() => {
                 :alt="img.alt"
                 class="exp-img"
                 loading="lazy"
+                v-bind="imgSize(img.src)"
               />
             </div>
           </li>

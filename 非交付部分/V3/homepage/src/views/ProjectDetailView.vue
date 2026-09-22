@@ -1,8 +1,10 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { marked } from 'marked'
 import { projects } from '../data/site.js'
+import { setPageMeta } from '../data/meta.js'
+import { imgSize } from '../data/image-sizes.js'
 import FeedbackWidget from '../components/FeedbackWidget.vue'
 
 const route = useRoute()
@@ -16,14 +18,52 @@ const rendered = computed(() => {
   return marked.parse(project.value.long || '')
 })
 
-// 图片灯箱：当前放大的图片
+// 标签页标题跟着项目走。
+// flush:'post' 表示等这个组件渲染完再写，这样它会覆盖路由里那个通用的「项目详情」。
+watch(
+  project,
+  (p) => {
+    if (!p) return
+    setPageMeta({
+      title: p.title,
+      desc: `${p.title}：${p.role || ''}${p.tech ? ' · ' + p.tech : ''}`.trim(),
+      path: `/project/${p.id}`,
+    })
+  },
+  { immediate: true, flush: 'post' }
+)
+
+// ---- 图片灯箱 ----
 const viewer = ref(null)
-function openImage(img) {
+const lightboxClose = ref(null)
+let lastFocused = null
+
+function openImage(img, event) {
+  lastFocused = event?.currentTarget ?? null
   viewer.value = img
+  // 等弹出层渲染出来再把焦点移进关闭按钮（键盘用户才能直接按 Enter 关掉）
+  nextTick(() => lightboxClose.value?.focus())
 }
+
 function closeImage() {
   viewer.value = null
+  // 关闭后焦点还给刚才那张图，不然键盘焦点会掉到页面顶部
+  lastFocused?.focus?.()
+  lastFocused = null
 }
+
+// 灯箱开着时按 Esc 关闭
+function onKeydown(e) {
+  if (e.key === 'Escape' && viewer.value) closeImage()
+}
+watch(viewer, (v) => {
+  if (typeof document === 'undefined') return
+  if (v) document.addEventListener('keydown', onKeydown)
+  else document.removeEventListener('keydown', onKeydown)
+})
+onBeforeUnmount(() => {
+  if (typeof document !== 'undefined') document.removeEventListener('keydown', onKeydown)
+})
 </script>
 
 <template>
@@ -58,8 +98,17 @@ function closeImage() {
         <h2 class="section-title">项目展示</h2>
         <p class="gallery-hint">点击图片可查看完整大图</p>
         <div class="gallery-grid">
-          <figure v-for="(img, i) in project.images" :key="img.src + i" class="gallery-item" @click="openImage(img)">
-            <img :src="img.src" :alt="img.alt" loading="lazy" />
+          <figure v-for="(img, i) in project.images" :key="img.src + i" class="gallery-item">
+            <!-- 图片本身用 <button> 包起来：这样键盘用户 Tab 得到、也能按回车打开，
+                 单纯给 <figure> 加 @click 只有鼠标能用 -->
+            <button
+              type="button"
+              class="gallery-btn"
+              :aria-label="`放大查看：${img.alt}`"
+              @click="openImage(img, $event)"
+            >
+              <img :src="img.src" :alt="img.alt" loading="lazy" v-bind="imgSize(img.src)" />
+            </button>
             <figcaption v-if="img.alt">{{ img.alt }}</figcaption>
           </figure>
         </div>
@@ -67,8 +116,17 @@ function closeImage() {
 
       <!-- 图片灯箱 -->
       <transition name="fade">
-        <div v-if="viewer" class="lightbox" @click.self="closeImage">
-          <button class="lightbox-close" @click="closeImage" aria-label="关闭">✕</button>
+        <div
+          v-if="viewer"
+          class="lightbox"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="viewer.alt || '查看大图'"
+          @click.self="closeImage"
+        >
+          <button ref="lightboxClose" class="lightbox-close" @click="closeImage" aria-label="关闭大图">
+            ✕
+          </button>
           <img :src="viewer.src" :alt="viewer.alt" class="lightbox-img" />
           <p v-if="viewer.alt" class="lightbox-caption">{{ viewer.alt }}</p>
         </div>
@@ -167,6 +225,14 @@ function closeImage() {
   overflow: hidden;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+}
+/* 包住图片的按钮：清掉浏览器默认按钮外观，只保留「可点」的提示 */
+.gallery-btn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
   cursor: zoom-in;
 }
 .gallery-item img {

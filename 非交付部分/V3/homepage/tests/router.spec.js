@@ -22,9 +22,16 @@ describe('路由表', () => {
     }
   })
 
-  it('未知地址会被兜底规则接住（不报错）', () => {
+  it('未知地址会被兜底规则接住（进 404 页，不报错也不白屏）', () => {
     const resolved = router.resolve('/this-page-does-not-exist')
-    // 兜底规则：redirect 到首页
+    // 兜底规则：渲染「页面不存在」，而不是悄悄重定向回首页（那会让人以为链接是对的）
     expect(resolved.matched.length).toBeGreaterThan(0)
+    expect(resolved.name).toBe('not-found')
+  })
+
+  it('地址里的 # 号不会影响匹配（线上用的是 hash 路由）', () => {
+    // 线上真实地址形如 https://.../homepage/#/project/stock-quant
+    expect(router.resolve('/project/stock-quant').params.id).toBe('stock-quant')
+    expect(router.resolve('/knowledge').name).toBe('knowledge')
   })
 })

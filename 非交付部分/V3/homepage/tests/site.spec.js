@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import path from 'node:path'
 import fs from 'node:fs'
-import { site, skills, skillDetails, projects, contacts } from '../src/data/site.js'
+import { site, skills, skillDetails, projects, experiences, contacts } from '../src/data/site.js'
+import { imageSizes, imgSize } from '../src/data/image-sizes.js'
 
 // 站点数据完整性：数据是各页面渲染的唯一来源，坏了页面就空白。
 describe('站点数据', () => {
@@ -111,6 +112,39 @@ describe('站点数据', () => {
       }
     }
     expect(missing, missing.join('\n')).toEqual([])
+  })
+
+  it('每张图都能查到真实宽高（查不到就没法防止页面跳动）', () => {
+    // 先把站内所有图片来源收集起来：项目图 + 经历图 + 头像 + 首页背景
+    const all = []
+    for (const p of projects) for (const img of p.images || []) all.push(img.src)
+    for (const e of experiences) for (const img of e.images || []) all.push(img.src)
+    if (site.avatar) all.push(site.avatar)
+    all.push('/homepage/art/hero-forest.jpg', '/homepage/art/moss-macro.jpg')
+
+    const unknown = []
+    for (const src of all) {
+      const size = imgSize(src)
+      if (!size.width || !size.height) unknown.push(src)
+    }
+    expect(unknown, unknown.join('\n')).toEqual([])
+  })
+
+  it('尺寸表里的宽高都是正数（解析文件头出错时会读出 0 或负数）', () => {
+    const bad = Object.entries(imageSizes).filter(
+      ([, v]) => !(v.w > 0) || !(v.h > 0)
+    )
+    expect(bad.map(([k]) => k), bad.map(([k]) => k).join('\n')).toEqual([])
+  })
+
+  it('带 base 前缀和不带前缀的写法都能查到同一张图（本地与线上一致）', () => {
+    expect(imgSize('/homepage/avatar.jpg')).toEqual(imgSize('/avatar.jpg'))
+    expect(imgSize('/homepage/projects/weiguan-yifang/bg.jpg')).toEqual(
+      imgSize('/projects/weiguan-yifang/bg.jpg')
+    )
+    // 拿不存在的地址不能报错，只是返回空
+    expect(imgSize('/not-here.jpg')).toEqual({})
+    expect(imgSize('')).toEqual({})
   })
 
   it('项目的外链都是 https 开头', () => {

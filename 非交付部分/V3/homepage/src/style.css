@@ -100,12 +100,56 @@ a {
 
 img {
   max-width: 100%;
+  /* 配合 <img> 上的 width/height 属性：浏览器提前知道宽高比、先占好位置，
+     图片下载完也不会把下面的内容顶开（避免布局跳动 CLS）。
+     height:auto 必须写 —— 否则被 max-width 压缩时高度仍取属性值，图片会被压扁。 */
+  height: auto;
   display: block;
 }
 
 ::selection {
   background: var(--color-green-soft);
   color: var(--color-text);
+}
+
+/* ---------------- 键盘可达（只用键盘也能完整操作） ---------------- */
+/* 鼠标点击时不显示焦点框，用键盘 Tab 移动时显示——避免"看不见自己停在哪" */
+:focus-visible {
+  outline: 3px solid var(--color-green);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* 「跳到主要内容」：平时藏在屏幕外，键盘聚焦时才滑出来 */
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 2000;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transform: translateY(-200%);
+  transition: transform 0.2s var(--ease);
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* 只给读屏软件看的文字（视觉上隐藏，但仍能被朗读） */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ---------------- 容器与区块 ---------------- */

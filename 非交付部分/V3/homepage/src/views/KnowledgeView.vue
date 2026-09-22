@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
 import { allTags, searchNotes } from '../data/notes.js'
+import { setPageMeta } from '../data/meta.js'
 import FeedbackWidget from '../components/FeedbackWidget.vue'
 
 // 关键词 + 标签筛选（这两个是「输入」，不放进地址栏）
@@ -38,6 +39,23 @@ function resetAll() {
   keyword.value = ''
   tagFilter.value = '全部'
 }
+
+// 标签页标题跟着当前这篇笔记走：本来所有笔记共用「知识库」一个标题，
+// 收藏了某一篇再打开会分不清是哪篇。flush:'post' 让它覆盖路由里的通用标题。
+watch(
+  activeNote,
+  (n) => {
+    if (!n) return
+    setPageMeta({
+      title: `${n.title} · 知识库`,
+      desc: `笔记：${n.title}${
+        n.tags?.length ? '｜标签：' + n.tags.join('、') : ''
+      }｜约 ${n.minutes} 分钟`,
+      path: '/knowledge',
+    })
+  },
+  { immediate: true, flush: 'post' }
+)
 
 // 切换标签时，如果当前选中的笔记被筛掉了，就自动跳到第一条
 watch(filtered, (list) => {
@@ -160,17 +178,6 @@ watch(filtered, (list) => {
 }
 
 /* 仅屏幕阅读器可见 */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
 
 /* ---- 搜索 ---- */
 .kb-search {
