@@ -66,7 +66,7 @@
 Electron 应用改完代码**必须重新签名**，而且必须**由内到外**逐层签、带上 entitlements。只签外层会让里面的框架身份不一致，macOS 直接拒绝加载，应用就**打不开**了。后来想明白了更省事的办法：只改 JavaScript 资源其实根本不用重签，可以完全绕开这个坑。
 
 ### 额外说明
-面板的自动更新会覆盖本地改动，所以每次更新后需要按流程把补丁重新打一遍——这套流程已经写在技能里，重打成本很低。`,highlights:[`上游为 MIT 开源项目（非原创）`,`自研 HTTP 写入通道`,`重签与端到端验证流程`]},{id:`claude-code-custom`,icon:`🧩`,title:`第三方桌面应用本地二次开发`,short:`给一款 Claude Code 桌面应用做汉化、面板注入与缺陷修复`,desc:`在一款第三方 Claude Code 桌面应用上做<strong>本地二次开发</strong>：界面汉化、注入技能库与工作区面板、修正流式输出丢字的缺陷。目标是不动上游代码，做成可以随时重打的补丁。`,tech:`Electron / JavaScript`,role:`本地二次开发（上游为第三方应用，非原创）`,images:[{src:X(`projects/claude-code/skills.png`),alt:`注入的技能库面板（全中文名 + 分类）`},{src:X(`projects/claude-code/tools.png`),alt:`工具调用分组展示`},{src:X(`projects/claude-code/workspace.jpg`),alt:`工作区文件面板与产物预览`}],long:`> **先说清楚边界**：这款 Claude Code 桌面应用是**别人做的成品软件**，不是我开发的。我做的是**在它上面做本地二次开发**——不改上游源码，用补丁的方式补功能、修缺陷。
+面板的自动更新会覆盖本地改动，所以每次更新后需要按流程把补丁重新打一遍——这套流程已经写在技能里，重打成本很低。`,highlights:[`上游为 MIT 开源项目（非原创）`,`自研 HTTP 写入通道`,`重签与端到端验证流程`]},{id:`claude-code-custom`,icon:`🧩`,title:`第三方桌面应用本地二次开发`,short:`给一款 Claude Code 桌面应用做汉化、面板注入与缺陷修复`,desc:`在一款第三方 Claude Code 桌面应用上做<strong>本地二次开发</strong>：界面汉化、注入技能库与工作区面板、修正流式输出丢字的缺陷。目标是不动上游代码，做成可以随时重打的补丁。`,tech:`Electron / JavaScript`,role:`本地二次开发（上游为第三方应用，非原创）`,images:[{src:X(`projects/claude-code/skills.jpg`),alt:`注入的技能库面板（全中文名 + 分类）`},{src:X(`projects/claude-code/tools.jpg`),alt:`工具调用分组展示`},{src:X(`projects/claude-code/workspace.jpg`),alt:`工作区文件面板与产物预览`}],long:`> **先说清楚边界**：这款 Claude Code 桌面应用是**别人做的成品软件**，不是我开发的。我做的是**在它上面做本地二次开发**——不改上游源码，用补丁的方式补功能、修缺陷。
 
 ### 我做了什么
 - **界面汉化与信息重组**：把技能库的 90 个条目做成中文名 + 分类栏，把工具调用按类型分组展示，会话列表支持按工作区筛选
