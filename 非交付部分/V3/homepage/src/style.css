@@ -27,6 +27,7 @@
   --color-on-primary: #ffffff; /* 主色底上的文字色 */
 
   --max-width: 1140px;
+  --header-h: 74px; /* 头部高度：导航条与移动菜单共用，避免两处写死同一个数字 */
   --section-gap: 112px;
   --radius: 18px;
   --radius-lg: 28px;
@@ -152,6 +153,12 @@ img {
   border: 0;
 }
 
+/* 保险：万一有内容装不下，也不产生横向滚动条（真正的修法在各页面的媒体查询里）
+   clip 与 hidden 的区别：clip 不产生滚动容器，不会影响吸顶导航 */
+html {
+  overflow-x: clip;
+}
+
 /* ---------------- 容器与区块 ---------------- */
 .container {
   max-width: var(--max-width);
@@ -211,7 +218,7 @@ img {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 74px;
+  height: var(--header-h);
 }
 
 .nav-brand {
@@ -294,20 +301,64 @@ img {
 @media (max-width: 768px) {
   .nav-links {
     position: fixed;
-    inset: 74px 0 auto 0;
+    inset: var(--header-h) 0 auto 0;
     flex-direction: column;
     background: var(--color-surface);
     border-bottom: 1px solid var(--color-border);
     padding: 22px 28px;
     gap: 20px;
     transform: translateY(-160%);
-    transition: transform 0.35s var(--ease);
+    /* 收起时必须真的"藏起来"：只靠 transform 挪出屏幕，元素还在页面里，
+       键盘用户按 Tab 会跳进一个看不见的菜单。visibility 会同时移出焦点顺序与读屏范围。 */
+    visibility: hidden;
+    transition: transform 0.35s var(--ease), visibility 0.35s;
   }
   .nav-links.open {
     transform: translateY(0);
+    visibility: visible;
   }
+  .nav-links li {
+    display: flex;
+  }
+  /* 菜单里每条链接撑到 44px 高：手指好点，文字靠 align-items 居中 */
+  .nav-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  /* 链接变高后，下划线的锚点要跟着文字走，否则会掉到文字下方 11px */
+  .nav-links a::after {
+    bottom: calc(50% - 16px);
+  }
+  /* 汉堡键从"靠 ☰ 这个字撑出来的 23×31"改成 44×44。
+     justify-content: flex-end 是为了让 ☰ 停在原来的位置，把多出来的宽度扩到左边。 */
   .nav-toggle {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .theme-toggle {
+    width: 44px;
+    height: 44px;
+  }
+  /* 手机上把常用的小目标撑到 44px（桌面鼠标环境保持原样） */
+  .back-link {
+    padding: 12px 0;
+  }
+  .filter-chip,
+  .fb-btn {
+    min-height: 44px;
+  }
+  /* 行内元素加纵向内边距不会影响排版，只会把可点击区域从 23px 撑到 31px */
+  .work-title {
+    padding: 4px 0;
+  }
+  /* 菜单展开时锁住背景滚动。放在这个媒体查询里，宽度超过 768 时规则自动失效，
+     不会出现"手机横过来之后页面被锁死"的情况。 */
+  body.menu-open {
+    overflow: hidden;
   }
 }
 

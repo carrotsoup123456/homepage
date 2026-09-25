@@ -503,12 +503,28 @@ const principles = [
     flex-direction: column;
     text-align: center;
   }
+  /* 工作项改成两行：第一行「图标 + 标题/说明」，第二行角色标签独占整行。
+     起因：标签写了 flex-shrink: 0（不许压缩，最长一条自己就 366px 宽），
+     文字块写了 flex: 1 + min-width: 0（可以被压到 0），两者相加超过手机宽度就装不下，
+     表现为横向溢出、标题被挤成"一个字一行"的竖排。
+     原来打算用 flex-wrap: wrap 解决，但它救不了：文字块的初始宽度是 0，"永远装得下"，
+     浏览器找不到换行的理由。所以这里换成网格，让标签明确占一整行。 */
   .work-item {
-    flex-wrap: wrap;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 12px;
+    align-items: center;
+  }
+  .work-icon {
+    grid-area: 1 / 1;
+  }
+  .work-body {
+    grid-area: 1 / 2;
   }
   .work-role {
-    margin-left: 44px;
+    grid-area: 2 / 1 / 3 / 3;
+    justify-self: start;
+    margin-left: 0;
   }
 }
 </style>
