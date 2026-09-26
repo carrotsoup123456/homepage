@@ -245,8 +245,10 @@ onBeforeUnmount(() => {
   display: block;
   width: 100%;
   height: 240px;
-  object-fit: cover;
-  object-position: top;
+  /* 完整显示整幅图（cover 会把长截图裁得只剩顶部一条，用户反馈"只露角落"），
+     两侧留空处用深色底衬，点击仍可开灯箱看原尺寸。 */
+  object-fit: contain;
+  background: #0d1117;
 }
 .gallery-item figcaption {
   padding: 10px 12px;

@@ -72,6 +72,9 @@
 
 html {
   scroll-behavior: smooth;
+  /* 只允许平移与捏合缩放：双击放大被禁用（用户反馈网卡时多点两下页面会意外放大），
+     双指捏合缩放仍然保留，不影响无障碍。附带消除移动端 300ms 点击延迟。 */
+  touch-action: pan-x pan-y pinch-zoom;
 }
 
 body {
@@ -299,6 +302,19 @@ html {
 }
 
 @media (max-width: 768px) {
+  /* —— 手机端性能减负（用户反馈页面卡）：—— */
+  /* 吸顶头的毛玻璃模糊会让其下方所有滚动内容每帧重绘，是手机端卡顿大户，
+     窄屏改为近乎实心的背景，桌面端保持原样。 */
+  .site-header {
+    background: color-mix(in srgb, var(--color-bg) 96%, transparent);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  /* 22 个萤火虫光斑各自无限动画，手机端整体关闭（桌面保留氛围）。 */
+  .fireflies {
+    display: none;
+  }
+
   .nav-links {
     position: fixed;
     inset: var(--header-h) 0 auto 0;

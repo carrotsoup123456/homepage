@@ -10,6 +10,18 @@ function onScroll() {
 
 onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
 onUnmounted(() => window.removeEventListener('scroll', onScroll))
+
+// 注意：Vue 模板表达式里访问不到 window 全局对象，
+// 原来写成 @click="window.scrollTo(...)" 时 window 是 undefined，点击直接报错，
+// 所以按钮此前从未真正生效（所有设备都一样）。滚动逻辑必须放在方法里。
+function toTop() {
+  // iOS Safari < 15.4 不认识 { behavior } 对象参数，做个兜底
+  try {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  } catch {
+    window.scrollTo(0, 0)
+  }
+}
 </script>
 
 <template>
@@ -22,7 +34,7 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
         v-if="showTop"
         class="back-to-top"
         aria-label="返回顶部"
-        @click="window.scrollTo({ top: 0, behavior: 'smooth' })"
+        @click="toTop"
       >
         ↑
       </button>

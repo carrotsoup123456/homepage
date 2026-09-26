@@ -50,9 +50,17 @@ export const imageSizes = {
     "w": 16,
     "h": 17
   },
+  "projects/carbon-brain/card.jpg": {
+    "w": 1600,
+    "h": 1000
+  },
   "projects/carbon-brain/team.jpg": {
     "w": 1706,
     "h": 1279
+  },
+  "projects/claude-code/card.jpg": {
+    "w": 1600,
+    "h": 1000
   },
   "projects/claude-code/skills.jpg": {
     "w": 1500,
@@ -70,9 +78,17 @@ export const imageSizes = {
     "w": 1280,
     "h": 2200
   },
+  "projects/stock/card.jpg": {
+    "w": 1600,
+    "h": 1000
+  },
   "projects/stock/paper.png": {
     "w": 1280,
     "h": 1250
+  },
+  "projects/todo-panel/card.jpg": {
+    "w": 1600,
+    "h": 1000
   },
   "projects/todo-panel/home.jpg": {
     "w": 1500,
@@ -85,6 +101,10 @@ export const imageSizes = {
   "projects/weiguan-yifang/bg.jpg": {
     "w": 1500,
     "h": 2250
+  },
+  "projects/weiguan-yifang/card.jpg": {
+    "w": 1600,
+    "h": 1000
   },
   "projects/weiguan-yifang/cover.jpg": {
     "w": 1500,
