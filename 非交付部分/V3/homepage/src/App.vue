@@ -3,6 +3,7 @@ import { ref, provide, onMounted, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import SiteHeader from './components/SiteHeader.vue'
 import SiteFooter from './components/SiteFooter.vue'
+import ChatBot from './components/ChatBot.vue'
 import { setPageMeta } from './data/meta.js'
 
 // ---- 页面标题与分享信息 ----
@@ -61,6 +62,7 @@ function skipToMain(e) {
     </RouterView>
   </main>
   <SiteFooter />
+  <ChatBot />
 </template>
 
 <style scoped>

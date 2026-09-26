@@ -92,6 +92,11 @@ onBeforeUnmount(() => {
         <div class="markdown" v-html="rendered"></div>
       </section>
 
+      <!-- 《为官一方》专属：站内试玩入口 -->
+      <section class="detail-action" v-reveal v-if="project.id === 'weiguan-yifang'">
+        <RouterLink to="/play" class="btn btn-primary">🏯 在线试玩（无需下载）</RouterLink>
+      </section>
+
       <!-- 演示链接按钮（如有在线演示） -->
       <section class="detail-action" v-reveal v-if="project.link">
         <a :href="project.link" target="_blank" rel="noopener noreferrer" class="btn btn-primary">

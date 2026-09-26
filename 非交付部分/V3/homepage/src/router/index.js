@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import PlayView from '../views/PlayView.vue'
 import AboutView from '../views/AboutView.vue'
 import ProjectDetailView from '../views/ProjectDetailView.vue'
 import KnowledgeView from '../views/KnowledgeView.vue'
@@ -43,6 +44,12 @@ const routes = [
     name: 'contact',
     component: ContactView,
     meta: { title: '联系我', desc: '通过邮件或表单联系刘博康。' },
+  },
+  {
+    path: '/play',
+    name: 'play',
+    component: PlayView,
+    meta: { title: '在线试玩', desc: '《为官一方》站内网页试玩版，无需下载。' },
   },
   // 兜底：地址写错时给出明确的「找不到」页面，而不是悄悄跳回首页
   {

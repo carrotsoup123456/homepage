@@ -15,6 +15,7 @@ const navItems = [
   { label: '首页', to: '/', exact: true },
   { label: '关于', to: '/about' },
   { label: '知识库', to: '/knowledge' },
+  { label: '试玩', to: '/play' },
   { label: '联系', to: '/contact' },
 ]
 

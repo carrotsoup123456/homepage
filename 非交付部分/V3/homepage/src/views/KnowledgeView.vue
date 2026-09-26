@@ -5,6 +5,7 @@ import { marked } from 'marked'
 import { allTags, searchNotes } from '../data/notes.js'
 import { setPageMeta } from '../data/meta.js'
 import FeedbackWidget from '../components/FeedbackWidget.vue'
+import { notesQa } from '../data/notes-qa.js'
 
 // 关键词 + 标签筛选（这两个是「输入」，不放进地址栏）
 const keyword = ref('')
@@ -26,6 +27,7 @@ const activeId = computed(() => {
 const activeNote = computed(
   () => filtered.value.find((n) => n.id === activeId.value) ?? filtered.value[0] ?? null
 )
+const activeQa = computed(() => (activeNote.value ? notesQa[activeNote.value.id] || [] : []))
 
 const rendered = computed(() =>
   activeNote.value ? marked.parse(activeNote.value.body) : ''
@@ -148,6 +150,17 @@ watch(filtered, (list) => {
             </p>
           </header>
           <div class="markdown" v-html="rendered"></div>
+
+          <!-- 评论式问答：站长预写的「你可能想问」，不是真实访客留言 -->
+          <section v-if="activeQa.length" class="note-qa" aria-label="关于本篇的常见问题">
+            <h3 class="note-qa-title">关于这篇，你可能想问</h3>
+            <p class="note-qa-hint">以下为站长预写的常见问答；真实反馈请用底部的反馈按钮。</p>
+            <details v-for="item in activeQa" :key="item.q" class="note-qa-item">
+              <summary>{{ item.q }}</summary>
+              <p>{{ item.a }}</p>
+            </details>
+          </section>
+
           <FeedbackWidget page="知识库" :item="activeNote.id" />
         </article>
       </div>
@@ -475,5 +488,57 @@ watch(filtered, (list) => {
   .kb-body {
     padding: 24px 20px;
   }
+}
+</style>
+
+<!-- 评论式问答样式（窄屏也好点：summary 整行可点） -->
+<style scoped>
+.note-qa {
+  margin-top: 36px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+}
+.note-qa-title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  margin-bottom: 4px;
+}
+.note-qa-hint {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+.note-qa-item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+  background: var(--color-surface);
+}
+.note-qa-item summary {
+  cursor: pointer;
+  padding: 13px 16px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  gap: 8px;
+}
+.note-qa-item summary::before {
+  content: '›';
+  color: var(--color-green);
+  font-weight: 700;
+  transition: transform 0.2s;
+}
+.note-qa-item[open] summary::before {
+  transform: rotate(90deg);
+}
+.note-qa-item p {
+  padding: 0 16px 14px 40px;
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.75;
+  color: var(--color-text-muted);
 }
 </style>
