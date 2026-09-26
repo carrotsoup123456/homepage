@@ -14,7 +14,7 @@ export const site = {
   name: '刘博康',
   tagline: '计算机科学与技术学生',
   bio: '你好！我是一名计算机科学与技术的大一新生，兴趣广泛，包括但不限于研究股票、架子鼓演奏、阅读。',
-  avatar: asset('avatar.jpg'),
+  avatar: asset('avatar.webp'),
 }
 
 // ---- 技能 ----
@@ -97,7 +97,7 @@ export const projects = [
     tech: 'Python / XGBoost',
     role: '项目组长',
     images: [
-      { src: asset('projects/carbon-brain/card.jpg'), alt: 'Carbon Brain 项目团队合影' },
+      { src: asset('projects/carbon-brain/card.webp'), alt: 'Carbon Brain 项目团队合影' },
     ],
     long: `直接空气捕集（DAC）材料吸满之后必须再生才能继续工作。**与其按固定时间切换，不如让模型告诉我们「现在还剩多少容量」。** 这就是这个项目要做的事：用实验数据训练模型，估算 Polyam-N-Cu<sup>2+</sup> 材料当前的吸附饱和度。
 
@@ -127,9 +127,9 @@ export const projects = [
     tech: 'Python / LightGBM',
     role: '个人项目负责人',
     images: [
-      { src: asset('projects/stock/card.jpg'), alt: '机器学习策略回测结果：收益指标与净值曲线' },
-      { src: asset('projects/stock/backtest.png'), alt: '机器学习策略回测结果完整页面' },
-      { src: asset('projects/stock/paper.png'), alt: '模拟盘监控界面' },
+      { src: asset('projects/stock/card.webp'), alt: '机器学习策略回测结果：收益指标与净值曲线' },
+      { src: asset('projects/stock/backtest.webp'), alt: '机器学习策略回测结果完整页面' },
+      { src: asset('projects/stock/paper.webp'), alt: '模拟盘监控界面' },
     ],
     long: `目标是把「凭感觉选股」换成「按流程选股」：一份可复现的特征数据集，一个可替换的模型，一套能看结果的界面。
 
@@ -163,9 +163,9 @@ export const projects = [
     tech: 'Electron / JavaScript / Node.js / Swift',
     role: '本地二次开发（上游为第三方应用，非原创）',
     images: [
-      { src: asset('projects/claude-code/card.jpg'), alt: '注入的技能库面板（全中文名 + 分类）' },
-      { src: asset('projects/claude-code/tools.jpg'), alt: '工具调用分组展示' },
-      { src: asset('projects/claude-code/workspace.jpg'), alt: '工作区文件面板与产物预览', },
+      { src: asset('projects/claude-code/card.webp'), alt: '注入的技能库面板（全中文名 + 分类）' },
+      { src: asset('projects/claude-code/tools.webp'), alt: '工具调用分组展示' },
+      { src: asset('projects/claude-code/workspace.webp'), alt: '工作区文件面板与产物预览', },
     ],
     long: `> **先说清楚边界**：这款 Claude Code 桌面应用是**别人做的成品软件**，不是我开发的。我做的是**在它上面做本地二次开发**——不改上游源码，用补丁的方式补功能、修缺陷。
 
@@ -204,10 +204,10 @@ export const projects = [
     tech: 'Cocos Creator 3.8 / TypeScript',
     role: '单人全栈（策划 + 数值 + 程序）',
     images: [
-      { src: asset('projects/weiguan-yifang/card.jpg'), alt: '游戏核心玩法：政令抉择界面（设粥棚/修堤筑坝/巡视乡里等政令卡）' },
-      { src: asset('projects/weiguan-yifang/event.jpg'), alt: '游戏内政令抉择界面：城中乞儿事件与三个选项' },
-      { src: asset('projects/weiguan-yifang/cover.jpg'), alt: '《为官一方》内置试玩版封面' },
-      { src: asset('projects/weiguan-yifang/bg.jpg'), alt: '游戏使用的传统水墨山水背景（AI 生成素材）' },
+      { src: asset('projects/weiguan-yifang/card.webp'), alt: '游戏核心玩法：政令抉择界面（设粥棚/修堤筑坝/巡视乡里等政令卡）' },
+      { src: asset('projects/weiguan-yifang/event.webp'), alt: '游戏内政令抉择界面：城中乞儿事件与三个选项' },
+      { src: asset('projects/weiguan-yifang/cover.webp'), alt: '《为官一方》内置试玩版封面' },
+      { src: asset('projects/weiguan-yifang/bg.webp'), alt: '游戏使用的传统水墨山水背景（AI 生成素材）' },
     ],
     long: `一款**古代县令治理模拟**游戏。你是大衍朝青阳县的七品县令，要在**治县三载**里平衡银库、粮仓、民心、治安、官声、人口六项指标，三年后按考课结果决定前程。
 
@@ -238,9 +238,9 @@ export const projects = [
     tech: 'Electron / JavaScript',
     role: '本地二次开发（上游：xiaopu-ai/TO-DO Panel，MIT 许可）',
     images: [
-      { src: asset('projects/todo-panel/card.jpg'), alt: 'TO-DO Panel 工作台：音乐/番茄钟/随笔记等模块' },
-      { src: asset('projects/todo-panel/home.jpg'), alt: 'TO-DO Panel 首页工作台' },
-      { src: asset('projects/todo-panel/todo.jpg'), alt: 'TO-DO Panel 待办页面' },
+      { src: asset('projects/todo-panel/card.webp'), alt: 'TO-DO Panel 工作台：音乐/番茄钟/随笔记等模块' },
+      { src: asset('projects/todo-panel/home.webp'), alt: 'TO-DO Panel 首页工作台' },
+      { src: asset('projects/todo-panel/todo.webp'), alt: 'TO-DO Panel 待办页面' },
     ],
     long: `> **先说清楚边界**：TO-DO Panel 是 **xiaopu-ai 开发的开源项目**（MIT 许可），不是我原创的产品。我做的是**本机二次开发**——在它上面补我想要的能力。这一条对课程和面试都重要，所以写在最前面。
 
@@ -269,11 +269,11 @@ export const experiences = [
     role: '架子鼓手',
     desc: '担任校管乐团与弦乐团鼓手，在校期间多次参与展演活动（图1、2、3）。带队参加中山市第六届中小学生艺术展演活动管（弦）乐比赛，校管乐团《La La Land》获三等奖、弦乐团《il vento d\u2019 oro》获二等奖（图4、5）。',
     images: [
-      { src: asset('experience/band-1.jpg'), alt: '架子鼓展演' },
-      { src: asset('experience/band-2.jpg'), alt: '校管弦乐团演出' },
-      { src: asset('experience/band-3.jpg'), alt: '舞台演出' },
-      { src: asset('experience/award-2.jpg'), alt: '二等奖获奖证书' },
-      { src: asset('experience/award-3.jpg'), alt: '三等奖获奖证书' },
+      { src: asset('experience/band-1.webp'), alt: '架子鼓展演' },
+      { src: asset('experience/band-2.webp'), alt: '校管弦乐团演出' },
+      { src: asset('experience/band-3.webp'), alt: '舞台演出' },
+      { src: asset('experience/award-2.webp'), alt: '二等奖获奖证书' },
+      { src: asset('experience/award-3.webp'), alt: '三等奖获奖证书' },
     ],
   },
   {
@@ -282,7 +282,7 @@ export const experiences = [
     role: '组长',
     desc: '参与多校联办的青年商赛并担任组长，带领队伍获得比赛二等奖（图6）。',
     images: [
-      { src: asset('experience/business.jpg'), alt: '青年商赛现场' },
+      { src: asset('experience/business.webp'), alt: '青年商赛现场' },
     ],
   },
   {
@@ -291,7 +291,7 @@ export const experiences = [
     role: '德意志联邦共和国代表',
     desc: '参加第六届星云模拟联合国大会—2015 叙利亚局势会议，担任德意志联邦共和国代表（图7）；签署多份对德贸易合作，带领欧盟建立难民工厂项目，妥善安置叙利亚难民。',
     images: [
-      { src: asset('experience/mun.jpg'), alt: '模拟联合国代表胸牌' },
+      { src: asset('experience/mun.webp'), alt: '模拟联合国代表胸牌' },
     ],
   },
 ]

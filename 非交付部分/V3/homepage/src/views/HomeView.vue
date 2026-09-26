@@ -7,8 +7,8 @@ import FeedbackWidget from '../components/FeedbackWidget.vue'
 
 // 资源路径（兼容 GitHub Pages 的 base 前缀）
 const base = import.meta.env.BASE_URL
-const heroImg = `${base}art/hero-forest.jpg`
-const mossImg = `${base}art/moss-macro.jpg`
+const heroImg = `${base}art/hero-forest.webp`
+const mossImg = `${base}art/moss-macro.webp`
 
 // 悬浮注解：展示我的兴趣关键词
 const floatTags = ['Python', 'AI 工具应用', '架子鼓 10 级']
@@ -177,7 +177,7 @@ onUnmounted(() => {
 
         <div class="hero-portrait-wrap">
           <div class="hero-frame">
-            <img v-if="site.avatar" :src="site.avatar" alt="刘博康" v-bind="imgSize(site.avatar)" />
+            <img v-if="site.avatar" :src="site.avatar" alt="刘博康" fetchpriority="high" v-bind="imgSize(site.avatar)" />
           </div>
           <span
             v-for="(t, i) in floatTags"

@@ -2,45 +2,45 @@
 // 用途：给 <img> 提供 width/height，让浏览器提前知道宽高比，避免图片加载造成的布局跳动（CLS）。
 // 重新生成： node scripts/gen-image-sizes.mjs
 export const imageSizes = {
-  "art/hero-forest.jpg": {
+  "art/hero-forest.webp": {
     "w": 1326,
     "h": 944
   },
-  "art/moss-macro.jpg": {
+  "art/moss-macro.webp": {
     "w": 824,
     "h": 944
   },
-  "avatar.jpg": {
-    "w": 1280,
-    "h": 1920
+  "avatar.webp": {
+    "w": 828,
+    "h": 1242
   },
-  "experience/award-2.jpg": {
-    "w": 900,
-    "h": 1200
+  "experience/award-2.webp": {
+    "w": 480,
+    "h": 640
   },
-  "experience/award-3.jpg": {
-    "w": 750,
-    "h": 1000
+  "experience/award-3.webp": {
+    "w": 480,
+    "h": 640
   },
-  "experience/band-1.jpg": {
-    "w": 1200,
-    "h": 800
+  "experience/band-1.webp": {
+    "w": 480,
+    "h": 320
   },
-  "experience/band-2.jpg": {
-    "w": 1200,
-    "h": 799
+  "experience/band-2.webp": {
+    "w": 480,
+    "h": 319
   },
-  "experience/band-3.jpg": {
-    "w": 900,
-    "h": 1200
+  "experience/band-3.webp": {
+    "w": 480,
+    "h": 640
   },
-  "experience/business.jpg": {
-    "w": 1200,
-    "h": 798
+  "experience/business.webp": {
+    "w": 480,
+    "h": 319
   },
-  "experience/mun.jpg": {
-    "w": 900,
-    "h": 1200
+  "experience/mun.webp": {
+    "w": 480,
+    "h": 640
   },
   "favicon.svg": {
     "w": 48,
@@ -50,73 +50,61 @@ export const imageSizes = {
     "w": 16,
     "h": 17
   },
-  "projects/carbon-brain/card.jpg": {
-    "w": 1600,
-    "h": 1000
+  "projects/carbon-brain/card.webp": {
+    "w": 1100,
+    "h": 687
   },
-  "projects/carbon-brain/team.jpg": {
-    "w": 1706,
-    "h": 1279
+  "projects/claude-code/card.webp": {
+    "w": 1100,
+    "h": 687
   },
-  "projects/claude-code/card.jpg": {
-    "w": 1600,
-    "h": 1000
+  "projects/claude-code/tools.webp": {
+    "w": 1200,
+    "h": 749
   },
-  "projects/claude-code/skills.jpg": {
-    "w": 1500,
-    "h": 937
+  "projects/claude-code/workspace.webp": {
+    "w": 1200,
+    "h": 1022
   },
-  "projects/claude-code/tools.jpg": {
-    "w": 1500,
-    "h": 937
+  "projects/stock/backtest.webp": {
+    "w": 1200,
+    "h": 2062
   },
-  "projects/claude-code/workspace.jpg": {
-    "w": 1500,
-    "h": 1278
+  "projects/stock/card.webp": {
+    "w": 1100,
+    "h": 687
   },
-  "projects/stock/backtest.png": {
-    "w": 1280,
-    "h": 2200
+  "projects/stock/paper.webp": {
+    "w": 1200,
+    "h": 1171
   },
-  "projects/stock/card.jpg": {
-    "w": 1600,
-    "h": 1000
+  "projects/todo-panel/card.webp": {
+    "w": 1100,
+    "h": 687
   },
-  "projects/stock/paper.png": {
-    "w": 1280,
-    "h": 1250
+  "projects/todo-panel/home.webp": {
+    "w": 1200,
+    "h": 772
   },
-  "projects/todo-panel/card.jpg": {
-    "w": 1600,
-    "h": 1000
+  "projects/todo-panel/todo.webp": {
+    "w": 1200,
+    "h": 775
   },
-  "projects/todo-panel/home.jpg": {
-    "w": 1500,
-    "h": 965
+  "projects/weiguan-yifang/bg.webp": {
+    "w": 1200,
+    "h": 1800
   },
-  "projects/todo-panel/todo.jpg": {
-    "w": 1500,
-    "h": 969
+  "projects/weiguan-yifang/card.webp": {
+    "w": 1100,
+    "h": 687
   },
-  "projects/weiguan-yifang/bg.jpg": {
-    "w": 1500,
-    "h": 2250
+  "projects/weiguan-yifang/cover.webp": {
+    "w": 1200,
+    "h": 2508
   },
-  "projects/weiguan-yifang/card.jpg": {
-    "w": 1600,
-    "h": 1000
-  },
-  "projects/weiguan-yifang/cover.jpg": {
-    "w": 1500,
-    "h": 3136
-  },
-  "projects/weiguan-yifang/event.jpg": {
-    "w": 1500,
-    "h": 3136
-  },
-  "projects/weiguan-yifang/icon.png": {
-    "w": 512,
-    "h": 512
+  "projects/weiguan-yifang/event.webp": {
+    "w": 1200,
+    "h": 2508
   }
 }
 

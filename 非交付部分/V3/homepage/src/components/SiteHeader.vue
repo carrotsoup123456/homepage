@@ -1,5 +1,5 @@
 <script setup>
-import { ref, inject, watch, onUnmounted } from 'vue'
+import { ref, inject, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
 // 移动端导航开关
@@ -37,12 +37,9 @@ function onKeydown(e) {
 // 切页面后自动收起菜单，避免新页面上盖着一层菜单
 watch(() => route.fullPath, () => { menuOpen.value = false })
 
-// 菜单展开时锁住背景滚动：菜单是盖在页面上的，不锁的话手指一滑背景跟着滚
-// （.menu-open 的样式只在窄屏生效，见 style.css）
-watch(menuOpen, (open) => {
-  document.body.classList.toggle('menu-open', open)
-})
-onUnmounted(() => document.body.classList.remove('menu-open'))
+// 2026-09-26 起：菜单改为「推挤式」——在文档流里把页面往下推，
+// 头部栏和选项栏是一整块、随页面一体滚动，不再需要锁背景滚动
+// （此前 fixed 覆盖 + 锁 body，用户反馈"头部栏锁定在顶部、不跟选项栏一起动"）。
 </script>
 
 <template>

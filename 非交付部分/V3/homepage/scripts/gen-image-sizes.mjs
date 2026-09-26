@@ -30,6 +30,31 @@ function jpegSize(buf) {
   throw new Error('找不到 JPEG 的 SOF 段')
 }
 
+// ---- WebP：RIFF 容器，VP8/VP8L/VP8X 三种编码的尺寸位置不同 ----
+function webpSize(buf) {
+  const fmt = buf.toString('ascii', 12, 16)
+  if (fmt === 'VP8X') {
+    // 扩展格式：宽高在 24/27 字节，各 3 字节小端减 1
+    const w = 1 + buf.readUIntLE(24, 3)
+    const h = 1 + buf.readUIntLE(27, 3)
+    return { w, h }
+  }
+  if (fmt === 'VP8 ') {
+    // 有损：帧头里 26/28 字节，低 14 位
+    const w = buf.readUInt16LE(26) & 0x3fff
+    const h = buf.readUInt16LE(28) & 0x3fff
+    return { w, h }
+  }
+  if (fmt === 'VP8L') {
+    // 无损：21 字节起 4 个字节按位拼
+    const b0 = buf[21], b1 = buf[22], b2 = buf[23], b3 = buf[24]
+    const w = 1 + (((b1 & 0x3f) << 8) | b0)
+    const h = 1 + (((b3 & 0x0f) << 10) | (b2 << 2) | ((b1 & 0xc0) >> 6))
+    return { w, h }
+  }
+  throw new Error('未知的 WebP 格式: ' + fmt)
+}
+
 // ---- SVG：优先用 width/height，只有 viewBox 时退回 viewBox ----
 function svgSize(text) {
   const w = text.match(/\bwidth\s*=\s*"([\d.]+)/)
@@ -49,6 +74,7 @@ function size(absPath) {
   const buf = fs.readFileSync(absPath)
   if (ext === '.png') return pngSize(buf)
   if (ext === '.jpg' || ext === '.jpeg') return jpegSize(buf)
+  if (ext === '.webp') return webpSize(buf)
   throw new Error('不支持的格式: ' + ext)
 }
 
@@ -56,7 +82,7 @@ function walk(dir, out = []) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const abs = path.join(dir, e.name)
     if (e.isDirectory()) walk(abs, out)
-    else if (/\.(png|jpe?g|svg)$/i.test(e.name)) out.push(abs)
+    else if (/\.(png|jpe?g|svg|webp)$/i.test(e.name)) out.push(abs)
   }
   return out
 }

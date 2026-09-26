@@ -302,6 +302,17 @@ html {
 }
 
 @media (max-width: 768px) {
+  /* 推挤式菜单的前提：允许导航行换行——logo 与汉堡键留在第一行，
+     展开的菜单换行独占整行、把页面往下推。第一行高度保持 var(--header-h)。 */
+  .nav {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: var(--header-h);
+  }
+  .nav-links {
+    flex-basis: 100%;
+  }
+
   /* —— 手机端性能减负（用户反馈页面卡）：—— */
   /* 吸顶头的毛玻璃模糊会让其下方所有滚动内容每帧重绘，是手机端卡顿大户，
      窄屏改为近乎实心的背景，桌面端保持原样。 */
@@ -315,22 +326,24 @@ html {
     display: none;
   }
 
+  /* 推挤式菜单（2026-09-26 改）：菜单不再是 fixed 盖层，而是在文档流里展开、
+     把页面整体往下推。这样「头部栏 + 选项栏」是一整块，随页面一体滚动——
+     用户反馈 fixed 方案下头部栏像被"锁定"在顶部、不跟选项栏一起动。
+     展开用 max-height 过渡：高度由内容决定，菜单项再多也能随页面滚动看全。 */
   .nav-links {
-    position: fixed;
-    inset: var(--header-h) 0 auto 0;
     flex-direction: column;
-    background: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
-    padding: 22px 28px;
     gap: 20px;
-    transform: translateY(-160%);
-    /* 收起时必须真的"藏起来"：只靠 transform 挪出屏幕，元素还在页面里，
-       键盘用户按 Tab 会跳进一个看不见的菜单。visibility 会同时移出焦点顺序与读屏范围。 */
+    /* 收起：高度 0 + 无内边距 + 移出焦点顺序（visibility 同时挡掉 Tab 与读屏） */
+    max-height: 0;
+    padding: 0 28px;
+    overflow: hidden;
     visibility: hidden;
-    transition: transform 0.35s var(--ease), visibility 0.35s;
+    transition: max-height 0.35s var(--ease), padding 0.35s var(--ease), visibility 0.35s;
   }
   .nav-links.open {
-    transform: translateY(0);
+    max-height: 80vh; /* 上限只是动画终点，实际高度按内容来；超了页面自己滚 */
+    padding: 22px 28px;
+    border-top: 1px solid var(--color-border);
     visibility: visible;
   }
   .nav-links li {
@@ -370,11 +383,6 @@ html {
   /* 行内元素加纵向内边距不会影响排版，只会把可点击区域从 23px 撑到 31px */
   .work-title {
     padding: 4px 0;
-  }
-  /* 菜单展开时锁住背景滚动。放在这个媒体查询里，宽度超过 768 时规则自动失效，
-     不会出现"手机横过来之后页面被锁死"的情况。 */
-  body.menu-open {
-    overflow: hidden;
   }
 }
 

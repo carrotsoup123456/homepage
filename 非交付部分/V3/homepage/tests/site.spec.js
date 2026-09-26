@@ -130,7 +130,7 @@ describe('站点数据', () => {
     for (const p of projects) for (const img of p.images || []) all.push(img.src)
     for (const e of experiences) for (const img of e.images || []) all.push(img.src)
     if (site.avatar) all.push(site.avatar)
-    all.push('/homepage/art/hero-forest.jpg', '/homepage/art/moss-macro.jpg')
+    all.push('/homepage/art/hero-forest.webp', '/homepage/art/moss-macro.webp')
 
     const unknown = []
     for (const src of all) {
@@ -148,9 +148,9 @@ describe('站点数据', () => {
   })
 
   it('带 base 前缀和不带前缀的写法都能查到同一张图（本地与线上一致）', () => {
-    expect(imgSize('/homepage/avatar.jpg')).toEqual(imgSize('/avatar.jpg'))
-    expect(imgSize('/homepage/projects/weiguan-yifang/bg.jpg')).toEqual(
-      imgSize('/projects/weiguan-yifang/bg.jpg')
+    expect(imgSize('/homepage/avatar.webp')).toEqual(imgSize('/avatar.webp'))
+    expect(imgSize('/homepage/projects/weiguan-yifang/bg.webp')).toEqual(
+      imgSize('/projects/weiguan-yifang/bg.webp')
     )
     // 拿不存在的地址不能报错，只是返回空
     expect(imgSize('/not-here.jpg')).toEqual({})
