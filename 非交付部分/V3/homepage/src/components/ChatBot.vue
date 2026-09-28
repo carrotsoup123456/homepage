@@ -23,15 +23,11 @@ const inputEl = ref(null)
 const listEl = ref(null)
 const typing = ref(false)
 
-// 输入框上方的固定问题栏：访客最感兴趣 + 八卦类 + 能力目录（横向滚动）
+// 输入框上方的固定问题栏：能力目录 + 项目 + 学校（三个，换行排布，全部可见）
 const quickQuestions = [
   '我可以问什么问题？',
   '他做过哪些项目？',
-  '有什么可以试玩的？',
-  '他未来有什么打算？',
-  '他有什么兴趣爱好？',
-  '他有对象吗？',
-  '你喜欢什么类型的？',
+  '他的学校怎么样？',
 ]
 
 // 对话上下文：接住「第二个 / 下一个」这类追问
@@ -455,16 +451,11 @@ onBeforeUnmount(() => {
 }
 .bot-quick {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   padding: 10px 12px 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.bot-quick::-webkit-scrollbar {
-  display: none;
 }
 .bot-quick-chip {
-  flex-shrink: 0;
   white-space: nowrap;
 }
 .bot-quick-main {

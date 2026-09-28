@@ -44,6 +44,9 @@ onMounted(() => {
         <span class="play-spinner" aria-hidden="true"></span>
         游戏加载中…（文件约 9MB，慢网请稍候）
       </div>
+      <!-- 游戏本体是竖屏手机布局（内部 #game 固定 430px 宽、100dvh 高）。
+           给 iframe 一个同比例的「手机竖屏」视口，游戏就能像在手机上一样完整展开，
+           不会被宽桌面窗口横向拉扁。 -->
       <iframe
         class="play-frame"
         :src="gameUrl"
@@ -89,17 +92,22 @@ onMounted(() => {
 }
 .play-stage {
   position: relative;
-  width: 100%;
-  /* 占满除头部栏与说明外的视口高度，手机上也不留死 */
-  height: calc(100dvh - var(--header-h) - 150px);
-  min-height: 480px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px 0 32px;
   background: #141210;
 }
 .play-frame {
+  /* 手机竖屏比例：与游戏内部 #game 的 430px 宽 + 100dvh 高保持一致 */
   display: block;
-  width: 100%;
-  height: 100%;
-  border: 0;
+  width: min(430px, 92vw);
+  aspect-ratio: 9 / 16;
+  height: auto;
+  border: 4px solid #2c2c2c;
+  border-radius: 20px;
+  background: #f4ecd8;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
 }
 .play-loading {
   position: absolute;
@@ -140,8 +148,7 @@ onMounted(() => {
     padding-top: 18px;
   }
   .play-stage {
-    height: calc(100dvh - var(--header-h) - 190px);
-    min-height: 420px;
+    padding-top: 14px;
   }
 }
 </style>
