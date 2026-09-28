@@ -23,12 +23,26 @@ const inputEl = ref(null)
 const listEl = ref(null)
 const typing = ref(false)
 
-// 输入框上方的固定问题栏：能力目录 + 项目 + 学校（三个，换行排布，全部可见）
+// 输入框上方的固定问题栏：能力目录 + 访客最感兴趣 + 八卦类（一行横滚）
+// 横滚对触摸天然友好；桌面滚轮在横向有滚动余地时转成横向滚动，不会滚不动。
 const quickQuestions = [
   '我可以问什么问题？',
   '他做过哪些项目？',
-  '他的学校怎么样？',
+  '有什么可以试玩的？',
+  '他未来有什么打算？',
+  '他有什么兴趣爱好？',
+  '他有对象吗？',
+  '你喜欢什么类型的？',
 ]
+const quickRef = ref(null)
+function onQuickWheel(e) {
+  const el = quickRef.value
+  if (!el) return
+  const max = el.scrollWidth - el.clientWidth
+  if (max <= 0) return
+  e.preventDefault()
+  el.scrollLeft += e.deltaY || e.deltaX
+}
 
 // 对话上下文：接住「第二个 / 下一个」这类追问
 const context = ref({ type: 'none', idx: 0, projectIds: PROJECT_ORDER })
@@ -282,8 +296,8 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <!-- 固定问题栏：点一下直接发问 -->
-      <div class="bot-quick" aria-label="预设问题" role="group">
+      <!-- 固定问题栏：点一下直接发问（横滚；滚轮/触摸均可） -->
+      <div ref="quickRef" class="bot-quick" aria-label="预设问题" role="group" @wheel="onQuickWheel">
         <button
           v-for="q in quickQuestions"
           :key="q"
@@ -451,11 +465,17 @@ onBeforeUnmount(() => {
 }
 .bot-quick {
   display: flex;
-  flex-wrap: wrap;
   gap: 6px;
   padding: 10px 12px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.bot-quick::-webkit-scrollbar {
+  display: none;
 }
 .bot-quick-chip {
+  flex-shrink: 0;
   white-space: nowrap;
 }
 .bot-quick-main {
