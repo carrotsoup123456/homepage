@@ -23,6 +23,17 @@ const inputEl = ref(null)
 const listEl = ref(null)
 const typing = ref(false)
 
+// 输入框上方的固定问题栏：访客最感兴趣 + 八卦类 + 能力目录（横向滚动）
+const quickQuestions = [
+  '我可以问什么问题？',
+  '他做过哪些项目？',
+  '有什么可以试玩的？',
+  '他未来有什么打算？',
+  '他有什么兴趣爱好？',
+  '他有对象吗？',
+  '你喜欢什么类型的？',
+]
+
 // 对话上下文：接住「第二个 / 下一个」这类追问
 const context = ref({ type: 'none', idx: 0, projectIds: PROJECT_ORDER })
 
@@ -141,13 +152,22 @@ function reply(rawText) {
 }
 
 function send() {
-  const text = input.value.trim()
-  if (!text || typing.value) return
+  sendText(input.value)
+}
+
+// 固定问题栏点击：等同在输入框里发问
+function askQuick(q) {
+  sendText(q)
+}
+
+function sendText(text) {
+  const t = text.trim()
+  if (!t || typing.value) return
   stopTyping()
-  messages.value.push({ from: 'me', text })
+  messages.value.push({ from: 'me', text: t })
   input.value = ''
   scrollToEnd()
-  setTimeout(() => reply(text), 300)
+  setTimeout(() => reply(t), 300)
 }
 
 // 点 chip（追问/候选）：等同输入该问句
@@ -264,6 +284,21 @@ onBeforeUnmount(() => {
             </button>
           </div>
         </div>
+      </div>
+
+      <!-- 固定问题栏：点一下直接发问 -->
+      <div class="bot-quick" aria-label="预设问题" role="group">
+        <button
+          v-for="q in quickQuestions"
+          :key="q"
+          type="button"
+          class="bot-chip bot-quick-chip"
+          :class="{ 'bot-quick-main': q === '我可以问什么问题？' }"
+          :disabled="typing"
+          @click="askQuick(q)"
+        >
+          {{ q }}
+        </button>
       </div>
 
       <form class="bot-input" @submit.prevent="send">
@@ -417,6 +452,28 @@ onBeforeUnmount(() => {
 .bot-link-btn:hover {
   border-color: var(--color-green);
   color: var(--color-green);
+}
+.bot-quick {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.bot-quick::-webkit-scrollbar {
+  display: none;
+}
+.bot-quick-chip {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.bot-quick-main {
+  background: var(--color-green);
+  color: #fff;
+}
+.bot-quick-main:hover {
+  background: var(--color-green);
+  color: #fff;
 }
 .bot-input {
   display: flex;
