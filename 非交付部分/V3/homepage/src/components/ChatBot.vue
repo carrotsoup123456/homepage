@@ -1,61 +1,165 @@
 <script setup>
 // ======================================================
-// 数字分身聊天窗（第一版：纯前端检索式问答）
-// - 右下角悬浮按钮 + 面板；匹配逻辑全在本机，不上传输入
-// - 无障碍：aria 标注、Esc 关面板、面板打开时输入框自动聚焦
+// 数字分身聊天窗（v2：智能检索引擎版）
+// - 匹配逻辑在 src/data/bot.js（纯函数，已单测覆盖）
+// - 能力：同义词 / 错别字容错 / did-you-mean 确认 /
+//   「第二个·下一个」序数追问 / 智能兜底候选 / 答案带跳转按钮
+// - 隐私不变：全部匹配在本机完成，不上传输入，关掉就没
 // ======================================================
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
-import { botName, botQa, botFallback, botWelcome } from '../data/bot-qa.js'
+import { match } from '../data/bot.js'
+import {
+  botName,
+  botQa,
+  botFallback,
+  botDidYouMean,
+  botWelcome,
+  PROJECT_ORDER,
+} from '../data/bot-qa.js'
 
 const open = ref(false)
 const input = ref('')
 const inputEl = ref(null)
 const listEl = ref(null)
+const typing = ref(false)
 
-// 消息列表：{ from: 'bot' | 'me', text, suggest?: string[] }
+// 对话上下文：接住「第二个 / 下一个」这类追问
+const context = ref({ type: 'none', idx: 0, projectIds: PROJECT_ORDER })
+
+// 消息：{ from:'bot'|'me', text, suggest?, candidates?, links?, fullText? }
 const messages = ref([{ from: 'bot', text: botWelcome.a, suggest: botWelcome.suggest }])
 
-// 关键词匹配：命中越长的关键词得分越高（长词更具体）
-function match(text) {
-  const t = text.toLowerCase()
-  let best = null
-  let bestScore = 0
-  for (const item of botQa) {
-    let score = 0
-    for (const k of item.keys) {
-      const key = k.toLowerCase()
-      if (t.includes(key)) score += key.length * 2 // 完整命中关键词
-      else if (key.length >= 2 && key.includes(t) && t.length >= 2) score += t.length // 输入是关键词前缀
-    }
-    if (score > bestScore) {
-      bestScore = score
-      best = item
-    }
+const reducedMotion =
+  typeof window !== 'undefined' &&
+  window.matchMedia &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+let typeTimer = null
+function stopTyping() {
+  if (typeTimer) {
+    clearInterval(typeTimer)
+    typeTimer = null
   }
-  return bestScore >= 2 ? best : null
+  typing.value = false
 }
 
-function reply(text) {
-  const hit = match(text)
-  const ans = hit || botFallback
-  messages.value.push({ from: 'bot', text: ans.a, suggest: ans.suggest })
+// 打字机效果：逐字出现；reduced-motion、页面不可见（后台标签定时器被冻结）或打断时直接给全文
+function typewrite(msg, done) {
+  const pageHidden = typeof document !== 'undefined' && document.hidden
+  if (reducedMotion || pageHidden) {
+    msg.text = msg.fullText
+    finishType(msg)
+    done?.()
+    return
+  }
+  typing.value = true
+  let i = 0
+  const step = 2 // 每次吐出 2 字
+  typeTimer = setInterval(() => {
+    i += step
+    if (i >= msg.fullText.length) {
+      msg.text = msg.fullText
+      stopTyping()
+      finishType(msg)
+      done?.()
+    } else {
+      msg.text = msg.fullText.slice(0, i)
+      scrollToEnd()
+    }
+  }, 24)
+}
+
+// 打完后才显示追问 chip 和按钮（避免用户点错半截内容）
+function finishType(msg) {
+  msg.ready = true
   scrollToEnd()
+}
+
+function reply(rawText) {
+  const r = match(rawText, botQa, context.value)
+  if (r.contextUpdate) context.value = { ...context.value, ...r.contextUpdate }
+
+  if (r.kind === 'empty') return
+
+  if (r.kind === 'answer') {
+    const suggest = [...(r.entry.suggest || [])]
+    if (r.also) suggest.push(r.also.q) // 多意图：另一个强命中作为追问
+    const msg = {
+      from: 'bot',
+      text: '',
+      fullText: r.entry.a,
+      suggest: suggest.length ? suggest : undefined,
+      links: r.entry.links,
+      ready: false,
+    }
+    messages.value.push(msg)
+    scrollToEnd()
+    typewrite(msg)
+    return
+  }
+
+  if (r.kind === 'out-of-range') {
+    const msg = {
+      from: 'bot',
+      text: '',
+      fullText: `一共就 ${r.total} 个项目，都介绍完啦。想再听哪个，说序号或名字都行。`,
+      suggest: ['第一个', '第三个', '哪个项目最难？'],
+      ready: false,
+    }
+    messages.value.push(msg)
+    scrollToEnd()
+    typewrite(msg)
+    return
+  }
+
+  if (r.kind === 'did-you-mean') {
+    const msg = {
+      from: 'bot',
+      text: '',
+      fullText: botDidYouMean,
+      candidates: r.candidates.map((e) => e.q),
+      ready: false,
+    }
+    messages.value.push(msg)
+    scrollToEnd()
+    typewrite(msg)
+    return
+  }
+
+  // fallback：动态候选（引擎挑最接近的），挑不出就用保底建议
+  const cands = (r.candidates || []).map((e) => e.q)
+  const msg = {
+    from: 'bot',
+    text: '',
+    fullText: r.candidates?.length ? botFallback.a : '这个我还没学会答……换个说法，或者试试这些：',
+    candidates: cands.length ? cands : botFallback.suggest,
+    ready: false,
+  }
+  messages.value.push(msg)
+  scrollToEnd()
+  typewrite(msg)
 }
 
 function send() {
   const text = input.value.trim()
-  if (!text) return
+  if (!text || typing.value) return
+  stopTyping()
   messages.value.push({ from: 'me', text })
   input.value = ''
   scrollToEnd()
-  // 模拟「正在输入」的停顿，太快返回会显得像弹报错
-  setTimeout(() => reply(text), 350)
+  setTimeout(() => reply(text), 300)
 }
 
+// 点 chip（追问/候选）：等同输入该问句
 function askSuggestion(q) {
+  if (typing.value) return
+  stopTyping()
+  // chip 上显示的是问句（如「第二个：股票量化软件是什么？」），
+  // 直接拿去匹配可能受冒号前缀影响——先剥掉「第N个：」前缀
+  const cleaned = q.replace(/^第[一二三四五1-5]个[:：]/, '')
   messages.value.push({ from: 'me', text: q })
   scrollToEnd()
-  setTimeout(() => reply(q), 350)
+  setTimeout(() => reply(cleaned), 300)
 }
 
 async function scrollToEnd() {
@@ -68,6 +172,8 @@ async function toggle() {
   if (open.value) {
     await nextTick()
     inputEl.value?.focus()
+  } else {
+    stopTyping()
   }
 }
 
@@ -75,7 +181,10 @@ function onKeydown(e) {
   if (e.key === 'Escape' && open.value) open.value = false
 }
 onMounted(() => document.addEventListener('keydown', onKeydown))
-onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', onKeydown)
+  stopTyping()
+})
 </script>
 
 <template>
@@ -115,10 +224,37 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
           class="bot-msg"
           :class="m.from === 'me' ? 'from-me' : 'from-bot'"
         >
-          <p class="bot-bubble">{{ m.text }}</p>
-          <div v-if="m.suggest && m.suggest.length" class="bot-suggest">
+          <p class="bot-bubble">
+            {{ m.text }}<span v-if="m.fullText && !m.ready" class="bot-caret" aria-hidden="true">▍</span>
+          </p>
+
+          <!-- 站内跳转按钮（打完字才显示） -->
+          <div v-if="m.ready && m.links && m.links.length" class="bot-links">
+            <RouterLink
+              v-for="l in m.links"
+              :key="l.to"
+              :to="l.to"
+              class="bot-link-btn"
+              @click="open = false"
+              >{{ l.label }} →</RouterLink
+            >
+          </div>
+
+          <!-- 追问 chip / 候选 chip -->
+          <div v-if="m.ready && m.suggest && m.suggest.length" class="bot-suggest">
             <button
               v-for="q in m.suggest"
+              :key="q"
+              type="button"
+              class="bot-chip"
+              @click="askSuggestion(q)"
+            >
+              {{ q }}
+            </button>
+          </div>
+          <div v-if="m.ready && m.candidates && m.candidates.length" class="bot-suggest">
+            <button
+              v-for="q in m.candidates"
               :key="q"
               type="button"
               class="bot-chip"
@@ -238,7 +374,17 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
   border: 1px solid var(--color-border);
   border-bottom-left-radius: 4px;
 }
-.bot-suggest {
+.bot-caret {
+  color: var(--color-green);
+  animation: caret-blink 0.8s steps(2) infinite;
+}
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+.bot-suggest,
+.bot-links {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -255,6 +401,22 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
 }
 .bot-chip:hover {
   background: color-mix(in srgb, var(--color-green) 12%, transparent);
+}
+.bot-link-btn {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  text-decoration: none;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+.bot-link-btn:hover {
+  border-color: var(--color-green);
+  color: var(--color-green);
 }
 .bot-input {
   display: flex;
