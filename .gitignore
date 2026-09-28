@@ -12,3 +12,6 @@
 
 # macOS
 .DS_Store
+
+# Session uploads (never commit)
+uploads/
