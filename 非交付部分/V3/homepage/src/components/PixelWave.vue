@@ -9,16 +9,17 @@ import { ref, onMounted, onUnmounted } from 'vue'
 // ---- 参数（克制为上）----
 const CELL = 18 // 网格步长：波经过的方块都对齐这张网格，才有"像素场"的整齐感
 const BLOCK = 14 // 方块边长（留 4px 缝隙，点阵感而不是实心圆环）
-const SPEED = 400 // 扩散速度 px/s：配合 380px 半径，单波寿命约 0.95s
-const R_MAX = 380 // 到这个半径完全消失：较近的位置就淡出，不横扫大半屏
+const SPEED = 280 // 扩散速度 px/s：配合 220px 半径，单波寿命约 0.8s
+const R_MAX = 220 // 到这个半径完全消失：参考常见点击涟漪的克制尺度，
+  // 点击点周围一小圈就散掉，不惊动页面其他内容
 const PEAK = 0.4 // 峰值透明度：颜色不深，但要有存在感
 // 三道波带：主波最亮，两条尾波渐弱——有层次而不是一根孤零零的线
 const BANDS = [
   { off: 0, amp: 1.0 },
-  { off: -38, amp: 0.55 },
-  { off: -76, amp: 0.28 },
+  { off: -30, amp: 0.55 },
+  { off: -60, amp: 0.28 },
 ]
-const SIGMA = 13 // 每道波带的宽度（高斯包络）
+const SIGMA = 11 // 每道波带的宽度（高斯包络），配小波更精致
 const MAX_WAVES = 6 // 并发上限，狂点也不刷屏
 
 const cv = ref(null)
@@ -112,10 +113,10 @@ function draw() {
     const fade = 1 - r / R_MAX // 距离越远越淡，到 R_MAX 归零
     if (fade <= 0) continue
     // 只遍历波带附近的格子（r±90px 的外接范围）
-    const i0 = Math.floor((wv.x - r - 90) / CELL)
-    const i1 = Math.ceil((wv.x + r + 90) / CELL)
-    const j0 = Math.floor((wv.y - r - 90) / CELL)
-    const j1 = Math.ceil((wv.y + r + 90) / CELL)
+    const i0 = Math.floor((wv.x - r - 70) / CELL)
+    const i1 = Math.ceil((wv.x + r + 70) / CELL)
+    const j0 = Math.floor((wv.y - r - 70) / CELL)
+    const j1 = Math.ceil((wv.y + r + 70) / CELL)
     for (let i = i0; i <= i1; i++) {
       const cx = i * CELL + CELL / 2
       const dx = cx - wv.x
