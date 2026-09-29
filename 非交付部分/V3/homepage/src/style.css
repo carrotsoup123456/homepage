@@ -195,6 +195,22 @@ html {
   padding: 0 28px;
 }
 
+/* ---------------- 区块分隔符（v6.6） ---------------- */
+/* 菱形+双叶+两侧渐隐细线，骑在两个 section 的交界线上填充大空隙。
+   形状来自 mask（alpha 通道），颜色随主题绿变。 */
+.section-divider {
+  width: 240px;
+  height: 20px;
+  margin: -10px auto; /* 上下各 -10：净占位 0，正好骑在交界线上 */
+  position: relative;
+  z-index: 1;
+  background: var(--color-green);
+  opacity: 0.6;
+  pointer-events: none;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='20'%3E%3Cdefs%3E%3ClinearGradient id='l' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='0'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='0.8'/%3E%3C/linearGradient%3E%3ClinearGradient id='r' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='0.8'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='0' y='9.4' width='88' height='1.3' fill='url(%23l)'/%3E%3Crect x='152' y='9.4' width='88' height='1.3' fill='url(%23r)'/%3E%3Cpath d='M120 4.6 L125.4 10 L120 15.4 L114.6 10 Z' fill='%23000' fill-opacity='0.95'/%3E%3Cpath d='M103 10 C105 6 109.6 4.8 113 5.9 C110.8 9.4 106.9 11.1 103 10 Z' fill='%23000' fill-opacity='0.85'/%3E%3Cpath d='M137 10 C135 6 130.4 4.8 127 5.9 C129.2 9.4 133.1 11.1 137 10 Z' fill='%23000' fill-opacity='0.85'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='20'%3E%3Cdefs%3E%3ClinearGradient id='l' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='0'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='0.8'/%3E%3C/linearGradient%3E%3ClinearGradient id='r' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%23000' stop-opacity='0.8'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='0' y='9.4' width='88' height='1.3' fill='url(%23l)'/%3E%3Crect x='152' y='9.4' width='88' height='1.3' fill='url(%23r)'/%3E%3Cpath d='M120 4.6 L125.4 10 L120 15.4 L114.6 10 Z' fill='%23000' fill-opacity='0.95'/%3E%3Cpath d='M103 10 C105 6 109.6 4.8 113 5.9 C110.8 9.4 106.9 11.1 103 10 Z' fill='%23000' fill-opacity='0.85'/%3E%3Cpath d='M137 10 C135 6 130.4 4.8 127 5.9 C129.2 9.4 133.1 11.1 137 10 Z' fill='%23000' fill-opacity='0.85'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
 .section {
   padding: var(--section-gap) 0;
 }

@@ -14,7 +14,13 @@ const toggleTheme = inject('toggleTheme')
 // 统一圆头线帽，与全站圆润气质一致。
 const icons = {
   home: ['M4 11.5 L12 4.5 L20 11.5', 'M6.5 10 V19.5 H17.5 V10', 'M10 19.5 V14.5 H14 V19.5'],
-  person: ['M5.5 20 C5.5 15.8 8.4 13.6 12 13.6 C15.6 13.6 18.5 15.8 18.5 20'],
+  // 关于 = 递出的名片（ID 卡：人像 + 两行信息）
+  card: [
+    'M4.5 5.5 H19.5 A1.5 1.5 0 0 1 21 7 V17 A1.5 1.5 0 0 1 19.5 18.5 H4.5 A1.5 1.5 0 0 1 3 17 V7 A1.5 1.5 0 0 1 4.5 5.5 Z',
+    'M10.1 9.2 A1.9 1.9 0 1 1 6.3 9.2 A1.9 1.9 0 1 1 10.1 9.2',
+    'M5.5 16.4 C5.5 14.2 6.8 13.2 8.2 13.2 C9.6 13.2 10.9 14.2 10.9 16.4',
+    'M13.5 9 H18.3 M13.5 12 H16.6',
+  ],
   book: [
     'M12 6.4 C10.2 4.9 7.4 4.3 4.2 4.3 V19 C7.4 19 10.2 19.6 12 21 C13.8 19.6 16.6 19 19.8 19 V4.3 C16.6 4.3 13.8 4.9 12 6.4 V21',
   ],
@@ -27,7 +33,7 @@ const icons = {
 // 导航菜单（使用 RouterLink 实现路由页面跳转）
 const navItems = [
   { label: '首页', to: '/', exact: true, icon: icons.home },
-  { label: '关于', to: '/about', icon: icons.person },
+  { label: '关于', to: '/about', icon: icons.card },
   { label: '知识库', to: '/knowledge', icon: icons.book },
   { label: '试玩', to: '/play', icon: icons.game },
   { label: '联系', to: '/contact', icon: icons.mail },

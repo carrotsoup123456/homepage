@@ -263,7 +263,10 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- ===================== 宣言（Bayshore 画框） ===================== -->
+        <!-- 区块分隔装饰：菱形+双叶，骑在交界线上 -->
+    <div class="section-divider" aria-hidden="true"></div>
+
+<!-- ===================== 宣言（Bayshore 画框） ===================== -->
     <section class="section" v-reveal>
       <div class="container manifesto-inner">
         <div class="manifesto-media">
@@ -296,7 +299,10 @@ onUnmounted(() => {
       </div>
     </section>
 
-    <!-- ===================== 项目（Amperos 左右交替） ===================== -->
+        <!-- 区块分隔装饰：菱形+双叶，骑在交界线上 -->
+    <div class="section-divider" aria-hidden="true"></div>
+
+<!-- ===================== 项目（Amperos 左右交替） ===================== -->
     <section id="projects" class="section section-alt">
       <div class="container">
         <div v-reveal>
@@ -345,7 +351,10 @@ onUnmounted(() => {
       </div>
     </section>
 
-    <!-- ===================== 经历 ===================== -->
+        <!-- 区块分隔装饰：菱形+双叶，骑在交界线上 -->
+    <div class="section-divider" aria-hidden="true"></div>
+
+<!-- ===================== 经历 ===================== -->
     <section id="experience" class="section">
       <div class="container">
         <div v-reveal>
@@ -375,7 +384,10 @@ onUnmounted(() => {
       </div>
     </section>
 
-    <!-- ===================== 教育 ===================== -->
+        <!-- 区块分隔装饰：菱形+双叶，骑在交界线上 -->
+    <div class="section-divider" aria-hidden="true"></div>
+
+<!-- ===================== 教育 ===================== -->
     <section id="education" class="section section-alt">
       <div class="container">
         <div v-reveal>
@@ -393,7 +405,10 @@ onUnmounted(() => {
       </div>
     </section>
 
-    <!-- ===================== 结尾 CTA ===================== -->
+        <!-- 区块分隔装饰：菱形+双叶，骑在交界线上 -->
+    <div class="section-divider" aria-hidden="true"></div>
+
+<!-- ===================== 结尾 CTA ===================== -->
     <section class="section cta" v-reveal>
       <div class="container">
         <h2 class="cta-title">想聊聊技术、项目或音乐？</h2>

@@ -52,7 +52,7 @@ function toTop() {
   <footer class="site-footer">
     <!-- 胡萝卜坑：页脚上沿的一排土坑，坑里露出一根根胡萝卜头（carrotsoup 本命） -->
     <svg class="footer-carrots" viewBox="0 0 1200 44" preserveAspectRatio="none" aria-hidden="true">
-<g transform="translate(55.0,0) rotate(2.9,0,44) scale(1.02)">
+<g transform="translate(42.0,0) rotate(2.9,0,44) scale(1.02)">
         <ellipse cx="0" cy="43.6" rx="13.5" ry="4.4" fill="#4a3b26"/>
         <ellipse cx="0" cy="44" rx="10.5" ry="3.1" fill="#2c2114"/>
         <path d="M-6.5,44 C-6.5,37 -5.5,31.5 -2.5,29.5 C-1,29 1,29 2.5,29.5 C5.5,31.5 6.5,37 6.5,44 Z" fill="#e07a2e"/>
@@ -64,7 +64,7 @@ function toTop() {
         <circle cx="15.6" cy="43.2" r="1.1" fill="#4a3b26"/>
         <circle cx="-15.6" cy="43.5" r="1.3" fill="#4a3b26"/>
       </g>
-      <g transform="translate(210.3,0) rotate(-1.0,0,44) scale(0.92)">
+      <g transform="translate(154.9,0) rotate(-1.0,0,44) scale(0.92)">
         <ellipse cx="0" cy="43.6" rx="13.5" ry="4.4" fill="#4a3b26"/>
         <ellipse cx="0" cy="44" rx="10.5" ry="3.1" fill="#2c2114"/>
         <path d="M-6.5,44 C-6.5,37 -5.5,31.5 -2.5,29.5 C-1,29 1,29 2.5,29.5 C5.5,31.5 6.5,37 6.5,44 Z" fill="#e07a2e"/>
@@ -76,7 +76,7 @@ function toTop() {
         <circle cx="12.4" cy="43.2" r="1.7" fill="#4a3b26"/>
         <circle cx="-13.4" cy="43.5" r="1.1" fill="#4a3b26"/>
       </g>
-      <g transform="translate(328.7,0) rotate(-1.0,0,44) scale(0.86)">
+      <g transform="translate(243.1,0) rotate(-1.0,0,44) scale(0.86)">
         <ellipse cx="0" cy="43.6" rx="13.5" ry="4.4" fill="#4a3b26"/>
         <ellipse cx="0" cy="44" rx="10.5" ry="3.1" fill="#2c2114"/>
         <path d="M-6.5,44 C-6.5,37 -5.5,31.5 -2.5,29.5 C-1,29 1,29 2.5,29.5 C5.5,31.5 6.5,37 6.5,44 Z" fill="#e07a2e"/>
@@ -88,7 +88,7 @@ function toTop() {
         <circle cx="16.0" cy="43.2" r="1.5" fill="#4a3b26"/>
         <circle cx="-13.8" cy="43.5" r="1.6" fill="#4a3b26"/>
       </g>
-      <g transform="translate(480.8,0) rotate(0.5,0,44) scale(0.94)">
+      <g transform="translate(353.9,0) rotate(0.5,0,44) scale(0.94)">
         <ellipse cx="0" cy="43.6" rx="13.5" ry="4.4" fill="#4a3b26"/>
         <ellipse cx="0" cy="44" rx="10.5" ry="3.1" fill="#2c2114"/>
         <path d="M-6.5,44 C-6.5,37 -5.5,31.5 -2.5,29.5 C-1,29 1,29 2.5,29.5 C5.5,31.5 6.5,37 6.5,44 Z" fill="#e07a2e"/>
@@ -100,7 +100,7 @@ function toTop() {
         <circle cx="15.0" cy="43.2" r="1.3" fill="#4a3b26"/>
         <circle cx="-17.2" cy="43.5" r="1.4" fill="#4a3b26"/>
       </g>
-      <g transform="translate(615.3,0) rotate(-3.6,0,44) scale(0.99)">
+      <g transform="translate(452.9,0) rotate(-3.6,0,44) scale(0.99)">
         <ellipse cx="0" cy="43.6" rx="13.5" ry="4.4" fill="#4a3b26"/>
         <ellipse cx="0" cy="44" rx="10.5" ry="3.1" fill="#2c2114"/>
         <path d="M-6.5,44 C-6.5,37 -5.5,31.5 -2.5,29.5 C-1,29 1,29 2.5,29.5 C5.5,31.5 6.5,37 6.5,44 Z" fill="#e07a2e"/>
@@ -112,7 +112,7 @@ function toTop() {
         <circle cx="13.1" cy="43.2" r="1.0" fill="#4a3b26"/>
         <circle cx="-13.8" cy="43.5" r="0.9" fill="#4a3b26"/>
       </g>
-      <g transform="translate(772.4,0) rotate(0.9,0,44) scale(0.95)">
+      <g transform="translate(566.9,0) rotate(0.9,0,44) scale(0.95)">
         <ellipse cx="0" cy="43.6" rx="13.5" ry="4.4" fill="#4a3b26"/>
         <ellipse cx="0" cy="44" rx="10.5" ry="3.1" fill="#2c2114"/>
         <path d="M-6.5,44 C-6.5,37 -5.5,31.5 -2.5,29.5 C-1,29 1,29 2.5,29.5 C5.5,31.5 6.5,37 6.5,44 Z" fill="#e07a2e"/>
@@ -124,7 +124,7 @@ function toTop() {
         <circle cx="11.5" cy="43.2" r="1.4" fill="#4a3b26"/>
         <circle cx="-15.6" cy="43.5" r="0.9" fill="#4a3b26"/>
       </g>
-      <g transform="translate(904.7,0) rotate(0.0,0,44) scale(0.93)">
+      <g transform="translate(664.5,0) rotate(0.0,0,44) scale(0.93)">
         <ellipse cx="0" cy="43.6" rx="13.5" ry="4.4" fill="#4a3b26"/>
         <ellipse cx="0" cy="44" rx="10.5" ry="3.1" fill="#2c2114"/>
         <path d="M-6.5,44 C-6.5,37 -5.5,31.5 -2.5,29.5 C-1,29 1,29 2.5,29.5 C5.5,31.5 6.5,37 6.5,44 Z" fill="#e07a2e"/>
@@ -136,7 +136,7 @@ function toTop() {
         <circle cx="13.2" cy="43.2" r="1.7" fill="#4a3b26"/>
         <circle cx="-17.9" cy="43.5" r="1.0" fill="#4a3b26"/>
       </g>
-      <g transform="translate(1048.1,0) rotate(-2.1,0,44) scale(0.90)">
+      <g transform="translate(769.4,0) rotate(-2.1,0,44) scale(0.90)">
         <ellipse cx="0" cy="43.6" rx="13.5" ry="4.4" fill="#4a3b26"/>
         <ellipse cx="0" cy="44" rx="10.5" ry="3.1" fill="#2c2114"/>
         <path d="M-6.5,44 C-6.5,37 -5.5,31.5 -2.5,29.5 C-1,29 1,29 2.5,29.5 C5.5,31.5 6.5,37 6.5,44 Z" fill="#e07a2e"/>
@@ -147,6 +147,42 @@ function toTop() {
         <path d="M1,31 C3,26 5.5,22.5 8.5,19.5 C5.2,24 3.8,27.5 2.8,31.5 Z" fill="#8fbf74"/>
         <circle cx="14.2" cy="43.2" r="1.0" fill="#4a3b26"/>
         <circle cx="-15.7" cy="43.5" r="1.5" fill="#4a3b26"/>
+      </g>
+      <g transform="translate(880.5,0) rotate(0.4,0,44) scale(1.08)">
+        <ellipse cx="0" cy="43.6" rx="13.5" ry="4.4" fill="#4a3b26"/>
+        <ellipse cx="0" cy="44" rx="10.5" ry="3.1" fill="#2c2114"/>
+        <path d="M-6.5,44 C-6.5,37 -5.5,31.5 -2.5,29.5 C-1,29 1,29 2.5,29.5 C5.5,31.5 6.5,37 6.5,44 Z" fill="#e07a2e"/>
+        <path d="M-4.6,36.5 C-1.5,35.4 1.5,35.4 4.6,36.5" stroke="#c05f1a" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+        <path d="M-5.6,40.5 C-1.8,39.4 1.8,39.4 5.6,40.5" stroke="#c05f1a" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+        <path d="M-0.5,30.5 C-1.5,25 -3.5,21 -7.2,17.5 C-4,21.5 -2.8,25.5 -1.8,30.8 Z" fill="#8fbf74"/>
+        <path d="M0,30.5 C-0.3,24 -0.8,19.5 -1,15.5 C0.9,19.5 1.3,24.5 1.7,30.5 Z" fill="#a4cf8a"/>
+        <path d="M1,31 C3,26 5.5,22.5 8.5,19.5 C5.2,24 3.8,27.5 2.8,31.5 Z" fill="#8fbf74"/>
+        <circle cx="15.4" cy="43.2" r="1.1" fill="#4a3b26"/>
+        <circle cx="-16.9" cy="43.5" r="1.5" fill="#4a3b26"/>
+      </g>
+      <g transform="translate(992.1,0) rotate(-1.9,0,44) scale(1.05)">
+        <ellipse cx="0" cy="43.6" rx="13.5" ry="4.4" fill="#4a3b26"/>
+        <ellipse cx="0" cy="44" rx="10.5" ry="3.1" fill="#2c2114"/>
+        <path d="M-6.5,44 C-6.5,37 -5.5,31.5 -2.5,29.5 C-1,29 1,29 2.5,29.5 C5.5,31.5 6.5,37 6.5,44 Z" fill="#e07a2e"/>
+        <path d="M-4.6,36.5 C-1.5,35.4 1.5,35.4 4.6,36.5" stroke="#c05f1a" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+        <path d="M-5.6,40.5 C-1.8,39.4 1.8,39.4 5.6,40.5" stroke="#c05f1a" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+        <path d="M-0.5,30.5 C-1.5,25 -3.5,21 7.2,17.5 C-4,21.5 -2.8,25.5 -1.8,30.8 Z" fill="#8fbf74"/>
+        <path d="M0,30.5 C-0.3,24 -0.8,19.5 -1,15.5 C0.9,19.5 1.3,24.5 1.7,30.5 Z" fill="#a4cf8a"/>
+        <path d="M1,31 C3,26 5.5,22.5 -8.5,19.5 C5.2,24 3.8,27.5 2.8,31.5 Z" fill="#8fbf74"/>
+        <circle cx="16.3" cy="43.2" r="0.9" fill="#4a3b26"/>
+        <circle cx="-13.2" cy="43.5" r="1.1" fill="#4a3b26"/>
+      </g>
+      <g transform="translate(1099.2,0) rotate(4.7,0,44) scale(1.01)">
+        <ellipse cx="0" cy="43.6" rx="13.5" ry="4.4" fill="#4a3b26"/>
+        <ellipse cx="0" cy="44" rx="10.5" ry="3.1" fill="#2c2114"/>
+        <path d="M-6.5,44 C-6.5,37 -5.5,31.5 -2.5,29.5 C-1,29 1,29 2.5,29.5 C5.5,31.5 6.5,37 6.5,44 Z" fill="#e07a2e"/>
+        <path d="M-4.6,36.5 C-1.5,35.4 1.5,35.4 4.6,36.5" stroke="#c05f1a" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+        <path d="M-5.6,40.5 C-1.8,39.4 1.8,39.4 5.6,40.5" stroke="#c05f1a" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+        <path d="M-0.5,30.5 C-1.5,25 -3.5,21 7.2,17.5 C-4,21.5 -2.8,25.5 -1.8,30.8 Z" fill="#8fbf74"/>
+        <path d="M0,30.5 C-0.3,24 -0.8,19.5 -1,15.5 C0.9,19.5 1.3,24.5 1.7,30.5 Z" fill="#a4cf8a"/>
+        <path d="M1,31 C3,26 5.5,22.5 -8.5,19.5 C5.2,24 3.8,27.5 2.8,31.5 Z" fill="#8fbf74"/>
+        <circle cx="16.9" cy="43.2" r="1.3" fill="#4a3b26"/>
+        <circle cx="-15.5" cy="43.5" r="1.3" fill="#4a3b26"/>
       </g>
     </svg>
     <p>© 2026 刘博康 · 个人主页 V3</p>
