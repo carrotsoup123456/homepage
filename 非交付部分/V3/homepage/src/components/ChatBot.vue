@@ -40,6 +40,21 @@ const quickQuestions = [
   '你喜欢什么类型的？',
 ]
 const quickRef = ref(null)
+// 左右箭头状态：只在有横向滚动余地时显示；到边禁用对应箭头
+const quickOverflow = ref(false)
+const canLeft = ref(false)
+const canRight = ref(false)
+function updateQuickArrows() {
+  const el = quickRef.value
+  if (!el) return
+  const max = el.scrollWidth - el.clientWidth
+  quickOverflow.value = max > 2
+  canLeft.value = el.scrollLeft > 2
+  canRight.value = el.scrollLeft < max - 2
+}
+function onQuickScroll() {
+  updateQuickArrows()
+}
 function onQuickWheel(e) {
   const el = quickRef.value
   if (!el) return
@@ -47,6 +62,12 @@ function onQuickWheel(e) {
   if (max <= 0) return
   e.preventDefault()
   el.scrollLeft += e.deltaY || e.deltaX
+}
+function quickScroll(dir) {
+  const el = quickRef.value
+  if (!el) return
+  const step = Math.max(160, Math.round(el.clientWidth * 0.8))
+  el.scrollBy({ left: dir * step, behavior: 'smooth' })
 }
 
 // 对话上下文：接住「第二个 / 下一个」这类追问
@@ -214,6 +235,7 @@ async function toggle() {
   }
   if (open.value) {
     await nextTick()
+    updateQuickArrows()
     inputEl.value?.focus()
   } else {
     stopTyping()
@@ -319,19 +341,37 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <!-- 固定问题栏：点一下直接发问（横滚；滚轮/触摸均可） -->
-      <div ref="quickRef" class="bot-quick" aria-label="预设问题" role="group" @wheel="onQuickWheel">
+      <!-- 固定问题栏：点一下直接发问（左右箭头/滚轮/触摸均可横滑） -->
+      <div class="bot-quick-wrap">
         <button
-          v-for="q in quickQuestions"
-          :key="q"
+          v-if="quickOverflow"
           type="button"
-          class="bot-chip bot-quick-chip"
-          :class="{ 'bot-quick-main': q === '我可以问什么问题？' }"
-          :disabled="typing"
-          @click="askQuick(q)"
-        >
-          {{ q }}
-        </button>
+          class="quick-arrow"
+          :disabled="!canLeft"
+          aria-label="向左滚动更多问题"
+          @click="quickScroll(-1)"
+        >‹</button>
+        <div ref="quickRef" class="bot-quick" aria-label="预设问题" role="group" @wheel="onQuickWheel" @scroll="onQuickScroll">
+          <button
+            v-for="q in quickQuestions"
+            :key="q"
+            type="button"
+            class="bot-chip bot-quick-chip"
+            :class="{ 'bot-quick-main': q === '我可以问什么问题？' }"
+            :disabled="typing"
+            @click="askQuick(q)"
+          >
+            {{ q }}
+          </button>
+        </div>
+        <button
+          v-if="quickOverflow"
+          type="button"
+          class="quick-arrow"
+          :disabled="!canRight"
+          aria-label="向右滚动更多问题"
+          @click="quickScroll(1)"
+        >›</button>
       </div>
 
       <form class="bot-input" @submit.prevent="send">
@@ -551,13 +591,42 @@ onBeforeUnmount(() => {
   border-color: var(--color-green);
   color: var(--color-green);
 }
+.bot-quick-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 12px 0;
+}
+.quick-arrow {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2, #fff);
+  color: var(--color-text);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: opacity 0.15s, border-color 0.15s, color 0.15s;
+}
+.quick-arrow:hover:not(:disabled) {
+  border-color: var(--color-green);
+  color: var(--color-green);
+}
+.quick-arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
 .bot-quick {
+  flex: 1;
+  min-width: 0;
   display: flex;
   gap: 6px;
-  padding: 10px 12px 0;
   overflow-x: auto;
   scrollbar-width: none;
   overscroll-behavior-x: contain;
+  padding: 0 2px 2px;
 }
 .bot-quick::-webkit-scrollbar {
   display: none;
