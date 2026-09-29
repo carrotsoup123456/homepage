@@ -10,13 +10,27 @@ const toggleBtn = ref(null)
 const theme = inject('theme')
 const toggleTheme = inject('toggleTheme')
 
+// 导航图标：手绘 1.8px 线条小图（24 网格），随文字颜色变色（currentColor）。
+// 统一圆头线帽，与全站圆润气质一致。
+const icons = {
+  home: ['M4 11.5 L12 4.5 L20 11.5', 'M6.5 10 V19.5 H17.5 V10', 'M10 19.5 V14.5 H14 V19.5'],
+  person: ['M5.5 20 C5.5 15.8 8.4 13.6 12 13.6 C15.6 13.6 18.5 15.8 18.5 20'],
+  book: [
+    'M12 6.4 C10.2 4.9 7.4 4.3 4.2 4.3 V19 C7.4 19 10.2 19.6 12 21 C13.8 19.6 16.6 19 19.8 19 V4.3 C16.6 4.3 13.8 4.9 12 6.4 V21',
+  ],
+  game: ['M7.5 8 H16.5 C19 8 21 10 21 12.5 C21 15 19 17 16.5 17 H7.5 C5 17 3 15 3 12.5 C3 10 5 8 7.5 8 Z', 'M8 10.5 V14.5 M6 12.5 H10'],
+  mail: ['M4 6.5 H20 V17.5 H4 Z', 'M4.5 8 L12 13.5 L19.5 8'],
+  sun: ['M12 8 A4 4 0 1 0 12 16 A4 4 0 1 0 12 8', 'M12 3 V5 M12 19 V21 M3 12 H5 M19 12 H21 M5.6 5.6 L7 7 M17 17 L18.4 18.4 M18.4 5.6 L17 7 M7 17 L5.6 18.4'],
+  moon: ['M20 14.5 A8 8 0 1 1 10.5 4 A6.5 6.5 0 0 0 20 14.5 Z'],
+}
+
 // 导航菜单（使用 RouterLink 实现路由页面跳转）
 const navItems = [
-  { label: '首页', to: '/', exact: true },
-  { label: '关于', to: '/about' },
-  { label: '知识库', to: '/knowledge' },
-  { label: '试玩', to: '/play' },
-  { label: '联系', to: '/contact' },
+  { label: '首页', to: '/', exact: true, icon: icons.home },
+  { label: '关于', to: '/about', icon: icons.person },
+  { label: '知识库', to: '/knowledge', icon: icons.book },
+  { label: '试玩', to: '/play', icon: icons.game },
+  { label: '联系', to: '/contact', icon: icons.mail },
 ]
 
 const route = useRoute()
@@ -64,7 +78,12 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
             :to="item.to"
             :class="{ active: isActive(item) }"
             :aria-current="isActive(item) ? 'page' : undefined"
-          >{{ item.label }}</RouterLink>
+          >
+            <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path v-for="(d, i) in item.icon" :key="i" :d="d" />
+            </svg>
+            <span>{{ item.label }}</span>
+          </RouterLink>
         </li>
         <li>
           <button
@@ -75,7 +94,18 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
             :aria-label="theme === 'dark' ? '切换为浅色模式' : '切换为深色模式'"
             :aria-pressed="theme === 'dark'"
           >
-            <span aria-hidden="true">{{ theme === 'dark' ? '☀️' : '🌙' }}</span>
+            <svg
+              v-if="theme === 'dark'"
+              class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"
+            >
+              <path v-for="(d, i) in icons.sun" :key="i" :d="d" />
+            </svg>
+            <svg
+              v-else
+              class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+            >
+              <path :d="icons.moon[0]" />
+            </svg>
           </button>
         </li>
       </ul>
