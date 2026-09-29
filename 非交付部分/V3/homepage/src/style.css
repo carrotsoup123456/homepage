@@ -45,6 +45,8 @@
     "STSong", "Noto Serif SC", Georgia, "Times New Roman", serif;
 
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* 回弹曲线：种子长苗、菱形弹亮这类"长出来"的动作 */
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* 深色 ·「森林夜」 */
@@ -1538,4 +1540,145 @@ mark {
 }
 .markdown strong {
   color: var(--color-text);
+}
+
+/* ---------------- 区块交界带（v6.8：山丘+植物+浮叶+种子） ---------------- */
+/* 远山(静)-近山+植物(轻视差)-漂浮叶-生长分隔符 的分层风景，净占位 0 骑在交界线上。 */
+.hill-band {
+  position: relative;
+  height: 150px;
+  margin: -75px auto; /* 上下各侵入 75px 空隙：页面总长不变，空隙被风景填满 */
+  pointer-events: none;
+}
+.hill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 130px;
+}
+.hill path {
+  fill: var(--color-green);
+}
+.hill-back {
+  opacity: 0.08; /* 远山：最淡 */
+}
+.hill-front-wrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 110px;
+  will-change: transform; /* 滚动视差由 HomeView 的 rAF 驱动 */
+}
+.hill-front {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.16; /* 近山稍深 */
+}
+.hill-plants {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 58px;
+  opacity: 0.38; /* 植物剪影最实，贴在近山脚下 */
+}
+.hill-plants path {
+  fill: var(--color-green);
+}
+/* 漂浮叶片：风停后迟迟不落的叶子 */
+.float-leaf {
+  position: absolute;
+  width: 15px;
+  height: 11px;
+  background: var(--color-green);
+  border-radius: 0 100% 0 100%;
+  opacity: 0.4;
+  animation: leaf-float var(--dur, 12s) ease-in-out var(--delay, 0s) infinite;
+}
+.fl-1 { left: 19%; top: 14%; --r: -32deg; --dur: 11s; }
+.fl-2 { right: 15%; top: 30%; --r: 148deg; --dur: 14s; --delay: 2.5s; }
+.fl-3 { left: 33%; bottom: 26%; --r: -75deg; --dur: 16s; --delay: 5s; opacity: 0.3; }
+@keyframes leaf-float {
+  0%, 100% {
+    translate: 0 0;
+    rotate: var(--r, -30deg);
+  }
+  50% {
+    translate: 7px -10px;
+    rotate: calc(var(--r, -30deg) + 10deg);
+  }
+}
+
+/* ---------------- 巨型区块编号（杂志分章） ---------------- */
+.sec-no {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(4.2rem, 9vw, 6.8rem);
+  font-weight: 700;
+  line-height: 0.85;
+  letter-spacing: -0.03em;
+  color: color-mix(in srgb, var(--color-green) 17%, transparent);
+  margin-bottom: -0.32em; /* 标题压住编号底部，错叠出层次 */
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ---------------- 种子彩蛋 ---------------- */
+.seed-btn {
+  position: absolute;
+  right: 11%;
+  bottom: 12px;
+  width: 44px;
+  height: 52px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: auto; /* 交界带整体 pointer-events:none，种子单独放开 */
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  transition: transform 0.25s var(--ease);
+  filter: drop-shadow(0 0 0 transparent);
+}
+.seed-btn:hover {
+  transform: translateY(-2px);
+  filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--color-green) 55%, transparent));
+}
+.seed-seed {
+  width: 13px;
+  height: 17px;
+}
+.seed-sprout {
+  width: 40px;
+  height: 52px;
+  transform-origin: bottom center;
+  transform: scaleY(0.05);
+  transition: transform 0.75s var(--ease-bounce, var(--ease));
+}
+.seed-btn.grown .seed-sprout {
+  transform: scaleY(1);
+}
+
+/* 交界带在窄屏减负：浮叶动画和植物剪影关闭（山丘静态保留，分隔符保留，种子保留） */
+@media (max-width: 768px) {
+  .float-leaf,
+  .hill-plants {
+    display: none;
+  }
+  .hill-band {
+    height: 110px;
+    margin: -55px auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .float-leaf {
+    animation: none;
+  }
 }

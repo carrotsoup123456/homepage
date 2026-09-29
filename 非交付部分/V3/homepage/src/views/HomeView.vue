@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { site, skills, projects, experiences, education, contacts } from '../data/site.js'
 import { imgSize } from '../data/image-sizes.js'
 import FeedbackWidget from '../components/FeedbackWidget.vue'
+import SectionBand from '../components/SectionBand.vue'
 
 // 资源路径（兼容 GitHub Pages 的 base 前缀）
 const base = import.meta.env.BASE_URL
@@ -100,8 +101,23 @@ function updateParallax() {
     el.style.setProperty('--parallax', `${p * 0.22}px`)
     el.style.setProperty('--portrait-parallax', `${p * -0.07}px`)
   }
+  updateHillParallax()
   updateTimelineLines()
   ticking = false
+}
+
+// ---- 交界带近山视差 ----
+// 近山+植物层比页面慢半拍（0.06 系数），远山不动——两层山就有前后景深。
+// 基准位置在挂载时缓存一次，避免用"已变换的 rect"当基准造成反馈漂移。
+const hillBases = []
+function updateHillParallax() {
+  if (prefersReduced || hillBases.length === 0) return
+  const mid = window.innerHeight / 2
+  for (const { el, base, h } of hillBases) {
+    const center = base - window.scrollY + h / 2
+    if (center < -200 || center > window.innerHeight + 200) continue
+    el.style.transform = `translateY(${((center - mid) * -0.06).toFixed(1)}px)`
+  }
 }
 
 // ---- 时间线滚动描线 ----
@@ -156,6 +172,11 @@ function applyGlow() {
 onMounted(() => {
   window.addEventListener('scroll', onScroll, { passive: true })
   updateParallax()
+
+  // 缓存每个交界带近山层的文档绝对位置（视差基准，只算一次）
+  document.querySelectorAll('.hill-front-wrap').forEach((el) => {
+    hillBases.push({ el, base: el.getBoundingClientRect().top + window.scrollY, h: el.offsetHeight })
+  })
 
   // 时间线节点点亮：滚到 60% 可见时该节点圆点从灰变绿
   if (typeof IntersectionObserver !== 'undefined' && !prefersReduced) {
@@ -284,14 +305,8 @@ onUnmounted(() => {
       </div>
     </div>
 
-        <!-- 区块分隔装饰：菱形+双叶，骑在交界线上 -->
-    <div class="section-divider" aria-hidden="true">
-      <span class="sd-line sd-line-l"></span>
-      <span class="sd-leaf sd-leaf-l"></span>
-      <span class="sd-gem"></span>
-      <span class="sd-leaf sd-leaf-r"></span>
-      <span class="sd-line sd-line-r"></span>
-    </div>
+        <!-- 区块交界带：山丘+植物+浮叶+生长分隔符 -->
+    <SectionBand />
 
 <!-- ===================== 宣言（Bayshore 画框） ===================== -->
     <section class="section" v-reveal>
@@ -326,19 +341,14 @@ onUnmounted(() => {
       </div>
     </section>
 
-        <!-- 区块分隔装饰：菱形+双叶，骑在交界线上 -->
-    <div class="section-divider" aria-hidden="true">
-      <span class="sd-line sd-line-l"></span>
-      <span class="sd-leaf sd-leaf-l"></span>
-      <span class="sd-gem"></span>
-      <span class="sd-leaf sd-leaf-r"></span>
-      <span class="sd-line sd-line-r"></span>
-    </div>
+        <!-- 区块交界带：山丘+植物+浮叶+生长分隔符 -->
+    <SectionBand />
 
 <!-- ===================== 项目（Amperos 左右交替） ===================== -->
     <section id="projects" class="section section-alt">
       <div class="container">
         <div v-reveal>
+          <span class="sec-no" aria-hidden="true">01</span>
           <p class="eyebrow">Selected Work</p>
           <h2 class="section-title">项目展示</h2>
           <p class="section-desc">
@@ -384,20 +394,15 @@ onUnmounted(() => {
       </div>
     </section>
 
-        <!-- 区块分隔装饰：菱形+双叶，骑在交界线上 -->
-    <div class="section-divider" aria-hidden="true">
-      <span class="sd-line sd-line-l"></span>
-      <span class="sd-leaf sd-leaf-l"></span>
-      <span class="sd-gem"></span>
-      <span class="sd-leaf sd-leaf-r"></span>
-      <span class="sd-line sd-line-r"></span>
-    </div>
+        <!-- 区块交界带：山丘+植物+浮叶+生长分隔符 -->
+    <SectionBand />
 
 <!-- ===================== 经历 ===================== -->
     <section id="experience" class="section">
       <div class="container">
         <div v-reveal>
           <p class="eyebrow">Beyond Code</p>
+          <span class="sec-no" aria-hidden="true">02</span>
           <h2 class="section-title">经历</h2>
           <p class="section-desc">舞台、商赛与模拟联合国——课堂之外的成长。</p>
         </div>
@@ -423,20 +428,15 @@ onUnmounted(() => {
       </div>
     </section>
 
-        <!-- 区块分隔装饰：菱形+双叶，骑在交界线上 -->
-    <div class="section-divider" aria-hidden="true">
-      <span class="sd-line sd-line-l"></span>
-      <span class="sd-leaf sd-leaf-l"></span>
-      <span class="sd-gem"></span>
-      <span class="sd-leaf sd-leaf-r"></span>
-      <span class="sd-line sd-line-r"></span>
-    </div>
+        <!-- 区块交界带：山丘+植物+浮叶+生长分隔符 -->
+    <SectionBand />
 
 <!-- ===================== 教育 ===================== -->
     <section id="education" class="section section-alt">
       <div class="container">
         <div v-reveal>
           <p class="eyebrow">Education</p>
+          <span class="sec-no" aria-hidden="true">03</span>
           <h2 class="section-title">教育背景</h2>
         </div>
         <ul class="timeline" v-reveal-stagger>
@@ -450,14 +450,8 @@ onUnmounted(() => {
       </div>
     </section>
 
-        <!-- 区块分隔装饰：菱形+双叶，骑在交界线上 -->
-    <div class="section-divider" aria-hidden="true">
-      <span class="sd-line sd-line-l"></span>
-      <span class="sd-leaf sd-leaf-l"></span>
-      <span class="sd-gem"></span>
-      <span class="sd-leaf sd-leaf-r"></span>
-      <span class="sd-line sd-line-r"></span>
-    </div>
+        <!-- 区块交界带（这处藏着种子彩蛋） -->
+    <SectionBand seed />
 
 <!-- ===================== 结尾 CTA ===================== -->
     <section class="section cta" v-reveal>
