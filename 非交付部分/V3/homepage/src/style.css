@@ -21,6 +21,8 @@
   --color-primary: #3c5468; /* 石板蓝：艺术感主色 */
   --color-primary-dark: #2b3e4e;
   --color-green: #3e774e; /* 生机绿：自然点缀（对比度达标：浅色米白底 4.55:1，见验收记录 §5.21） */
+  /* 像素波专属色：亮模式主题绿（米白底不深）、暗模式提亮（深底可见） */
+  --wave-color: #4c8a5f;
   --color-green-soft: rgba(62, 119, 78, 0.12);
   --color-text: #1b1a17;
   --color-text-muted: #6e685b;
@@ -59,6 +61,8 @@
   --color-primary: #a9c6da;
   --color-primary-dark: #c6dcec;
   --color-green: #7fc28e;
+  /* 像素波专属色：亮模式主题绿（米白底不深）、暗模式提亮（深底可见） */
+  --wave-color: #8fce9e;
   --color-green-soft: rgba(127, 194, 142, 0.14);
   --color-text: #ece7da;
   --color-text-muted: #9ea391;

@@ -37,9 +37,14 @@ const inputEl = ref(null)
 const listEl = ref(null)
 const typing = ref(false)
 
-// 首访引导：没点开过对话之前，FAB 带呼吸小点 + 气泡提示；点开过一次就不再出现
+// 首访引导：呼吸小点在点开一次前常驻；气泡提示「进站 8 秒窗口 + 悬停/聚焦再现」，
+// 点开过一次（localStorage 记住）后整套不再出现——不再全程盖着正文。
 const HINT_KEY = 'homepage-bot-seen'
 const hintSeen = ref(localStorage.getItem(HINT_KEY) === '1')
+const hintWindow = ref(true)
+const fabHover = ref(false)
+let hintTimer = null
+const showBubble = computed(() => !open.value && !hintSeen.value && (hintWindow.value || fabHover.value))
 const showHint = computed(() => !open.value && !hintSeen.value)
 
 // 输入框上方的固定问题栏：能力目录 + 访客最感兴趣 + 八卦类（一行横滚）
@@ -265,8 +270,14 @@ async function toggle() {
 function onKeydown(e) {
   if (e.key === 'Escape' && open.value) open.value = false
 }
-onMounted(() => document.addEventListener('keydown', onKeydown))
+onMounted(() => {
+  document.addEventListener('keydown', onKeydown)
+  hintTimer = setTimeout(() => {
+    hintWindow.value = false
+  }, 8000)
+})
 onBeforeUnmount(() => {
+  clearTimeout(hintTimer)
   document.removeEventListener('keydown', onKeydown)
   stopTyping()
 })
@@ -281,15 +292,19 @@ onBeforeUnmount(() => {
     aria-controls="bot-panel"
     :aria-label="open ? '关闭数字分身对话' : '和数字分身聊聊'"
     @click="toggle"
+    @mouseenter="fabHover = true"
+    @mouseleave="fabHover = false"
+    @focus="fabHover = true"
+    @blur="fabHover = false"
   >
     <span aria-hidden="true">{{ open ? '✕' : '💬' }}</span>
     <!-- 首访呼吸引导点 -->
     <span v-if="showHint" class="bot-fab-dot" aria-hidden="true"></span>
   </button>
 
-  <!-- 首访气泡提示（点开一次后不再出现） -->
+  <!-- 首访气泡提示（8 秒窗口/悬停再现；点开一次后不再出现） -->
   <Transition name="bot-tip">
-    <div v-if="showHint" class="bot-tip" role="status">
+    <div v-if="showBubble" class="bot-tip" role="status">
       点我聊聊数字分身 🥕
       <span class="bot-tip-arrow" aria-hidden="true"></span>
     </div>

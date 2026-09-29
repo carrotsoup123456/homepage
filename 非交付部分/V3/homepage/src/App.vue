@@ -4,6 +4,7 @@ import { RouterView, useRoute } from 'vue-router'
 import SiteHeader from './components/SiteHeader.vue'
 import SiteFooter from './components/SiteFooter.vue'
 import ChatBot from './components/ChatBot.vue'
+import PixelWave from './components/PixelWave.vue'
 import { setPageMeta } from './data/meta.js'
 
 // ---- 页面标题与分享信息 ----
@@ -130,6 +131,7 @@ function skipToMain(e) {
   </main>
   <SiteFooter />
   <ChatBot />
+    <PixelWave />
 </template>
 
 <style scoped>
