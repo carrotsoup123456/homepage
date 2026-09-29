@@ -25,6 +25,27 @@ const prefersReduced =
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+// 项目卡鼠标跟随微倾斜（桌面端）：鼠标在哪，卡片往哪边轻转，图片同时慢速放大
+// 触摸设备（hover:none）没有"悬停"概念，不启用；减弱动效偏好下也跳过
+const cardTiltOk =
+  !prefersReduced &&
+  typeof window !== 'undefined' &&
+  window.matchMedia('(hover: none)').matches === false
+function onCardMove(e) {
+  if (!cardTiltOk) return
+  const el = e.currentTarget
+  const rect = el.getBoundingClientRect()
+  const px = (e.clientX - rect.left) / rect.width
+  const py = (e.clientY - rect.top) / rect.height
+  el.style.setProperty('--rx', `${((0.5 - py) * 6).toFixed(2)}deg`)
+  el.style.setProperty('--ry', `${((px - 0.5) * 8).toFixed(2)}deg`)
+}
+function onCardLeave(e) {
+  const el = e.currentTarget
+  el.style.setProperty('--rx', '0deg')
+  el.style.setProperty('--ry', '0deg')
+}
+
 const statValues = ref(
   prefersReduced ? stats.map((s) => s.num) : stats.map(() => 0)
 )
@@ -272,7 +293,7 @@ onUnmounted(() => {
               >查看详情 →</RouterLink
             >
           </div>
-          <div class="feature-media">
+          <div class="feature-media" @mousemove="onCardMove" @mouseleave="onCardLeave">
             <div class="frame-card">
               <img
                 v-if="p.images && p.images.length"

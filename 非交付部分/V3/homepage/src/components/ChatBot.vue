@@ -6,7 +6,7 @@
 //   「第二个·下一个」序数追问 / 智能兜底候选 / 答案带跳转按钮
 // - 隐私不变：全部匹配在本机完成，不上传输入，关掉就没
 // ======================================================
-import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { match } from '../data/bot.js'
 import {
   botName,
@@ -22,6 +22,11 @@ const input = ref('')
 const inputEl = ref(null)
 const listEl = ref(null)
 const typing = ref(false)
+
+// 首访引导：没点开过对话之前，FAB 带呼吸小点 + 气泡提示；点开过一次就不再出现
+const HINT_KEY = 'homepage-bot-seen'
+const hintSeen = ref(localStorage.getItem(HINT_KEY) === '1')
+const showHint = computed(() => !open.value && !hintSeen.value)
 
 // 输入框上方的固定问题栏：能力目录 + 访客最感兴趣 + 八卦类（一行横滚）
 // 横滚对触摸天然友好；桌面滚轮在横向有滚动余地时转成横向滚动，不会滚不动。
@@ -199,6 +204,14 @@ async function scrollToEnd() {
 
 async function toggle() {
   open.value = !open.value
+  if (!hintSeen.value) {
+    hintSeen.value = true
+    try {
+      localStorage.setItem(HINT_KEY, '1')
+    } catch {
+      /* 隐私模式下 localStorage 可能不可用，忽略 */
+    }
+  }
   if (open.value) {
     await nextTick()
     inputEl.value?.focus()
@@ -228,7 +241,17 @@ onBeforeUnmount(() => {
     @click="toggle"
   >
     <span aria-hidden="true">{{ open ? '✕' : '💬' }}</span>
+    <!-- 首访呼吸引导点 -->
+    <span v-if="showHint" class="bot-fab-dot" aria-hidden="true"></span>
   </button>
+
+  <!-- 首访气泡提示（点开一次后不再出现） -->
+  <Transition name="bot-tip">
+    <div v-if="showHint" class="bot-tip" role="status">
+      点我聊聊数字分身 🥕
+      <span class="bot-tip-arrow" aria-hidden="true"></span>
+    </div>
+  </Transition>
 
   <!-- 对话面板 -->
   <Transition name="bot-pop">
@@ -345,6 +368,71 @@ onBeforeUnmount(() => {
 }
 .bot-fab:hover {
   transform: translateY(-3px);
+}
+/* 首访呼吸引导点：小圆点缓慢扩散两圈，点开一次后消失 */
+.bot-fab-dot {
+  position: absolute;
+  top: 3px;
+  right: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #ffd166;
+  border: 2px solid #fff;
+  animation: fabPulse 2.4s var(--ease) infinite;
+  pointer-events: none;
+}
+@keyframes fabPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 209, 102, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(255, 209, 102, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 209, 102, 0);
+  }
+}
+/* 首访气泡：FAB 左侧的小提示，带指向箭头 */
+.bot-tip {
+  position: fixed;
+  right: 92px;
+  bottom: 108px;
+  z-index: 90;
+  max-width: 210px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-soft);
+}
+.bot-tip-arrow {
+  position: absolute;
+  right: -7px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translateY(-50%) rotate(45deg);
+  background: var(--color-surface-2);
+  border-top: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+}
+.bot-tip-enter-active,
+.bot-tip-leave-active {
+  transition: opacity 0.3s, transform 0.3s;
+}
+.bot-tip-enter-from,
+.bot-tip-leave-to {
+  opacity: 0;
+  transform: translateX(8px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .bot-fab-dot {
+    animation: none;
+  }
 }
 .bot-panel {
   position: fixed;

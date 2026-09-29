@@ -42,6 +42,17 @@ function resetAll() {
   tagFilter.value = '全部'
 }
 
+// 搜索命中高亮：把关键词（支持空格拆成多词）在文本里包成 <mark>
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+function highlight(text) {
+  const words = keyword.value.trim().split(/\s+/).filter(Boolean)
+  if (!words.length) return text
+  const re = new RegExp(`(${words.map(escapeRegExp).join('|')})`, 'ig')
+  return text.replace(re, '<mark>$1</mark>')
+}
+
 // 标签页标题跟着当前这篇笔记走：本来所有笔记共用「知识库」一个标题，
 // 收藏了某一篇再打开会分不清是哪篇。flush:'post' 让它覆盖路由里的通用标题。
 watch(
@@ -128,8 +139,8 @@ watch(filtered, (list) => {
                 @click="selectNote(n.id)"
               >
                 <span class="kb-item-date">{{ n.date }}</span>
-                <span class="kb-item-title">{{ n.title }}</span>
-                <span class="kb-item-summary">{{ n.summary }}</span>
+                <span class="kb-item-title" v-html="highlight(n.title)"></span>
+                <span class="kb-item-summary" v-html="highlight(n.summary)"></span>
                 <span class="kb-item-meta">
                   <span v-for="t in n.tags" :key="t" class="kb-item-tag">#{{ t }}</span>
                   <span class="kb-item-min">{{ n.minutes }} 分钟</span>

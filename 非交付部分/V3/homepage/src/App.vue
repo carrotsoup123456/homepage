@@ -18,6 +18,22 @@ watch(
   { immediate: true }
 )
 
+// ---- 顶部阅读进度条（所有页面通用，rAF 节流） ----
+const progress = ref(0)
+let barTicking = false
+function updateProgress() {
+  const doc = document.documentElement
+  const max = doc.scrollHeight - window.innerHeight
+  progress.value = max > 0 ? Math.min(100, (window.scrollY / max) * 100) : 0
+  barTicking = false
+}
+function onBarScroll() {
+  if (!barTicking) {
+    barTicking = true
+    requestAnimationFrame(updateProgress)
+  }
+}
+
 // ---- 主题切换（浅色 / 深色），localStorage 持久化 ----
 const THEME_KEY = 'homepage-theme'
 const theme = ref(localStorage.getItem(THEME_KEY) || 'light')
@@ -32,7 +48,12 @@ function toggleTheme() {
   applyTheme(theme.value)
 }
 
-onMounted(() => applyTheme(theme.value))
+onMounted(() => {
+  applyTheme(theme.value)
+  window.addEventListener('scroll', onBarScroll, { passive: true })
+  window.addEventListener('resize', onBarScroll, { passive: true })
+  updateProgress()
+})
 
 // 提供主题给子组件（Header 的切换按钮）
 provide('theme', theme)
@@ -53,6 +74,7 @@ function skipToMain(e) {
 
 <template>
   <a class="skip-link" href="#main" @click="skipToMain">跳到主要内容</a>
+  <div class="reading-bar" aria-hidden="true"><span :style="{ width: progress + '%' }"></span></div>
   <SiteHeader />
   <main id="main" ref="mainEl" class="app-main" tabindex="-1">
     <RouterView v-slot="{ Component }">
@@ -85,5 +107,27 @@ function skipToMain(e) {
 .page-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+/* 顶部阅读进度条：细线随滚动填充，指针不拦截点击 */
+.reading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 1200;
+  pointer-events: none;
+}
+.reading-bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--color-green), var(--color-primary));
+  transition: width 0.12s linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reading-bar span {
+    transition: none;
+  }
 }
 </style>
