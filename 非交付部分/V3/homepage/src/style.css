@@ -1682,3 +1682,57 @@ mark {
     animation: none;
   }
 }
+
+/* 种子提示气泡：「种点什么？」——路过的人才知道这颗种子可以点 */
+.seed-hint {
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  padding: 6px 11px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--color-green) 14%, transparent);
+}
+/* 双层小三角：边框色一层、面色一层，跟气泡严丝合缝 */
+.seed-hint::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -6px;
+  border: 6px solid transparent;
+  border-top-color: var(--color-border);
+}
+.seed-hint::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border: 5px solid transparent;
+  border-top-color: var(--color-surface);
+}
+/* 气泡出入场：轻轻浮起/落下 */
+.seed-hint-enter-active,
+.seed-hint-leave-active {
+  transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+}
+.seed-hint-enter-from,
+.seed-hint-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(4px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .seed-hint-enter-active,
+  .seed-hint-leave-active {
+    transition: none;
+  }
+}

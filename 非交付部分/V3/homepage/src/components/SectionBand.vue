@@ -1,11 +1,56 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 // seed：这一处交界是否放种子彩蛋（只在最后一处 CTA 前出现）
 defineProps({ seed: Boolean })
 
 // 种子彩蛋状态：false=种子，true=已长出苗
 const grown = ref(false)
+
+// 提示气泡：进入视野自动冒 5 秒；悬停/聚焦会再出现；长出苗后永久收起
+const hintVisible = ref(false)
+const seedBtnEl = ref(null)
+let hintTimer = null
+let seedIO = null
+
+onMounted(() => {
+  if (!seedBtnEl.value || typeof IntersectionObserver === 'undefined') return
+  seedIO = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && !grown.value) {
+          hintVisible.value = true
+          seedIO.disconnect()
+          hintTimer = setTimeout(() => {
+            if (!grown.value) hintVisible.value = false
+          }, 5000)
+        }
+      })
+    },
+    { threshold: 0.9 }
+  )
+  seedIO.observe(seedBtnEl.value)
+})
+
+onUnmounted(() => {
+  clearTimeout(hintTimer)
+  if (seedIO) seedIO.disconnect()
+})
+
+function toggleSeed() {
+  grown.value = !grown.value
+  if (grown.value) {
+    // 已经会玩了，提示永久收起
+    clearTimeout(hintTimer)
+    hintVisible.value = false
+  }
+}
+function onSeedEnter() {
+  if (!grown.value) hintVisible.value = true
+}
+function onSeedLeave() {
+  if (!grown.value && hintTimer === null) hintVisible.value = false
+}
 </script>
 
 <template>
@@ -100,12 +145,21 @@ const grown = ref(false)
     <!-- 种子彩蛋：只在最后一个交界出现（CTA 前），点一下长出胡萝卜苗 -->
     <button
       v-if="seed"
+      ref="seedBtnEl"
       class="seed-btn"
       type="button"
       :class="{ grown }"
       :aria-label="grown ? '把胡萝卜苗收回土里' : '种下一颗种子，看看会长出什么'"
-      @click="grown = !grown"
+      @click="toggleSeed"
+      @mouseenter="onSeedEnter"
+      @focus="onSeedEnter"
+      @mouseleave="onSeedLeave"
+      @blur="onSeedLeave"
     >
+      <!-- 小提示气泡：告诉路过的人这颗种子是可以点的 -->
+      <Transition name="seed-hint">
+        <span v-show="hintVisible" class="seed-hint" aria-hidden="true">种点什么？</span>
+      </Transition>
       <!-- 种子（未种下时） -->
       <svg v-show="!grown" class="seed-seed" viewBox="0 0 12 16" aria-hidden="true">
         <ellipse cx="6" cy="8" rx="4.6" ry="7" fill="#8a5a2b" />
