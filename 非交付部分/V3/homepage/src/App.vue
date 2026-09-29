@@ -34,22 +34,67 @@ function onBarScroll() {
   }
 }
 
-// ---- 主题切换（浅色 / 深色），localStorage 持久化 ----
+// ---- 主题（浅色 / 深色）----
+// 优先级：手动选择（localStorage）> 系统深浅色。
+// - 没手动选过的人：默认跟随系统，系统切换时页面实时跟着变（index.html 的
+//   内联脚本负责首帧就定好，避免先白屏再变色）。
+// - 手动点过切换按钮：锁定选择，之后不再跟系统变。
+// 手动选择才写 localStorage——首访用户不被写成固定值，否则永远跟不了系统。
 const THEME_KEY = 'homepage-theme'
-const theme = ref(localStorage.getItem(THEME_KEY) || 'light')
+const storedTheme = (() => {
+  try {
+    return localStorage.getItem(THEME_KEY)
+  } catch {
+    return null
+  }
+})()
+const prefersDark =
+  typeof window !== 'undefined' &&
+  window.matchMedia &&
+  window.matchMedia('(prefers-color-scheme: dark)').matches
+const theme = ref(storedTheme || (prefersDark ? 'dark' : 'light'))
 
-function applyTheme(t) {
+function applyTheme(t, persist) {
   document.documentElement.dataset.theme = t
-  localStorage.setItem(THEME_KEY, t)
+  if (persist) {
+    try {
+      localStorage.setItem(THEME_KEY, t)
+    } catch {
+      /* 隐私模式下 localStorage 不可用，忽略 */
+    }
+  }
 }
 
 function toggleTheme() {
   theme.value = theme.value === 'dark' ? 'light' : 'dark'
-  applyTheme(theme.value)
+  applyTheme(theme.value, true)
+  flashThemeTransition()
+}
+
+// 手动切换时挂一个短暂的「全站颜色过渡」class，350ms 后摘掉：
+// 背景/卡片/边框一起平滑变色，但不会常驻过渡拖慢滚动性能。
+let themeTransTimer = null
+function flashThemeTransition() {
+  document.documentElement.classList.add('theme-transition')
+  clearTimeout(themeTransTimer)
+  themeTransTimer = setTimeout(
+    () => document.documentElement.classList.remove('theme-transition'),
+    380
+  )
 }
 
 onMounted(() => {
-  applyTheme(theme.value)
+  applyTheme(theme.value, false)
+  // 没手动选过的人：跟随系统深浅色实时变化
+  if (window.matchMedia) {
+    const sysDark = window.matchMedia('(prefers-color-scheme: dark)')
+    sysDark.addEventListener('change', (e) => {
+      if (!storedTheme) {
+        theme.value = e.matches ? 'dark' : 'light'
+        applyTheme(theme.value, false)
+      }
+    })
+  }
   window.addEventListener('scroll', onBarScroll, { passive: true })
   window.addEventListener('resize', onBarScroll, { passive: true })
   updateProgress()

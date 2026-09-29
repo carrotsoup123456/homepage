@@ -14,6 +14,25 @@
     />
     <link rel="canonical" href="https://carrotsoup123456.github.io/homepage/" />
 
+    <!-- 首帧防闪烁：在 Vue 挂载前就按「手动偏好 > 系统深浅色」定好主题。
+         只写 dataset，不写 localStorage——写偏好是用户手动切换时才做的事。
+         所有浏览器都支持 matchMedia；极端隐私模式 localStorage 抛错会被 try 兜住。 -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('homepage-theme')
+          if (!t) {
+            t =
+              window.matchMedia &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+          }
+          document.documentElement.dataset.theme = t
+        } catch (e) {}
+      })()
+    </script>
+
     <!-- 首屏关键图提前取：hero 是 CSS 背景图，浏览器要等 CSSOM 建完才发现它，
          preload 让它与 CSS 并行下载；avatar 是 LCP 人像 -->
     <link rel="preload" as="image" href="%BASE_URL%art/hero-forest.webp" fetchpriority="high" />

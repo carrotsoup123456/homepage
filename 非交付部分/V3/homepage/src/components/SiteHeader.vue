@@ -73,6 +73,7 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
             data-testid="theme-toggle"
             @click="toggleTheme"
             :aria-label="theme === 'dark' ? '切换为浅色模式' : '切换为深色模式'"
+            :aria-pressed="theme === 'dark'"
           >
             <span aria-hidden="true">{{ theme === 'dark' ? '☀️' : '🌙' }}</span>
           </button>

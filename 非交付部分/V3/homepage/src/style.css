@@ -16,8 +16,8 @@
   --color-surface-2: #ffffff;
   --color-primary: #3c5468; /* 石板蓝：艺术感主色 */
   --color-primary-dark: #2b3e4e;
-  --color-green: #3e7a4e; /* 生机绿：自然点缀 */
-  --color-green-soft: rgba(62, 122, 78, 0.12);
+  --color-green: #3e774e; /* 生机绿：自然点缀（对比度达标：浅色米白底 4.55:1，见验收记录 §5.21） */
+  --color-green-soft: rgba(62, 119, 78, 0.12);
   --color-text: #1b1a17;
   --color-text-muted: #6e685b;
   --color-border: #d8d0bf;
@@ -62,6 +62,25 @@
   --color-on-primary: #0e120d; /* 深色主题主色偏亮 → 用深色文字保证对比度 */
   --shadow: 0 20px 55px rgba(0, 0, 0, 0.5);
   --shadow-soft: 0 8px 26px rgba(0, 0, 0, 0.35);
+}
+
+/* 手动切换主题时短暂挂载（App.vue 挂 class、380ms 后摘掉）：全站颜色平滑过渡。
+   不常驻：常驻 transition 会让滚动/动画在低端机上掉帧。 */
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition:
+    background-color 0.35s var(--ease),
+    color 0.35s var(--ease),
+    border-color 0.35s var(--ease),
+    fill 0.35s var(--ease) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition: none !important;
+  }
 }
 
 * {
