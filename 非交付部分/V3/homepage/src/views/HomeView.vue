@@ -88,6 +88,7 @@ const fireflies = Array.from({ length: 22 }, (_, i) => {
 // ---- Hero 分层视差 ----
 const heroEl = ref(null)
 let ticking = false
+let itemObserver = null
 
 function updateParallax() {
   const el = heroEl.value
@@ -98,7 +99,22 @@ function updateParallax() {
     el.style.setProperty('--parallax', `${p * 0.22}px`)
     el.style.setProperty('--portrait-parallax', `${p * -0.07}px`)
   }
+  updateTimelineLines()
   ticking = false
+}
+
+// ---- 时间线滚动描线 ----
+// 中轴线随滚动从灰变主题色（走过的部分"点亮"），节点进入视口后由 IO 加 .reached 变绿。
+// 描线是滚动位置的直接反馈（不是自动播放动画），减弱动效偏好下保留。
+function updateTimelineLines() {
+  if (typeof document === 'undefined') return
+  const focus = window.innerHeight * 0.72
+  for (const el of document.querySelectorAll('.timeline')) {
+    const r = el.getBoundingClientRect()
+    if (r.height === 0) continue
+    const p = (focus - r.top) / r.height
+    el.style.setProperty('--line-progress', Math.min(1, Math.max(0, p)).toFixed(3))
+  }
 }
 
 function onScroll() {
@@ -140,6 +156,25 @@ onMounted(() => {
   window.addEventListener('scroll', onScroll, { passive: true })
   updateParallax()
 
+  // 时间线节点点亮：滚到 60% 可见时该节点圆点从灰变绿
+  if (typeof IntersectionObserver !== 'undefined' && !prefersReduced) {
+    itemObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('reached')
+            itemObserver.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.6 }
+    )
+    document.querySelectorAll('.timeline-item').forEach((li) => itemObserver.observe(li))
+  } else {
+    // 无 IO 或减弱动效：全部直接点亮，不做逐个过渡
+    document.querySelectorAll('.timeline-item').forEach((li) => li.classList.add('reached'))
+  }
+
   if (statGrid.value && typeof IntersectionObserver !== 'undefined') {
     statObserver = new IntersectionObserver(
       (entries) => {
@@ -161,6 +196,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('scroll', onScroll)
   if (statObserver) statObserver.disconnect()
+  if (itemObserver) itemObserver.disconnect()
 })
 </script>
 

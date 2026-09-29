@@ -17,6 +17,20 @@ import {
   PROJECT_ORDER,
 } from '../data/bot-qa.js'
 
+// ---- 项目自动带路 ----
+// 回答文本里提到某个项目 → 自动在气泡下方附上「详情页链接卡」，
+// 词条作者不用逐条手写 links；回答里怎么称呼项目（全名/短名/书名号）都能命中。
+const PROJECT_LINKS = [
+  { re: /Carbon Brain/i, to: '/project/carbon-brain', icon: '🧠', label: 'Carbon Brain' },
+  { re: /股票量化/, to: '/project/stock-quant', icon: '📈', label: '股票量化项目' },
+  { re: /二次开发/, to: '/project/claude-code-custom', icon: '🧩', label: '桌面应用二开' },
+  { re: /为官一方/, to: '/project/weiguan-yifang', icon: '🏯', label: '《为官一方》' },
+  { re: /TO-DO Panel/i, to: '/project/todo-panel', icon: '📌', label: 'TO-DO Panel' },
+]
+function autoProjectLinks(text) {
+  return PROJECT_LINKS.filter((p) => p.re.test(text)).map(({ re, ...link }) => link)
+}
+
 const open = ref(false)
 const input = ref('')
 const inputEl = ref(null)
@@ -133,12 +147,16 @@ function reply(rawText) {
   if (r.kind === 'answer') {
     const suggest = [...(r.entry.suggest || [])]
     if (r.also) suggest.push(r.also.q) // 多意图：另一个强命中作为追问
+    // 链接 = 词条手写 links + 自动识别的项目卡（去重，手动优先）
+    const manual = r.entry.links || []
+    const seen = new Set(manual.map((l) => l.to))
+    const links = [...manual, ...autoProjectLinks(r.entry.a).filter((l) => !seen.has(l.to))]
     const msg = {
       from: 'bot',
       text: '',
       fullText: r.entry.a,
       suggest: suggest.length ? suggest : undefined,
-      links: r.entry.links,
+      links: links.length ? links : undefined,
       ready: false,
     }
     messages.value.push(msg)
@@ -305,7 +323,7 @@ onBeforeUnmount(() => {
             {{ m.text }}<span v-if="m.fullText && !m.ready" class="bot-caret" aria-hidden="true">▍</span>
           </p>
 
-          <!-- 站内跳转按钮（打完字才显示） -->
+          <!-- 站内跳转链接卡（打完字才显示）：提到项目时自动带路 -->
           <div v-if="m.ready && m.links && m.links.length" class="bot-links">
             <RouterLink
               v-for="l in m.links"
@@ -313,7 +331,8 @@ onBeforeUnmount(() => {
               :to="l.to"
               class="bot-link-btn"
               @click="open = false"
-              >{{ l.label }} →</RouterLink
+              ><span class="bot-link-icon" aria-hidden="true">{{ l.icon || '🔗' }}</span
+              >{{ l.label }}<span class="bot-link-arrow" aria-hidden="true">→</span></RouterLink
             >
           </div>
 
@@ -581,16 +600,31 @@ onBeforeUnmount(() => {
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text);
-  border-radius: 999px;
-  padding: 6px 12px;
+  border-radius: 12px;
+  padding: 7px 12px;
   font-size: 0.8rem;
   text-decoration: none;
-  min-height: 32px;
+  min-height: 34px;
   display: inline-flex;
   align-items: center;
+  gap: 7px;
+  transition: border-color 0.15s, color 0.15s, transform 0.15s;
 }
 .bot-link-btn:hover {
   border-color: var(--color-green);
+  color: var(--color-green);
+  transform: translateY(-1px);
+}
+.bot-link-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+.bot-link-arrow {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  transition: color 0.15s;
+}
+.bot-link-btn:hover .bot-link-arrow {
   color: var(--color-green);
 }
 .bot-quick-wrap {

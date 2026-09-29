@@ -1175,6 +1175,22 @@ html {
   width: 1px;
   background: var(--color-border);
 }
+/* 滚动描线：中轴线随滚动从灰变主题色，"走过的路"被点亮。
+   --line-progress 由 HomeView 的滚动 handler 实时写入（0~1）。 */
+.timeline::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  margin-left: -0.5px;
+  background: linear-gradient(
+    to bottom,
+    var(--color-green) calc(var(--line-progress, 0) * 100%),
+    transparent calc(var(--line-progress, 0) * 100%)
+  );
+}
 .timeline-item {
   position: relative;
   margin-bottom: 40px;
@@ -1187,8 +1203,17 @@ html {
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  background: var(--color-green);
+  background: var(--color-border);
   box-shadow: 0 0 0 4px var(--color-bg-soft);
+  transition: background 0.4s var(--ease);
+}
+.timeline-item.reached::before {
+  background: var(--color-green);
+}
+@media (prefers-reduced-motion: reduce) {
+  .timeline-item::before {
+    transition: none;
+  }
 }
 .timeline-period {
   font-size: 0.8rem;
