@@ -9,8 +9,8 @@ import { ref, onMounted, onUnmounted } from 'vue'
 // ---- 参数（克制为上）----
 const CELL = 18 // 网格步长：波经过的方块都对齐这张网格，才有"像素场"的整齐感
 const BLOCK = 14 // 方块边长（留 4px 缝隙，点阵感而不是实心圆环）
-const SPEED = 420 // 扩散速度 px/s：从点击处到 620px 约 1.5s，不急不躁
-const R_MAX = 620 // 到这个半径完全消失：波不会横扫整屏
+const SPEED = 400 // 扩散速度 px/s：配合 380px 半径，单波寿命约 0.95s
+const R_MAX = 380 // 到这个半径完全消失：较近的位置就淡出，不横扫大半屏
 const PEAK = 0.4 // 峰值透明度：颜色不深，但要有存在感
 // 三道波带：主波最亮，两条尾波渐弱——有层次而不是一根孤零零的线
 const BANDS = [
@@ -27,10 +27,73 @@ let waves = []
 let raf = 0
 let green = '#4a8a5c'
 
-function spawn(e) {
-  waves.push({ x: e.clientX, y: e.clientY, t0: performance.now() })
+function spawnAt(x, y) {
+  waves.push({ x, y, t0: performance.now() })
   if (waves.length > MAX_WAVES) waves.shift()
   if (!raf) raf = requestAnimationFrame(draw)
+}
+
+// ---- 持续接触连发 ----
+// 手指/鼠标按住不放：每单位时间在「当前接触位置」续一个波。
+// 这样手机上滑动时不是原地一个孤波，而是一路点过去一路涟漪。
+const HOLD_EVERY = 300 // ms：接触期间每 300ms 一个新波
+let holdTimer = null
+let lastX = 0
+let lastY = 0
+
+function onDown(e) {
+  // 触屏不走这套：滑动时浏览器会 pointercancel（接管滚动），连发会被掐断——
+  // 触屏有专门的 touch 通道（passive，不与滚动打架）
+  if (e.pointerType === 'touch') return
+  lastX = e.clientX
+  lastY = e.clientY
+  spawnAt(lastX, lastY)
+  clearInterval(holdTimer)
+  holdTimer = setInterval(() => spawnAt(lastX, lastY), HOLD_EVERY)
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', onHoldEnd)
+  window.addEventListener('pointercancel', onHoldEnd)
+}
+
+function onMove(e) {
+  // 只更新接触点位置，出波节奏交给定时器——移动快时波距自然拉开
+  lastX = e.clientX
+  lastY = e.clientY
+}
+
+function onHoldEnd() {
+  clearInterval(holdTimer)
+  holdTimer = null
+  window.removeEventListener('pointermove', onMove)
+  window.removeEventListener('pointerup', onHoldEnd)
+  window.removeEventListener('pointercancel', onHoldEnd)
+}
+
+// ---- 触屏通道：touch 事件即使页面正在滚动也会持续派发 touchmove ----
+// 所以滑动时波能跟着手指一路冒，而不是在按下的原位留一个孤波。
+function onTouchStart(e) {
+  const t = e.changedTouches[0]
+  if (!t) return
+  lastX = t.clientX
+  lastY = t.clientY
+  spawnAt(lastX, lastY)
+  clearInterval(holdTimer)
+  holdTimer = setInterval(() => spawnAt(lastX, lastY), HOLD_EVERY)
+}
+
+function onTouchMove(e) {
+  const t = e.changedTouches[0]
+  if (!t) return
+  lastX = t.clientX
+  lastY = t.clientY
+}
+
+function onTouchEnd(e) {
+  // 多指时等最后一根抬起才停（简化：波跟最后按下/移动的那根手指）
+  if (e.touches.length === 0) {
+    clearInterval(holdTimer)
+    holdTimer = null
+  }
 }
 
 function draw() {
@@ -94,13 +157,22 @@ onMounted(() => {
   if (!ctx) return
   green = getComputedStyle(document.documentElement).getPropertyValue('--wave-color').trim() || green
   window.addEventListener('resize', onResize)
-  window.addEventListener('pointerdown', spawn)
+  window.addEventListener('pointerdown', onDown)
+  // 触屏三件套全部 passive：不 preventDefault，页面滚动完全不受影响
+  window.addEventListener('touchstart', onTouchStart, { passive: true })
+  window.addEventListener('touchmove', onTouchMove, { passive: true })
+  window.addEventListener('touchend', onTouchEnd, { passive: true })
 })
 
 onUnmounted(() => {
   if (raf) cancelAnimationFrame(raf)
+  onHoldEnd()
+  clearInterval(holdTimer)
   window.removeEventListener('resize', onResize)
-  window.removeEventListener('pointerdown', spawn)
+  window.removeEventListener('pointerdown', onDown)
+  window.removeEventListener('touchstart', onTouchStart)
+  window.removeEventListener('touchmove', onTouchMove)
+  window.removeEventListener('touchend', onTouchEnd)
 })
 </script>
 
