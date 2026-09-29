@@ -90,7 +90,9 @@ function toTop() {
 .visit-count {
   margin-top: 6px;
   font-size: 0.8rem;
-  color: var(--color-text-muted);
+  /* footer 是固定深底（两个主题都 #14130e/#070a06），不能用主题 muted——
+     浅色主题下 #6e685b 在深底上只有 3.35:1。固定浅次要色：两底色上 7.6/8.1:1 */
+  color: #ada595;
 }
 .back-to-top:hover {
   transform: translateY(-3px);

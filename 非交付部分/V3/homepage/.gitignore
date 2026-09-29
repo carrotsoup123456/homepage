@@ -28,3 +28,7 @@ dist-ssr
 
 # 联系表单后端数据（用户留言，不入库）
 server/data/
+
+# 游戏部署版（构建产物：由 game-src/weiguan-yifang.html 经 npm run build:game 生成）
+public/play/weiguan-yifang.min.html
+public/play/assets-g/

@@ -4,11 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "node scripts/build-game.mjs && vite",
+    "build": "node scripts/build-game.mjs && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "build:game": "node scripts/build-game.mjs",
     "gen:images": "node scripts/gen-image-sizes.mjs"
   },
   "dependencies": {

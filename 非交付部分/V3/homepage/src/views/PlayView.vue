@@ -1,14 +1,16 @@
 <script setup>
 // ======================================================
-// 试玩栏目：把《为官一方》最新单文件网页版直接嵌进站内
-// 游戏本体是零外部依赖的单 HTML（public/play/weiguan-yifang.html），
+// 试玩栏目：把《为官一方》单文件网页版嵌进站内
+// 游戏源文件在 game-src/weiguan-yifang.html（内嵌 base64 图，8.9MB），
+// 部署版由 scripts/build-game.mjs 生成：图片抽出转 WebP、HTML 只剩 ~180KB。
+// 改游戏 → 改源文件 → npm run build 会自动重新生成部署版。
 // 用 iframe 隔离，互不干扰。
 // ======================================================
 import { ref, computed, onMounted } from 'vue'
 import { setPageMeta } from '../data/meta.js'
 
 const base = import.meta.env.BASE_URL
-const gameUrl = computed(() => `${base}play/weiguan-yifang.html`)
+const gameUrl = computed(() => `${base}play/weiguan-yifang.min.html`)
 
 const loading = ref(true)
 function onLoaded() {
@@ -18,7 +20,7 @@ function onLoaded() {
 onMounted(() => {
   setPageMeta({
     title: '在线试玩',
-    desc: '《为官一方》古风县令治理模拟·站内网页试玩版，无需下载。',
+    desc: '《为官一方》古风县令治理模拟·站内网页试玩（草稿版，持续更新中），无需下载。',
   })
 })
 </script>
@@ -27,10 +29,17 @@ onMounted(() => {
   <div class="play-page">
     <header class="play-head container">
       <div>
-        <h1 class="play-title">🏯 《为官一方》· 在线试玩</h1>
+        <h1 class="play-title">
+          🏯 《为官一方》· 在线试玩
+          <span class="draft-badge" title="游戏仍在开发迭代，内容与数值可能会调整">
+            草稿版 · 持续更新
+          </span>
+        </h1>
         <p class="play-sub">
           你是青阳县令：平衡银库、粮仓、民心、治安、官声、人口，治县三载，考课定前程。
-          本站嵌入的是<strong>最新单文件网页版</strong>，无需下载、点开即玩（进度存在本机浏览器）。
+          无需下载、点开即玩（进度存在本机浏览器）。
+          <strong>当前为草稿版本</strong>：玩法与数值仍在迭代，欢迎玩过之后
+          <RouterLink to="/contact">反馈感受</RouterLink>，帮助它变得更好。
         </p>
       </div>
       <a class="btn btn-outline play-open" :href="gameUrl" target="_blank" rel="noopener">
@@ -39,10 +48,10 @@ onMounted(() => {
     </header>
 
     <div class="play-stage">
-      <!-- 加载提示：游戏文件约 9MB，慢网需要等一会 -->
+      <!-- 加载提示：主文件 ~180KB 秒开，场景图按需加载 -->
       <div v-if="loading" class="play-loading" aria-live="polite">
         <span class="play-spinner" aria-hidden="true"></span>
-        游戏加载中…（文件约 9MB，慢网请稍候）
+        游戏加载中…
       </div>
       <!-- 游戏本体是竖屏手机布局（内部 #game 固定 430px 宽、100dvh 高）。
            给 iframe 一个同比例的「手机竖屏」视口，游戏就能像在手机上一样完整展开，
@@ -80,6 +89,21 @@ onMounted(() => {
   font-family: var(--font-display);
   font-size: 1.5rem;
   margin-bottom: 6px;
+}
+.draft-badge {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 10px;
+  padding: 2px 10px;
+  border: 1px solid var(--color-green);
+  border-radius: 999px;
+  color: var(--color-green);
+  background: var(--color-green-soft);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.6;
 }
 .play-sub {
   color: var(--color-text-muted);
