@@ -89,6 +89,7 @@ const fireflies = Array.from({ length: 22 }, (_, i) => {
 const heroEl = ref(null)
 let ticking = false
 let itemObserver = null
+let dividerObserver = null
 
 function updateParallax() {
   const el = heroEl.value
@@ -175,6 +176,25 @@ onMounted(() => {
     document.querySelectorAll('.timeline-item').forEach((li) => li.classList.add('reached'))
   }
 
+  // 区块分隔符生长：滚到交界处时 线-菱-叶 依次长出（一次性）
+  const dividers = document.querySelectorAll('.section-divider')
+  if (typeof IntersectionObserver !== 'undefined' && !prefersReduced) {
+    dividerObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in')
+            dividerObserver.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.6 }
+    )
+    dividers.forEach((d) => dividerObserver.observe(d))
+  } else {
+    dividers.forEach((d) => d.classList.add('in'))
+  }
+
   if (statGrid.value && typeof IntersectionObserver !== 'undefined') {
     statObserver = new IntersectionObserver(
       (entries) => {
@@ -197,6 +217,7 @@ onUnmounted(() => {
   window.removeEventListener('scroll', onScroll)
   if (statObserver) statObserver.disconnect()
   if (itemObserver) itemObserver.disconnect()
+  if (dividerObserver) dividerObserver.disconnect()
 })
 </script>
 
@@ -264,7 +285,13 @@ onUnmounted(() => {
     </div>
 
         <!-- 区块分隔装饰：菱形+双叶，骑在交界线上 -->
-    <div class="section-divider" aria-hidden="true"></div>
+    <div class="section-divider" aria-hidden="true">
+      <span class="sd-line sd-line-l"></span>
+      <span class="sd-leaf sd-leaf-l"></span>
+      <span class="sd-gem"></span>
+      <span class="sd-leaf sd-leaf-r"></span>
+      <span class="sd-line sd-line-r"></span>
+    </div>
 
 <!-- ===================== 宣言（Bayshore 画框） ===================== -->
     <section class="section" v-reveal>
@@ -300,7 +327,13 @@ onUnmounted(() => {
     </section>
 
         <!-- 区块分隔装饰：菱形+双叶，骑在交界线上 -->
-    <div class="section-divider" aria-hidden="true"></div>
+    <div class="section-divider" aria-hidden="true">
+      <span class="sd-line sd-line-l"></span>
+      <span class="sd-leaf sd-leaf-l"></span>
+      <span class="sd-gem"></span>
+      <span class="sd-leaf sd-leaf-r"></span>
+      <span class="sd-line sd-line-r"></span>
+    </div>
 
 <!-- ===================== 项目（Amperos 左右交替） ===================== -->
     <section id="projects" class="section section-alt">
@@ -352,7 +385,13 @@ onUnmounted(() => {
     </section>
 
         <!-- 区块分隔装饰：菱形+双叶，骑在交界线上 -->
-    <div class="section-divider" aria-hidden="true"></div>
+    <div class="section-divider" aria-hidden="true">
+      <span class="sd-line sd-line-l"></span>
+      <span class="sd-leaf sd-leaf-l"></span>
+      <span class="sd-gem"></span>
+      <span class="sd-leaf sd-leaf-r"></span>
+      <span class="sd-line sd-line-r"></span>
+    </div>
 
 <!-- ===================== 经历 ===================== -->
     <section id="experience" class="section">
@@ -385,7 +424,13 @@ onUnmounted(() => {
     </section>
 
         <!-- 区块分隔装饰：菱形+双叶，骑在交界线上 -->
-    <div class="section-divider" aria-hidden="true"></div>
+    <div class="section-divider" aria-hidden="true">
+      <span class="sd-line sd-line-l"></span>
+      <span class="sd-leaf sd-leaf-l"></span>
+      <span class="sd-gem"></span>
+      <span class="sd-leaf sd-leaf-r"></span>
+      <span class="sd-line sd-line-r"></span>
+    </div>
 
 <!-- ===================== 教育 ===================== -->
     <section id="education" class="section section-alt">
@@ -406,7 +451,13 @@ onUnmounted(() => {
     </section>
 
         <!-- 区块分隔装饰：菱形+双叶，骑在交界线上 -->
-    <div class="section-divider" aria-hidden="true"></div>
+    <div class="section-divider" aria-hidden="true">
+      <span class="sd-line sd-line-l"></span>
+      <span class="sd-leaf sd-leaf-l"></span>
+      <span class="sd-gem"></span>
+      <span class="sd-leaf sd-leaf-r"></span>
+      <span class="sd-line sd-line-r"></span>
+    </div>
 
 <!-- ===================== 结尾 CTA ===================== -->
     <section class="section cta" v-reveal>
