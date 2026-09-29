@@ -123,13 +123,21 @@ function updateHillParallax() {
 // ---- 时间线滚动描线 ----
 // 中轴线随滚动从灰变主题色（走过的部分"点亮"），节点进入视口后由 IO 加 .reached 变绿。
 // 描线是滚动位置的直接反馈（不是自动播放动画），减弱动效偏好下保留。
-function updateTimelineLines() {
-  if (typeof document === 'undefined') return
-  const focus = window.innerHeight * 0.72
-  for (const el of document.querySelectorAll('.timeline')) {
+// 基准位置挂载/resize 时缓存，滚动帧里纯算术——每帧读布局会造成强制回流（Lighthouse 标红项）。
+const timelineBases = []
+function cacheTimelineBases() {
+  timelineBases.length = 0
+  document.querySelectorAll('.timeline').forEach((el) => {
     const r = el.getBoundingClientRect()
-    if (r.height === 0) continue
-    const p = (focus - r.top) / r.height
+    if (r.height === 0) return
+    timelineBases.push({ el, top: r.top + window.scrollY, height: r.height })
+  })
+}
+function updateTimelineLines() {
+  if (typeof document === 'undefined' || timelineBases.length === 0) return
+  const focus = window.innerHeight * 0.72
+  for (const { el, top, height } of timelineBases) {
+    const p = (focus - (top - window.scrollY)) / height
     el.style.setProperty('--line-progress', Math.min(1, Math.max(0, p)).toFixed(3))
   }
 }
@@ -177,6 +185,11 @@ onMounted(() => {
   document.querySelectorAll('.hill-front-wrap').forEach((el) => {
     hillBases.push({ el, base: el.getBoundingClientRect().top + window.scrollY, h: el.offsetHeight })
   })
+
+  // 时间线描线基准（图片有预设尺寸，布局稳定；resize 时重算）
+  cacheTimelineBases()
+  updateTimelineLines()
+  window.addEventListener('resize', cacheTimelineBases)
 
   // 时间线节点点亮：滚到 60% 可见时该节点圆点从灰变绿
   if (typeof IntersectionObserver !== 'undefined' && !prefersReduced) {
@@ -235,6 +248,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('resize', cacheTimelineBases)
   window.removeEventListener('scroll', onScroll)
   if (statObserver) statObserver.disconnect()
   if (itemObserver) itemObserver.disconnect()
