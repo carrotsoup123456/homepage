@@ -1,0 +1,3195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>为官一方 · 内置试玩</title>
+<style>
+  :root {
+    --bg: #f4ecd8; --panel: #f8f1dd; --edge: #6b5332; --ink: #3a3226;
+    --sub: #8a7a5c; --gold: #a8842e; --btn: #efe3c4; --btnedge: #8a6f3f; --act: #dcc89a;
+    /* 官服品级主题：随官职换色（JS 在 refreshStatus 里同步 --frame/--frame-deep） */
+    --frame: #2f6a52; --frame-deep: #1d4736;
+    --frame-line: rgba(247,240,220,.62);   /* 面板内衬绣线（米白） */
+  }
+  /* 四角回纹角饰（金色绣线，质朴不抢戏）：双 L 线 = 织锦滚边，挂在常驻米黄面板上 */
+  #startPanel .start-card, #actionPanel .act-card, .status-panel, .event-panel, .modal {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M2 18V2H18' fill='none' stroke='%23a8842e' stroke-width='2' opacity='0.72'/%3E%3Cpath d='M6.5 18V6.5H18' fill='none' stroke='%23a8842e' stroke-width='1' opacity='0.4'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-size:18px 18px;
+    background-position:8px 8px, right 8px top 8px, left 8px bottom 8px, right 8px bottom 8px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; font-family:"Songti SC","STSong","Noto Serif SC","SimSun",serif; }
+  body {
+    background:#1a1510;
+    color:var(--ink);
+    display:flex; justify-content:center; align-items:center;
+  }
+  #game {
+    width:100%; max-width:430px; height:100dvh; max-height:900px;
+    position:relative; overflow:hidden;
+    background:var(--bg);
+    box-shadow:0 0 40px rgba(0,0,0,0.6);
+  }
+  /* ===== 动态场景层（SceneRenderer，平时隐藏，月结时全屏展示） ===== */
+  #scene { position:absolute; inset:0; z-index:0; pointer-events:none; opacity:0; transition:opacity .4s ease; }
+  /* 月结全屏展示：盖住 UI 面板。推镜用容器自身 CSS transform：
+     #scene 是 HTML div（不是 SVG g），不受"WebKit 下 CSS transform 对 SVG g 按视口原点解析"限制；
+     #game 有 overflow:hidden，放大后溢出部分自动裁掉 = 只见局部，无需改 viewBox。
+     transform-origin 对准河道与桥的位置（横向 46% / 纵向 78%）。 */
+  #scene.on {
+    opacity:1; z-index:9;
+    transform-origin:46% 78%;
+    animation:pushIn 1.4s cubic-bezier(.16,.8,.3,1) .6s both;
+  }
+  @keyframes pushIn { from { transform:scale(1.9); } to { transform:scale(1); } }
+  .scene-svg { width:100%; height:100%; display:block; }
+  /* 径向显影遮罩：做 #scene 的子节点（自动盖在 bg/fg 之上）+ pointer-events:none。
+     注意不能用 z-index:8 —— #scene.on 自己就是 z-index:9，兄弟节点放在它下面会看不见。 */
+  #scene-wipe {
+    position:absolute; inset:0; pointer-events:none; opacity:0;
+    background:radial-gradient(circle at 50% 56%, rgba(20,15,8,0) 0 18%, rgba(20,15,8,.98) 46%);
+  }
+  #scene.on #scene-wipe { animation:fxWipe .7s ease-out .05s both; }
+  @keyframes fxWipe { from { opacity:1; transform:scale(1.15); } to { opacity:0; transform:scale(1); } }
+  /* 双 SVG 分层：bg 静态（天空/远山/建筑/地面），fg 人物（rAF 驱动真走路）
+     两层必须用完全相同的 viewBox 与 preserveAspectRatio，否则人物会飘在房子外 */
+  #scene-bg, #scene-fg { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  #scene-fg { pointer-events:none; }
+  .vtitle {
+    position:absolute; left:8px; top:50%; transform:translateY(-50%);
+    text-align:center;
+    color:var(--gold); font-size:30px; line-height:40px; font-weight:bold;
+    text-shadow:0 1px 0 rgba(255,255,255,0.6), 0 2px 6px rgba(60,40,10,.3);
+    writing-mode:vertical-rl; letter-spacing:4px;
+    z-index:3;
+  }
+  .vtitle small { font-size:10px; color:var(--sub); letter-spacing:2px; font-weight:normal; }
+  .corner { position:absolute; left:10px; top:8px; font-size:13px; color:var(--sub); z-index:3; }
+  /* ===== 开局主界面：府衙门楼位图背景 + 中央上任卡片 ===== */
+  #startPanel {
+    position:absolute; inset:0; z-index:5; display:none;
+    background:var(--bg) url(assets-g/img-9b57a7e1d9de.webp) center/cover no-repeat;
+  }
+  #startPanel.on { display:block; }
+  #startPanel .start-scene { position:absolute; inset:0; }
+  #startPanel .start-scene .scene-svg { width:100%; height:100%; display:block; }
+  #startPanel .start-scrim {
+    position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(20,15,8,.18) 0%, rgba(20,15,8,0) 34%, rgba(20,15,8,.34) 100%);
+  }
+  #startPanel .start-card {
+    position:absolute; left:50%; top:36%; transform:translate(-50%,-50%);
+    width:calc(100% - 96px); max-width:330px;
+    background-color:var(--panel); border:2px solid var(--frame-deep); border-radius:14px;
+    padding:24px 16px 18px;
+    box-shadow:inset 0 0 0 1px var(--frame-line), 0 10px 34px rgba(30,20,5,.55);
+  }
+  #startPanel .start-card h2 {
+    text-align:center; color:var(--gold); font-size:26px; letter-spacing:6px;
+    margin-bottom:6px; text-shadow:0 1px 0 rgba(255,255,255,.5);
+  }
+  #startPanel .start-card h3 {
+    text-align:center; color:var(--sub); font-size:13px; letter-spacing:2px;
+    font-weight:normal; margin-bottom:16px;
+  }
+  #startPanel .start-card .btn { display:block; width:100%; margin:9px 0; font-size:14.5px; padding:13px 12px; }
+  #startPanel .start-card .btn.gold { font-size:15px; padding:14px 12px; letter-spacing:3px; }
+  #startPanel .start-card .start-note {
+    text-align:center; font-size:11px; color:var(--sub); margin-top:8px; letter-spacing:1px;
+  }
+  #startPanel .start-foot {
+    position:absolute; left:0; right:0; bottom:22px; text-align:center;
+    font-size:11px; color:rgba(247,240,220,.75); letter-spacing:3px;
+    text-shadow:0 1px 3px rgba(0,0,0,.8);
+  }
+  /* ===== 政令界面：全屏场景 + 中央政令卡片（与开局页同风格，不再挤窄条） ===== */
+  #actionPanel {
+    position:absolute; inset:0; z-index:5; display:none;
+    background:var(--bg);
+  }
+  #actionPanel.on { display:block; }
+  #actionPanel .start-scene { position:absolute; inset:0; }
+  #actionPanel .start-scene .scene-svg { width:100%; height:100%; display:block; }
+  #actionPanel .start-scrim {
+    position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(20,15,8,.18) 0%, rgba(20,15,8,0) 34%, rgba(20,15,8,.34) 100%);
+  }
+  #actionPanel .act-card {
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:calc(100% - 96px); max-width:330px; max-height:88%;
+    background-color:var(--panel); border:2px solid var(--frame-deep); border-radius:14px;
+    padding:22px 16px 16px; overflow-y:auto;
+    box-shadow:inset 0 0 0 1px var(--frame-line), 0 10px 34px rgba(30,20,5,.55);
+  }
+  #actionPanel .act-card h2 {
+    text-align:center; color:var(--gold); font-size:23px; letter-spacing:5px;
+    margin-bottom:5px; text-shadow:0 1px 0 rgba(255,255,255,.5);
+  }
+  #actionPanel .act-card h3 {
+    text-align:center; color:var(--sub); font-size:12.5px; letter-spacing:2px;
+    font-weight:normal; margin-bottom:14px;
+  }
+  #actionPanel .act-card .act-btn {
+    display:block; width:100%; text-align:left; margin:8px 0;
+    padding:12px 14px; border-radius:12px;
+    background:linear-gradient(135deg,#f4ead2,#e6d7b4); color:var(--ink);
+    border:1.5px solid var(--frame-deep); box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 2px 6px rgba(60,40,10,.2);
+  }
+  #actionPanel .act-card .act-btn:active { transform:translateY(1px); }
+  #actionPanel .act-card .act-name { display:block; font-size:15.5px; font-weight:bold; letter-spacing:1px; line-height:21px; }
+  #actionPanel .act-card .act-eff { display:block; font-size:11.5px; color:#8a6a30; line-height:17px; }
+  #actionPanel .act-card .act-desc { display:block; font-size:11px; color:#6a5a40; line-height:16px; margin-top:2px; }
+  #actionPanel .act-card .pager { display:flex; justify-content:center; gap:10px; margin:10px 0 6px; }
+  #actionPanel .act-card .pager .btn { width:auto; padding:6px 18px; font-size:13px; }
+  #actionPanel .act-card .act-rest {
+    display:block; width:100%; text-align:center; margin-top:6px;
+    background:#e4d8bc; color:#7a6a4a; border:1.5px solid #b8a888; border-radius:10px;
+    padding:11px 10px; font-size:14px; box-shadow:inset 0 1px 0 rgba(255,255,255,.55);
+  }
+  #actionPanel .act-card .act-rest:active { transform:translateY(1px); }
+  #actionPanel .act-foot {
+    position:absolute; left:0; right:0; bottom:18px; text-align:center;
+    font-size:11px; color:rgba(247,240,220,.75); letter-spacing:3px;
+    text-shadow:0 1px 3px rgba(0,0,0,.8);
+  }
+  /* ===== 按钮基础（此前缺失，导致一直用浏览器默认样式=白边小按钮） ===== */
+  button {
+    font-family:inherit; cursor:pointer; -webkit-appearance:none; appearance:none;
+    border:none; outline:none;
+  }
+  .btn {
+    display:block; width:100%; text-align:center;
+    background:var(--btn); color:var(--ink); border:1.5px solid var(--frame-deep);
+    border-radius:10px; padding:12px 10px; font-size:15px; line-height:22px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.55), 0 2px 6px rgba(60,40,10,.22);
+  }
+  .btn:active { transform:translateY(1px); box-shadow:inset 0 2px 6px rgba(60,40,10,.25); }
+  .btn.gray { background:#e4d8bc; color:#7a6a4a; border-color:#b8a888; }
+  .btn.gold { background:linear-gradient(180deg,#e8cf8a,#cfaa58); color:#5a4018; border-color:#a8842e; }
+  /* ===== 官服品级按钮（按官职换配色 + 补子绣花） ===== */
+  .rank-btn {
+    position:relative; display:flex; align-items:center; gap:8px; text-align:left;
+    padding:8px 10px; min-height:54px;
+    background:linear-gradient(135deg, var(--rc) 0%, var(--rc-deep) 100%);
+    color:#f7f0dc; border:1.5px solid #e8cf8a; border-radius:12px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.25), 0 3px 8px rgba(30,20,5,.35);
+  }
+  .rank-btn .buzi {
+    flex:0 0 auto; width:32px; height:32px; border-radius:6px;
+    background:var(--rc-deep); border:1px solid #e8cf8a;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden; box-shadow:inset 0 0 6px rgba(0,0,0,.35);
+  }
+  .rank-btn .buzi svg { width:27px; height:27px; }
+  .rank-btn .buzi-text { flex:1 1 auto; min-width:0; }
+  .rank-btn .buzi-text .t1 { display:block; font-size:13.5px; font-weight:bold; line-height:18px; letter-spacing:.5px; }
+  .rank-btn .buzi-text .t2 { display:block; font-size:10px; color:rgba(247,240,220,.78); line-height:14px; }
+  .rank-btn .buzi-eff { flex:0 0 auto; font-size:10.5px; color:#f0dfa8; text-align:right; line-height:15px; white-space:nowrap; }
+  .rank-btn .buzi-rank {
+    position:absolute; left:10px; bottom:3px; font-size:7.5px; letter-spacing:1px;
+    color:rgba(247,240,220,.85); text-shadow:0 1px 2px rgba(0,0,0,.5);
+  }
+  .rank-btn:active { transform:translateY(1px); box-shadow:inset 0 3px 8px rgba(0,0,0,.4); }
+  .rank-btn.lite { background:linear-gradient(135deg,#e4d8bc,#cfc09a); color:#5a4a2a; border-color:#b8a888; }
+  .rank-btn.lite .buzi { background:#b8a888; border-color:#8a7a5c; }
+  .rank-btn.lite .buzi-text .t2 { color:#7a6a4a; }
+  .rank-btn.lite .buzi-eff { color:#8a6a30; }
+  /* 选中态：点击选项后高亮 */
+  .rank-btn.sel { box-shadow:0 0 0 2.5px #f0dfa8, 0 0 16px rgba(240,223,168,.55); }
+  /* 继续按钮：点选项后激活 */
+  #choices .btn:disabled { opacity:.45; cursor:default; transform:none; box-shadow:none; }
+  #choices .btn:disabled:hover { background:var(--panel); }
+  /* 中间大块：仅事件选择时出现的选项场景预览；顶部跟随事件文本高度(--evh)，
+     底边下移(bottom:385px)把预览区与选项区之间的空白挤给事件文本铺开 */
+  #preview {
+    position:absolute; left:50%; transform:translateX(-50%);
+    top:calc(172px + var(--evh,90px) + 32px); bottom:385px;
+    width:calc(100% - 16px); min-height:200px;
+    border:2px solid var(--frame-deep); border-radius:12px; overflow:hidden;
+    background:#e8dcc0; z-index:1; display:none;
+    box-shadow:inset 0 0 0 1px var(--frame-line), 0 2px 8px rgba(60,40,10,.25);
+  }
+  /* 小屏保护：窗口偏矮时预览下限收窄，避免预览与选项区相撞 */
+  @media (max-height:744px){ #preview { min-height:150px; } }
+  @media (max-height:660px){ #preview { min-height:120px; } }
+  #preview .scene-svg { width:100%; height:100%; display:block; }
+  #preview .pv-img { width:100%; height:100%; display:block; object-fit:cover; }
+  #preview .pv-tag {
+    position:absolute; left:8px; top:6px; z-index:2;
+    background:rgba(58,42,26,.72); color:#f6ecd4; font-size:10px; letter-spacing:2px;
+    padding:3px 8px; border-radius:999px;
+  }
+  .status-panel, .event-panel {
+    position:absolute; left:50%; transform:translateX(-50%);
+    background-color:var(--panel); border:2px solid var(--frame-deep); border-radius:12px;
+    box-shadow:inset 0 0 0 1px var(--frame-line), 0 2px 8px rgba(60,40,10,.25);
+    z-index:2;
+  }
+  /* 状态面板：身份行 + 六维数值网格 + 品格行，紧凑两列网格保证不换行不溢出 */
+  .status-panel { top:52px; width:calc(100% - 70px); padding:8px 10px; font-size:14px; line-height:20px; }
+  .status-panel .idline { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .status-panel b { color:var(--gold); font-size:14.5px; }
+  .status-panel .rank-pill {
+    display:inline-block; margin-left:6px; padding:1px 8px; border-radius:999px;
+    font-size:11px; color:#f7f0dc; vertical-align:1px;
+    background:linear-gradient(135deg,var(--rc),var(--rc-deep));
+    border:1px solid #e8cf8a; letter-spacing:1px;
+  }
+  .vals {
+    display:grid; grid-template-columns:repeat(3,1fr);
+    gap:2px 8px; margin-top:4px; font-size:12.5px; line-height:17px;
+  }
+  .vals span { white-space:nowrap; }
+  .vals b { color:var(--gold); font-size:12.5px; font-weight:bold; }
+  .meta-line { margin-top:4px; font-size:12px; line-height:17px; color:var(--sub); }
+  /* 事件面板：高度随文本铺开（不滚动），预览区顶部由 --evh 变量跟随事件卡底部 */
+  .event-panel { top:172px; width:calc(100% - 20px); padding:8px 12px; }
+  #eventText { font-size:13.5px; line-height:21px; white-space:pre-wrap; overflow:visible; }
+  #eventText::-webkit-scrollbar, .act-card::-webkit-scrollbar, .modal::-webkit-scrollbar { width:5px; }
+  #eventText::-webkit-scrollbar-thumb, .act-card::-webkit-scrollbar-thumb, .modal::-webkit-scrollbar-thumb { background:var(--frame); border-radius:3px; }
+  .scroll { position:absolute; left:50%; transform:translateX(-50%); bottom:78px; width:calc(100% - 24px); z-index:2; }
+  .scrollbar { height:6px; background:var(--frame-deep); border-radius:3px; opacity:.35; }
+  /* 底部大选项区：铺满事件面板下方到屏幕底部，选项按钮均分高度、内容完整不滚动
+     小屏保护：top 不超过 min(534px, 屏高-210px)，保证选项区与 tip 永不重叠 */
+  #choices {
+    position:absolute; left:8px; right:8px; top:min(534px, calc(100% - 210px)); bottom:20px; z-index:2;
+    display:flex; flex-direction:column; gap:8px;
+  }
+  #choices .btn, #choices .rank-btn { width:100%; }
+  #choices .rank-btn { padding:6px 10px; min-height:0; flex:1 1 0; }
+  #choices .btn { padding:9px 12px; font-size:14px; }
+  /* 继续按钮：紧凑、金色，点选项后激活 */
+  #confirmBtn { margin-top:0; padding:8px 12px !important; font-size:14px !important; letter-spacing:4px; }
+  #tip { position:absolute; left:0; right:0; bottom:2px; text-align:center; font-size:11px; color:#e8dcc0; text-shadow:0 1px 2px rgba(0,0,0,.7); z-index:3; }
+  /* 面板（开局/政令） */
+  .modal {
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:calc(100% - 28px); max-height:92%; overflow-y:auto;
+    background-color:var(--panel); border:2px solid var(--frame-deep); border-radius:14px;
+    padding:18px 14px 14px; box-shadow:inset 0 0 0 1px var(--frame-line), 0 6px 30px rgba(0,0,0,.5);
+    z-index:2;
+  }
+  .modal h2 { text-align:center; color:var(--gold); font-size:21px; margin-bottom:4px; }
+  .modal h3 { text-align:center; color:var(--sub); font-size:12.5px; margin-bottom:10px; font-weight:normal; }
+  .modal .btn { font-size:14px; }
+  .act-desc { font-size:11.5px; color:var(--sub); text-align:center; margin:-6px 0 8px; }
+  .pager { display:flex; justify-content:center; gap:10px; margin:4px 0 8px; }
+  .pager .btn { width:auto; padding:6px 16px; font-size:13px; }
+  .ending { text-align:center; }
+  .ending h2 { font-size:26px; color:#a02818; margin:8px 0; }
+  .ending p { font-size:14.5px; line-height:24px; text-align:left; }
+  /* ===== 月结全屏展示层 ===== */
+  #recap {
+    position:absolute; inset:0; z-index:10; display:none; cursor:pointer;
+    background:rgba(20,15,8,0.15);
+  }
+  #recap.on { display:block; }
+  #recap .recap-title {
+    position:absolute; top:26px; left:0; right:0; text-align:center;
+    color:#f6ecd4; font-size:24px; letter-spacing:6px; font-weight:bold;
+    text-shadow:0 2px 8px rgba(0,0,0,.8); z-index:2;
+  }
+  #recap .recap-changes {
+    position:absolute; top:76px; left:50%; transform:translateX(-50%);
+    background-color:rgba(248,241,221,.94); border:2px solid var(--frame-deep); border-radius:10px;
+    padding:8px 14px; font-size:13px; line-height:20px; color:var(--ink);
+    box-shadow:inset 0 0 0 1px var(--frame-line), 0 3px 14px rgba(0,0,0,.5); white-space:nowrap; z-index:2;
+  }
+  .recap-changes b { color:var(--gold); }
+  .ch-up { color:#a02818; font-weight:bold; }   /* 涨-朱砂红 */
+  .ch-down { color:#2a6a3a; font-weight:bold; } /* 跌-墨绿 */
+  #recap .recap-btn {
+    position:absolute; right:14px; top:14px; z-index:3;
+    background:rgba(58,42,26,.82); border:1.5px solid var(--frame); border-radius:999px;
+    color:#f6ecd4; font-size:13.5px; padding:9px 16px; cursor:pointer;
+    font-family:inherit; letter-spacing:1px; box-shadow:0 3px 12px rgba(0,0,0,.5);
+  }
+  #recap .recap-btn:hover { background:rgba(90,66,40,.92); }
+  #recap .recap-hint {
+    position:absolute; bottom:16px; left:0; right:0; text-align:center;
+    color:#f0e6cc; font-size:12.5px; letter-spacing:2px; text-shadow:0 1px 4px rgba(0,0,0,.8); z-index:2;
+  }
+  /* 场景入场动画：月结全屏展示(#scene.on)与事件预览(#preview)时分层浮现，动画结束定格
+     注意：.sc-layer 在各自容器内部，动画规则必须同时覆盖 #scene.on 与 #preview
+     （preview 不在 #scene 内部，只写 #scene.on 会导致预览区场景一直 opacity:0 不可见） */
+  #preview .sc-layer { opacity:0; animation:scIn 1s ease forwards; }
+  #scene.on .sc-layer { opacity:0; animation:scIn 1s ease forwards; }
+  #preview .sc-l0, #scene.on .sc-l0 { animation-delay:.1s; }
+  #preview .sc-l1, #scene.on .sc-l1 { animation-delay:.5s; }
+  #preview .sc-l2, #scene.on .sc-l2 { animation-delay:.9s; }
+  #preview .sc-l3, #scene.on .sc-l3 { animation-delay:1.2s; }
+  @keyframes scIn { from{opacity:0;} to{opacity:1;} }   /* 只用opacity：SVG <g> 的 CSS transform 动画在 WebKit 中不可靠 */
+  /* 月结专用分层延迟重排（#preview 的延迟保持原样不动，故在此单独覆盖） */
+  #scene.on .sc-l0 { animation-delay:.10s; }
+  #scene.on .sc-l1 { animation-delay:.40s; }
+  #scene.on .sc-l2 { animation-delay:1.05s; }
+  #scene.on .sc-l3 { animation-delay:1.20s; }
+  /* 人物层入场：原先完全没有，21 人是整排瞬间冒出来的 */
+  #scene.on #scene-fg { opacity:0; animation:scIn .5s ease 1.1s both; }
+  /* 月结面板入场：2.4s 内不出现（苏醒开场期间不压字）
+     这同时也是"跳过闸门"的可视部分；真正的闸门在 skipRecap() 里做时间戳比较 */
+  #recap.on .recap-title, #recap.on .recap-changes,
+  #recap.on .recap-btn,   #recap.on .recap-hint { opacity:0; animation:scIn .5s ease 2.4s both; }
+  /* 持续环境动画（月结展示与事件预览均生效）
+     注意：只使用 translate/opacity——CSS scale/rotate 作用于 SVG g 会以视口原点为轴导致错位 */
+  #scene.on .cloud-drift, #preview .cloud-drift { animation:drift 26s ease-in-out infinite alternate; }
+  @keyframes drift { from{transform:translateX(-14px);} to{transform:translateX(14px);} }
+  #scene.on .fx-flicker, #preview .fx-flicker { animation:flick 0.8s ease-in-out infinite alternate; }
+  @keyframes flick { from{opacity:1;} to{opacity:0.55;} }
+  #scene.on .fx-rise, #preview .fx-rise { animation:rise 3s ease-out infinite; }
+  @keyframes rise { 0%{transform:translateY(0); opacity:0.55;} 100%{transform:translateY(-30px); opacity:0;} }
+  #scene.on .fx-sway, #preview .fx-sway { animation:sway 2.2s ease-in-out infinite alternate; }
+  @keyframes sway { from{transform:translateX(-2.5px);} to{transform:translateX(2.5px);} }
+  #scene.on .fx-bob, #preview .fx-bob { animation:bob 3s ease-in-out infinite; }
+  @keyframes bob { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-2px);} }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="scene">
+    <svg id="scene-bg" class="scene-svg" viewBox="0 0 440 860" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg"></svg>
+    <svg id="scene-fg" class="scene-svg" viewBox="0 0 440 860" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="scene-wipe"></div>
+  </div>
+  <!-- 月结全屏展示层：动画结束后定格，点任意处或右上角按钮开启下月 -->
+  <div id="recap">
+    <div class="recap-title" id="recapTitle">正月 · 岁首开衙</div>
+    <div class="recap-changes" id="recapChanges"></div>
+    <button class="recap-btn" id="recapBtn" onclick="skipRecap()">▶ 开启下月治理</button>
+    <div class="recap-hint">点击任意处继续</div>
+  </div>
+  <div class="corner">大衍朝 · 青阳县</div>
+  <div class="vtitle">为官一方<small>青阳志·卷一</small></div>
+  <!-- 开局主界面：全屏场景 + 上任卡片（隐藏时不影响游戏界面） -->
+  <div id="startPanel"></div>
+  <!-- 政令界面：全屏场景 + 中央政令卡片 -->
+  <div id="actionPanel"></div>
+  <div class="status-panel" id="statusBox"></div>
+  <div class="event-panel"><div id="eventText">正在整理案牍…</div></div>
+  <!-- 中间大块：仅事件选择时显示选项对应的场景预览（平时隐藏，保持原有排版） -->
+  <div id="preview"></div>
+  <div id="choices"></div>
+  <div id="tip">青阳县衙 · 早堂未开</div>
+</div>
+<script>
+// ===================== 动态场景渲染器（SceneRenderer） =====================
+/**
+ * SceneRenderer —— 《为官一方》动态背景渲染器
+ * 纯逻辑模块：根据游戏状态（六维数值 + 事件标记）程序化生成 SVG 场景
+ * 风格：简笔画 + Q版古风人物 + 古建筑房屋，房屋与人物随状态实时变化
+ *
+ * 用法：
+ *   const scene = renderScene(gs, ctx);
+ *   document.getElementById('scene').innerHTML = scene;
+ *   refreshScene(gs, ctx) 增量刷新（本版为全量重绘，数据量小性能足够）
+ */
+(function (global) {
+  'use strict';
+
+  // ==================== 常量 ====================
+  const W = 440, H = 860;            // 场景逻辑尺寸（与 UI 竖屏一致）
+  const GROUND_Y = 660;              // 地面线
+  const SEASONS = {
+    spring: { skyTop: '#cfe0dd', skyBot: '#eef3e6', hill: '#a8b8a0', tree: '#9fb98a' },
+    summer: { skyTop: '#bfd8c8', skyBot: '#e8f2dc', hill: '#8fb08a', tree: '#7fa96f' },
+    autumn: { skyTop: '#e6d3b0', skyBot: '#f6ecd4', hill: '#c0a878', tree: '#d0a060' },
+    winter: { skyTop: '#d8dfe4', skyBot: '#f2f4f0', hill: '#9aa4a8', tree: '#8a9a9e' },
+  };
+
+  // ==================== 工具 ====================
+  function season(month) {
+    if (month >= 3 && month <= 5) return 'spring';
+    if (month >= 6 && month <= 8) return 'summer';
+    if (month >= 9 && month <= 11) return 'autumn';
+    return 'winter';
+  }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function rnd(seed) { // 简易确定性伪随机（按位置 seed 稳定，避免每次重绘跳动）
+    let x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  // ==================== 图元（SVG 片段） ====================
+  // 火柴人（stick figure）：圆头+发髻+线条躯干四肢，配色与古画房屋协调（墨线/赭石/土黄）
+  // happy/sad/angry 表情；可选道具（破碗/长枪/折扇/头巾）
+  function person(x, y, s, mood, props, seed) {
+    s = s || 1;
+    let face = '';
+    const em = mood || 'normal';
+    if (em === 'happy') face = '<path d="M-2.5,1 Q0,3.5 2.5,1" stroke="#6a4020" stroke-width="1.2" fill="none"/>';
+    else if (em === 'sad') face = '<path d="M-2.5,3 Q0,1 2.5,3" stroke="#6a4020" stroke-width="1.2" fill="none"/>';
+    else if (em === 'angry') face = '<path d="M-3.5,0 L-1.5,1.2 M3.5,0 L1.5,1.2" stroke="#6a4020" stroke-width="1.2"/>';
+    else face = '<circle cx="-1.8" cy="0.6" r="0.7" fill="#6a4020"/><circle cx="1.8" cy="0.6" r="0.7" fill="#6a4020"/>';
+    // 衣袍配色（与古画房屋协调：土黄/赭石/石青点缀）
+    const robe = props && props.refugee ? '#9a8a70'
+      : props && props.soldier ? '#8a4a3a'
+      : props && props.bandit ? '#5a4020'
+      : props && props.official ? '#2f6a52'   // 官员：青绿官服（p7 知县色）
+      : '#c8a860';
+    const sash = props && props.soldier ? '#d8c8a0'
+      : props && props.official ? '#e8cf8a'
+      : '#8a4a3a';  // 腰带/束带
+    let hat = '';
+    if (props && props.hat) hat = '<path d="M-4,-17 Q0,-21 4,-17 Z" fill="#3a2a1a"/>'; // 头巾
+    else if (props && (props.soldier || props.official)) hat = '<path d="M-4,-17 Q0,-21 4,-17 Z" fill="#5a4020"/><line x1="0" y1="-21" x2="0" y2="-26" stroke="#3a2a1a" stroke-width="1"/><circle cx="0" cy="-26" r="1.2" fill="#a03020"/>'; // 官帽+红缨
+    let tool = '';
+    if (props && props.bowl) tool = '<ellipse cx="8" cy="1" rx="3.5" ry="2" fill="#c8b090" stroke="#5a4020" stroke-width="0.7"/>';
+    if (props && props.spear) tool = '<line x1="8" y1="-4" x2="8" y2="-16" stroke="#5a3a1a" stroke-width="1.3"/><path d="M8,-17 L6.5,-13 L9.5,-13 Z" fill="#a03020"/>';
+    if (props && props.fan) tool = '<path d="M-9,-7 Q-12,-3 -8,0 L-6,-4 Z" fill="#d0c0a0" stroke="#5a4020" stroke-width="0.5"/>';
+    if (props && props.book) tool = '<rect x="6" y="-6" width="7" height="9" fill="#f0e8d0" stroke="#5a4020" stroke-width="0.6"/><line x1="8" y1="-4" x2="11" y2="-4" stroke="#5a4020" stroke-width="0.4"/><line x1="8" y1="-1" x2="11" y2="-1" stroke="#5a4020" stroke-width="0.4"/>';
+    const delay = (seed % 5) * 0.3;   // 不同角色不同节奏
+    return `<g class="fx-bob" style="animation-delay:${delay.toFixed(1)}s"><g transform="translate(${x},${y}) scale(${s})">
+      ${hat}
+      <circle cx="0" cy="-14" r="5" fill="#e8c4a0" stroke="#6a4020" stroke-width="1"/>${face}  <!-- 头 -->
+      <path d="M-2.5,-17 Q0,-19 2.5,-17" stroke="#3a2a1a" stroke-width="1.1" fill="none"/>  <!-- 发髻 -->
+      <path d="M0,-9 L0,6" stroke="#6a4020" stroke-width="2.2"/>  <!-- 躯干 -->
+      <path d="M-3,-11 Q-5,-2 -2,-8 Z" fill="${robe}"/>  <!-- 左袖衣 -->
+      <path d="M3,-11 Q5,-2 2,-8 Z" fill="${robe}"/>  <!-- 右袖衣 -->
+      <line x1="0" y1="-8" x2="-8" y2="-2" stroke="#6a4020" stroke-width="1.7"/>  <!-- 左臂 -->
+      <line x1="0" y1="-8" x2="8" y2="-2" stroke="#6a4020" stroke-width="1.7"/>  <!-- 右臂 -->
+      <line x1="-3" y1="2" x2="3" y2="2" stroke="${sash}" stroke-width="1.6"/>  <!-- 腰带 -->
+      <line x1="0" y1="6" x2="-4" y2="15" stroke="#6a4020" stroke-width="1.7"/>  <!-- 左腿 -->
+      <line x1="0" y1="6" x2="4" y2="15" stroke="#6a4020" stroke-width="1.7"/>  <!-- 右腿 -->
+      ${tool}
+    </g></g>`;
+  }
+
+  // 古建筑房屋：classic（完好）/ broken（破败）/ burning（着火）
+  function house(x, y, w, h, st, roofColor, wallColor) {
+    const roof = st === 'broken' ? '#6a5a40' : (roofColor || '#8a4a3a');
+    const wall = st === 'broken' ? '#9a8a70' : (wallColor || '#d8c8a0');
+    let extra = '';
+    if (st === 'broken') {
+      extra = '<path d="M-4,2 L0,-6 L4,2 Z" fill="#5a4a30" opacity="0.7"/>'; // 屋顶缺角
+    }
+    if (st === 'burning') {
+      extra = '<g><path d="M-6,-8 Q-2,-16 2,-8 Q6,-14 8,-8 L4,-8 L2,-12 L-2,-6 Z" fill="#e06020"/><path d="M-4,-6 Q0,-13 4,-6 L2,-6 L0,-10 L-2,-5 Z" fill="#f0a020" opacity="0.9"/></g>';
+    }
+    return `<g transform="translate(${x},${y})">
+      <rect x="${-w/2}" y="${-h*0.45}" width="${w}" height="${h*0.45}" fill="${wall}" stroke="#5a4020" stroke-width="1"/>
+      <rect x="${-w*0.28}" y="${-h*0.28}" width="${w*0.56}" height="${h*0.28}" fill="#5a4020"/>
+      <path d="M${-w/2-6},${-h*0.45} L0,${-h*0.75} L${w/2+6},${-h*0.45} Z" fill="${roof}" stroke="#3a2a1a" stroke-width="1"/>
+      <path d="M-2,${-h*0.72} Q0,${-h*0.82} 2,${-h*0.72}" stroke="#3a2a1a" stroke-width="1" fill="none"/>  <!-- 屋脊 -->
+      ${extra}
+    </g>`;
+  }
+
+  // 米仓：粮袋数量随 granary 变化；空仓显示"无粮"
+  function granary(x, y, w, h, fullness) {
+    const n = Math.round(clamp(fullness, 0, 1) * 4); // 0-4 袋
+    let bags = '';
+    for (let i = 0; i < n; i++) {
+      const bx = -w/2 + 6 + i * (w - 12) / 4;
+      bags += `<ellipse cx="${bx}" cy="${-h*0.38}" rx="${(w-12)/8}" ry="${h*0.16}" fill="#b08a40" stroke="#7a5a30" stroke-width="0.8"/><path d="M${bx-3},${-h*0.38} L${bx+3},${-h*0.38}" stroke="#5a4020" stroke-width="0.8"/>`;
+    }
+    const flag = fullness >= 0.75 ? '<path d="M0,-38 L0,-50 L12,-44 L0,-38" fill="#b03020"/>' : '';
+    return `<g transform="translate(${x},${y})">
+      <rect x="${-w/2}" y="${-h*0.45}" width="${w}" height="${h*0.45}" fill="#b09860" stroke="#5a4020" stroke-width="1"/>
+      <path d="M${-w/2},${-h*0.45} L0,${-h*0.68} L${w/2},${-h*0.45} Z" fill="#8a6a40" stroke="#5a4020" stroke-width="1"/>
+      ${bags}${flag}
+      <rect x="${-w*0.3}" y="${-h*0.2}" width="${w*0.6}" height="${h*0.2}" fill="#3a2a1a"/>
+    </g>`;
+  }
+
+  // 树：季节变色；broken 为枯树
+  function tree(x, y, s, col, dead) {
+    const c = dead ? '#8a7a5a' : col;
+    return `<g transform="translate(${x},${y}) scale(${s})">
+      <line x1="0" y1="0" x2="0" y2="-26" stroke="#5a4020" stroke-width="4"/>
+      <line x1="0" y1="-14" x2="-10" y2="-22" stroke="#5a4020" stroke-width="2.5"/>
+      <line x1="0" y1="-10" x2="10" y2="-20" stroke="#5a4020" stroke-width="2.5"/>
+      ${dead ? '' : `<circle cx="0" cy="-30" r="13" fill="${c}" opacity="0.85"/><circle cx="-9" cy="-24" r="8" fill="${c}" opacity="0.8"/><circle cx="9" cy="-24" r="8" fill="${c}" opacity="0.8"/>`}
+    </g>`;
+  }
+
+  // 城墙：完整/破损
+  function cityWall(x, w, broken) {
+    let body = '';
+    for (let i = 0; i < w; i += 22) {
+      if (broken && i > w * 0.5) break;
+      body += `<rect x="${x+i}" y="${GROUND_Y-58}" width="14" height="58" fill="#c8b898" stroke="#5a4020" stroke-width="1"/><rect x="${x+i+2}" y="${GROUND_Y-66}" width="10" height="10" fill="#c8b898" stroke="#5a4020" stroke-width="1"/>`;
+    }
+    if (broken) {
+      body += `<path d="M${x+w*0.55},${GROUND_Y-58} L${x+w*0.55+8},${GROUND_Y-44} L${x+w*0.7},${GROUND_Y-58} Z" fill="#6a5a40" opacity="0.8"/>`;
+      body += `<path d="M${x+w*0.45},${GROUND_Y-60} L${x+w*0.45+16},${GROUND_Y-40} L${x+w*0.45+4},${GROUND_Y-36} Z" fill="#9a8a70" opacity="0.7"/>`;
+    }
+    return body;
+  }
+
+  // 云
+  function cloud(x, y, s, op) {
+    return `<g transform="translate(${x},${y}) scale(${s})" opacity="${op||0.7}">
+      <ellipse cx="0" cy="0" rx="22" ry="9" fill="#fff"/>
+      <ellipse cx="-12" cy="3" rx="14" ry="7" fill="#fff"/>
+      <ellipse cx="12" cy="3" rx="13" ry="7" fill="#fff"/>
+    </g>`;
+  }
+
+  // 火（战争/火灾特效）
+  function fire(x, y, s) {
+    return `<g class="fx-flicker"><g transform="translate(${x},${y}) scale(${s})">
+      <path d="M0,0 Q-8,-12 -2,-20 Q-12,-18 -8,-28 Q-2,-20 0,-24 Q2,-16 6,-20 Q4,-10 0,0 Z" fill="#e06020"/>
+      <path d="M0,0 Q-4,-8 0,-14 Q-7,-12 -4,-20 Q1,-14 2,-10 Q3,-6 0,0 Z" fill="#f0a020"/>
+    </g></g>`;
+  }
+
+  // 烟
+  function smoke(x, y, s) {
+    return `<g class="fx-rise"><g transform="translate(${x},${y}) scale(${s})" opacity="0.5">
+      <ellipse cx="0" cy="0" rx="6" ry="4" fill="#888"/>
+      <ellipse cx="-3" cy="-8" rx="7" ry="5" fill="#999"/>
+      <ellipse cx="2" cy="-16" rx="8" ry="5" fill="#aaa"/>
+    </g></g>`;
+  }
+
+  // 灯笼（喜庆，悬挂轻摆）
+  function lantern(x, y, s) {
+    return `<g class="fx-sway"><g transform="translate(${x},${y}) scale(${s})">
+      <line x1="0" y1="-6" x2="0" y2="0" stroke="#5a4020" stroke-width="0.8"/>
+      <ellipse cx="0" cy="5" rx="5" ry="7" fill="#d03020" stroke="#8a1a10" stroke-width="0.6"/>
+      <path d="M-2,1 L2,1 M-2,9 L2,9" stroke="#8a1a10" stroke-width="0.5"/>
+      <line x1="0" y1="12" x2="0" y2="15" stroke="#5a4020" stroke-width="0.6"/>
+    </g></g>`;
+  }
+
+  // ==================== 场景组装 ====================
+  /**
+   * renderScene(gs, ctx) -> svg 字符串
+   * gs: GameState（需有 values/personality/month/year/taxRate 等）
+   * ctx: { lastEventId, lastEventTitle, triggeredFlags:Set }
+   */
+  function renderScene(gs, ctx) {
+    const v = gs.values;
+    const st = season(gs.month);
+    const sc = SEASONS[st];
+    const L = [[], [], [], []];   // 4 层：0天空远景 1建筑 2人物 3特效
+    const parts = (i, s) => L[i].push(s);
+
+    // ---- 天空（层0） ----
+    parts(0, `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${sc.skyTop}"/><stop offset="1" stop-color="${sc.skyBot}"/></linearGradient></defs>`);
+    parts(0, `<rect x="0" y="0" width="${W}" height="${H}" fill="url(#sky)"/>`);
+
+    // ---- 太阳（层0） ----
+    parts(0, `<circle cx="360" cy="90" r="26" fill="#f2d060" opacity="0.85"/>`);
+
+    // ---- 云（层0，飘动动画） ----
+    parts(0, `<g class="cloud-drift">${cloud(70, 90, 1, 0.8)}${cloud(180, 150, 0.8, 0.6)}${cloud(300, 60, 0.9, 0.7)}</g>`);
+
+    // ---- 远山（层0） ----
+    parts(0, `<path d="M0,${GROUND_Y-200} Q60,${GROUND_Y-320} 130,${GROUND_Y-230} Q190,${GROUND_Y-340} 260,${GROUND_Y-240} Q330,${GROUND_Y-330} 440,${GROUND_Y-210} L440,${GROUND_Y} L0,${GROUND_Y} Z" fill="${sc.hill}" opacity="0.5"/>`);
+    parts(0, `<path d="M0,${GROUND_Y-140} Q100,${GROUND_Y-240} 210,${GROUND_Y-150} Q320,${GROUND_Y-250} 440,${GROUND_Y-160} L440,${GROUND_Y} L0,${GROUND_Y} Z" fill="${sc.hill}" opacity="0.35"/>`);
+
+    // ---- 地面（层0） ----
+    parts(0, `<rect x="0" y="${GROUND_Y}" width="${W}" height="${H-GROUND_Y}" fill="#d8c8a0"/>`);
+    parts(0, `<path d="M0,${GROUND_Y+4} Q110,${GROUND_Y} 220,${GROUND_Y+4} Q330,${GROUND_Y+8} 440,${GROUND_Y+4}" stroke="#c0b090" stroke-width="1.5" fill="none"/>`);
+
+    // ---- 场景健康度（派生指标） ----
+    const prosperity = clamp((v.population + v.people + v.tresury) / 300, 0, 1); // 繁华度
+    const famine = clamp((40 - v.granary) / 40, 0, 1);        // 饥荒程度
+    const unrest = clamp((45 - v.security) / 45, 0, 1);        // 动荡程度
+    const rep = clamp(v.reputation / 100, 0, 1);
+    const happy = clamp((v.people - 40) / 60, 0, 1);           // 民心→表情
+    const sad = clamp((40 - v.people) / 40, 0, 1);
+    const warLike = (ctx.lastEventTitle || '').match(/战|兵|匪|乱|寇|攻/) ? 1 : 0; // 事件语义粗判
+    const weatherBad = (ctx.lastEventTitle || '').match(/雨|涝|旱|蝗|疫/) ? 1 : 0;
+
+    // ---- 民居（层1：数量∝人口/繁华） ----
+    const nHouses = 3 + Math.round(clamp((v.population - 800) / 1000, 0, 4));
+    const houseStates = [];
+    for (let i = 0; i < nHouses; i++) {
+      const seed = i * 3 + 7;
+      let hs = 'ok';
+      if (warLike && i < 2) hs = 'burning';
+      else if (unrest > 0.7 && rnd(seed) < 0.4) hs = 'broken';
+      else if (famine > 0.6 && rnd(seed) < 0.3) hs = 'broken';
+      houseStates.push(hs);
+    }
+    const hw = 46, gap = 62;
+    const startX = W / 2 - (nHouses - 1) * gap / 2;
+    houseStates.forEach((hs, i) => {
+      const x = startX + i * gap + (rnd(i * 5 + 2) - 0.5) * 6;
+      parts(1, house(x, GROUND_Y + 4, hw, 52, hs, undefined, undefined));
+      parts(1, tree(x + hw / 2 + 4, GROUND_Y + 4, 0.55, sc.tree, hs === 'broken'));
+    });
+
+    // ---- 米仓（层1：饱满度∝粮仓） ----
+    const gran = Math.round(clamp((v.granary - 10) / 80, 0, 1) * 100) / 100;
+    parts(1, granary(60, GROUND_Y + 4, 56, 46, gran));
+    parts(1, `<text x="60" y="${GROUND_Y + 22}" font-size="9" fill="#5a4020" text-anchor="middle" font-family="serif">米仓</text>`);
+
+    // ---- 县衙（层1：气派∝官声银库） ----
+    const courtScale = 1 + rep * 0.25;
+    parts(1, house(W - 70, GROUND_Y + 4, 64, 60, 'ok', rep > 0.6 ? '#a03020' : '#8a4a3a'));
+    parts(1, `<text x="${W - 70}" y="${GROUND_Y + 20}" font-size="9" fill="#5a4020" text-anchor="middle" font-family="serif">县衙</text>`);
+    if (rep > 0.55) parts(1, lantern(W - 70 - 14, GROUND_Y - 52, 1));
+    if (rep > 0.8) parts(1, lantern(W - 70 + 14, GROUND_Y - 52, 1));
+    void courtScale;
+
+    // ---- 城墙（层1：治安↓→破损） ----
+    parts(1, cityWall(6, 120, unrest > 0.6));
+    parts(1, cityWall(W - 126, 120, unrest > 0.6));
+
+    // ---- 人物（层2：数量∝民心/人口，表情∝民心） ----
+    const nPeople = Math.round(clamp(2 + v.people / 25 + (v.population - 800) / 700, 1, 7));
+    for (let i = 0; i < nPeople; i++) {
+      const px = 90 + rnd(i * 7 + 3) * (W - 180);
+      const mood = happy > 0.5 ? 'happy' : sad > 0.3 ? 'sad' : 'normal';
+      const s = 1 + (rnd(i * 11 + 1) - 0.5) * 0.25;
+      parts(2, person(px, GROUND_Y + 4, s, mood, rnd(i * 3) > 0.8 ? { fan: true } : null, i));
+    }
+
+    // ---- 叫花子（层2：粮少→出现，数量∝饥荒度） ----
+    if (famine > 0.25) {
+      const nBeg = 1 + Math.round(famine * 2);
+      for (let i = 0; i < nBeg; i++) {
+        const px = 30 + rnd(i * 13 + 5) * (W - 60);
+        parts(2, person(px, GROUND_Y + 4, 0.9, 'sad', { bowl: true, refugee: true }, i + 40));
+      }
+    }
+
+    // ---- 官兵（层2：治安高→巡逻） ----
+    if (gs.values.security > 60) {
+      const nSold = 1 + Math.round(clamp((gs.values.security - 60) / 40, 0, 1) * 2);
+      for (let i = 0; i < nSold; i++) {
+        parts(2, person(100 + i * 40, GROUND_Y + 4, 1, 'angry', { soldier: true, spear: true }, i + 70));
+      }
+    }
+
+    // ---- 盗匪（层2：治安低→出现，数量∝动荡） ----
+    if (unrest > 0.45) {
+      const nBand = 1 + Math.round(unrest * 2);
+      for (let i = 0; i < nBand; i++) {
+        parts(2, person(W - 80 - i * 36, GROUND_Y + 4, 0.95, 'angry', { hat: true }, i + 90));
+      }
+    }
+
+    // ---- 战争特效（层3：火 + 烟） ----
+    if (warLike) {
+      parts(3, fire(startX + 10, GROUND_Y - 6, 1.1));
+      parts(3, fire(startX + hw + 20, GROUND_Y - 4, 0.9));
+      parts(3, smoke(W - 140, GROUND_Y - 80, 1.2));
+      parts(3, smoke(W - 90, GROUND_Y - 60, 1));
+    }
+    // ---- 灾年（层3：阴云） ----
+    if (weatherBad) {
+      parts(3, `<g opacity="0.5">${cloud(90, 130, 1.4, 0.9)}${cloud(240, 100, 1.6, 0.85)}</g>`);
+    }
+
+    // ---- 组装（分层输出，配合 CSS 入场动画） ----
+    const layers = L.map((items, i) =>
+      items.length ? `<g class="sc-layer sc-l${i}">${items.join('')}</g>` : ''
+    ).join('');
+    return `<svg class="scene-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">${layers}</svg>`;
+  }
+
+
+  // =====================================================================
+  // 选项动作场景渲染器 renderChoiceScene(ev, choice, gs)
+  // 预观"这个选项在做什么"：按事件主题画动作画面（非治下状态背景）
+  // 例：拜访送礼 → 官员登门 + 随从抬黄金箱；放粮 → 粥厂百姓排队领粮
+  // =====================================================================
+
+  // ---- 动作场景道具图元 ----
+  // 黄金箱/银箱（随从搬运）
+  function goldBox(x, y, s) {
+    return `<g transform="translate(${x},${y}) scale(${s})">
+      <rect x="-8" y="-6" width="16" height="10" rx="1.5" fill="#e8b020" stroke="#8a5a10" stroke-width="1"/>
+      <rect x="-8" y="-8" width="16" height="3" rx="1" fill="#f0c840" stroke="#8a5a10" stroke-width="0.8"/>
+      <path d="M-8,-6 L8,-6" stroke="#8a5a10" stroke-width="0.6"/>
+      <rect x="-1.6" y="-9" width="3.2" height="3" rx="1" fill="#8a5a10"/>
+      <circle cx="-5" cy="-3.5" r="0.7" fill="#8a5a10"/><circle cx="0" cy="-3.5" r="0.7" fill="#8a5a10"/><circle cx="5" cy="-3.5" r="0.7" fill="#8a5a10"/>
+    </g>`;
+  }
+  // 小礼盒（绸带）
+  function giftBox(x, y, s) {
+    return `<g transform="translate(${x},${y}) scale(${s})">
+      <rect x="-7" y="-6" width="14" height="10" rx="1.5" fill="#c83830" stroke="#7a1a12" stroke-width="1"/>
+      <line x1="0" y1="-6" x2="0" y2="4" stroke="#f0d070" stroke-width="2.4"/>
+      <line x1="-7" y1="-1" x2="7" y2="-1" stroke="#f0d070" stroke-width="2.4"/>
+    </g>`;
+  }
+  // 粥锅（赈济，蒸汽上升）
+  function cauldron(x, y, s) {
+    return `<g class="fx-rise"><g transform="translate(${x},${y}) scale(${s})">
+      <ellipse cx="0" cy="-10" rx="6" ry="4" fill="#ddd"/><ellipse cx="2" cy="-20" rx="7" ry="5" fill="#ddd"/>
+    </g></g><g transform="translate(${x},${y}) scale(${s})">
+      <path d="M-14,0 Q-16,8 0,8 Q16,8 14,0 Z" fill="#5a4a3a" stroke="#3a2a1a" stroke-width="1"/>
+      <rect x="-14" y="-3" width="28" height="4" rx="2" fill="#7a6a5a" stroke="#3a2a1a" stroke-width="0.8"/>
+      <ellipse cx="0" cy="-3" rx="13" ry="3" fill="#b09860" stroke="#3a2a1a" stroke-width="0.8"/>
+    </g>`;
+  }
+  // 书案（公堂/账房）
+  function desk(x, y, s, w) {
+    w = w || 30;
+    return `<g transform="translate(${x},${y}) scale(${s})">
+      <rect x="${-w/2}" y="-12" width="${w}" height="4" fill="#8a5a30" stroke="#5a3a1a" stroke-width="0.8"/>
+      <rect x="${-w/2+2}" y="-8" width="${w-4}" height="8" fill="#a07040" stroke="#5a3a1a" stroke-width="0.6"/>
+      <line x1="${-w/2+2}" y1="-12" x2="${-w/2+2}" y2="-16" stroke="#5a3a1a" stroke-width="1.2"/><line x1="${w/2-2}" y1="-12" x2="${w/2-2}" y2="-16" stroke="#5a3a1a" stroke-width="1.2"/>
+      <rect x="${-w/2+4}" y="-14" width="8" height="10" fill="#f0e8d0" stroke="#5a4020" stroke-width="0.5" transform="rotate(-4 ${-w/2+8} -9)"/>
+    </g>`;
+  }
+  // 公堂惊堂木
+  function gavel(x, y, s) {
+    return `<g transform="translate(${x},${y}) scale(${s})">
+      <rect x="-3" y="-9" width="6" height="8" rx="1" fill="#6a4a2a" stroke="#3a2a1a" stroke-width="0.8"/>
+      <rect x="-1" y="-2" width="2" height="6" fill="#5a3a1a"/>
+    </g>`;
+  }
+  // 祭坛（香炉+烟）
+  function altar(x, y, s) {
+    return `<g transform="translate(${x},${y}) scale(${s})">
+      <rect x="-26" y="-14" width="52" height="14" rx="2" fill="#c8b898" stroke="#5a4020" stroke-width="1.2"/>
+      <rect x="-22" y="-24" width="44" height="12" rx="2" fill="#d8c8a8" stroke="#5a4020" stroke-width="1"/>
+      <rect x="-30" y="0" width="60" height="5" rx="2" fill="#a89068" stroke="#5a4020" stroke-width="1"/>
+      <path d="M-5,-34 Q0,-40 0,-34 Q4,-44 0,-50 Q-4,-44 -2,-34 Z" fill="#b03020" opacity="0.9"/>
+      <g class="fx-rise"><g><ellipse cx="0" cy="-54" rx="5" ry="4" fill="#999"/><ellipse cx="2" cy="-62" rx="6" ry="4" fill="#aaa"/></g></g>
+    </g>`;
+  }
+  // 大宅门/府邸（拜访送礼场景）
+  function mansion(x, y, s) {
+    return `<g transform="translate(${x},${y}) scale(${s})">
+      <rect x="-34" y="-52" width="68" height="52" fill="#d8c8a0" stroke="#5a4020" stroke-width="1.2"/>
+      <rect x="-30" y="-34" width="26" height="34" fill="#5a4020"/>
+      <circle cx="-17" cy="-17" r="1.2" fill="#e8b020"/>
+      <rect x="-24" y="-70" width="48" height="20" rx="2" fill="#8a4a3a" stroke="#3a2a1a" stroke-width="1"/>
+      <path d="M-24,-70 L0,-84 L24,-70 Z" fill="#6a3a2a" stroke="#3a2a1a" stroke-width="1"/>
+      <line x1="0" y1="-84" x2="0" y2="-88" stroke="#3a2a1a" stroke-width="1"/>
+      <rect x="-8" y="-48" width="16" height="4" fill="#b03020"/>
+      <path d="M0,-26 L0,-38" stroke="#5a4020" stroke-width="1.2"/><circle cx="0" cy="-40" r="2.4" fill="#d03020"/>
+    </g>`;
+  }
+  // 石桥（修桥场景）
+  function bridge(x, y, w) {
+    return `<g transform="translate(${x},${y})">
+      <path d="M${-w/2},0 Q0,${-w/5} ${w/2},0" fill="none" stroke="#8a7a5a" stroke-width="10"/>
+      <path d="M${-w/2},0 Q0,${-w/5} ${w/2},0" fill="none" stroke="#a89068" stroke-width="7"/>
+      ${Array.from({length:5},(_,i)=>`<line x1="${-w/2+ (i+1)*w/6}" y1="${0-( (i+1)%2?3:1)}" x2="${-w/2+ (i+1)*w/6}" y2="${0-12}" stroke="#6a5a3a" stroke-width="1.6"/>`).join('')}
+    </g>`;
+  }
+  // 龟裂田/蝗田
+  function field(x, y, w) {
+    return `<g transform="translate(${x},${y})">
+      ${Array.from({length:4},(_,i)=>`<line x1="${-w/2+i*w/4}" y1="0" x2="${-w/2+i*w/4}" y2="26" stroke="#b09868" stroke-width="1.6"/>`).join('')}
+      ${Array.from({length:3},(_,i)=>`<line x1="${-w/2}" y1="${8+i*8}" x2="${w/2}" y2="${8+i*8}" stroke="#b09868" stroke-width="1.2"/>`).join('')}
+      <path d="M${-w/2+6},${8} l3,5 l-3,5 l3,5" stroke="#c0a878" stroke-width="1.4" fill="none"/>
+    </g>`;
+  }
+  // 蝗虫（成群飞动）
+  function locust(x, y, n) {
+    let s='';
+    for(let i=0;i<n;i++){
+      const a = i*37+17, d=(i%3)*0.4;
+      s += `<g class="fx-bob" style="animation-delay:${d.toFixed(1)}s"><g transform="translate(${x+ (i%6)*18-45},${y+(i%4)*14})"><ellipse cx="0" cy="0" rx="4" ry="2.2" fill="#7a8a3a" stroke="#5a6a2a" stroke-width="0.6"/><path d="M-4,0 L-7,-2 M4,0 L7,-2" stroke="#5a6a2a" stroke-width="0.7"/></g></g>`;
+    }
+    return s;
+  }
+  // 告示/公文（摊开的卷轴）
+  function scroll(x, y, s) {
+    return `<g transform="translate(${x},${y}) scale(${s})">
+      <rect x="-16" y="-10" width="32" height="20" rx="1.5" fill="#f0e8d0" stroke="#5a4020" stroke-width="0.8"/>
+      <line x1="-12" y1="-5" x2="12" y2="-5" stroke="#8a7a5a" stroke-width="0.8"/>
+      <line x1="-12" y1="0" x2="12" y2="0" stroke="#8a7a5a" stroke-width="0.8"/>
+      <line x1="-12" y1="5" x2="8" y2="5" stroke="#8a7a5a" stroke-width="0.8"/>
+      <rect x="-18" y="-10" width="4" height="20" rx="2" fill="#8a5a30"/><rect x="14" y="-10" width="4" height="20" rx="2" fill="#8a5a30"/>
+    </g>`;
+  }
+  // 米铺（粮价场景）
+  function riceShop(x, y, s) {
+    return `<g transform="translate(${x},${y}) scale(${s})">
+      <rect x="-30" y="-40" width="60" height="40" fill="#d8c8a0" stroke="#5a4020" stroke-width="1.2"/>
+      <path d="M-34,-40 L0,-54 L34,-40 Z" fill="#8a4a3a" stroke="#3a2a1a" stroke-width="1"/>
+      <rect x="-10" y="-28" width="20" height="28" fill="#5a4020"/>
+      <path d="M-28,-44 L-28,-30 L-16,-30 Z" fill="#f0e0b8" stroke="#5a4020" stroke-width="0.8"/>
+      <text x="-22" y="-33" font-size="8" fill="#5a4020" text-anchor="middle" font-family="serif">米</text>
+      <ellipse cx="22" cy="-16" rx="9" ry="7" fill="#b08a40" stroke="#7a5a30" stroke-width="0.8"/>
+      <ellipse cx="22" cy="-16" rx="3" ry="2" fill="#d8c080"/>
+    </g>`;
+  }
+  // 镖车/盐车（劫镖/盐枭）
+  function cart(x, y, s, load) {
+    const l = load==='silver' ? `<rect x="-12" y="-12" width="24" height="10" rx="1.5" fill="#e8b020" stroke="#8a5a10" stroke-width="0.8"/>`
+      : load==='salt' ? `<path d="M-12,-12 L12,-12 L9,-4 L-9,-4 Z" fill="#d8d8c8" stroke="#8a8a7a" stroke-width="0.8"/><path d="M-12,-14 L12,-14 L12,-12 L-12,-12 Z" fill="#c8b090" stroke="#8a8a7a" stroke-width="0.6"/>` : '';
+    return `<g transform="translate(${x},${y}) scale(${s})">
+      <rect x="-14" y="-16" width="28" height="14" rx="2" fill="#a07040" stroke="#5a3a1a" stroke-width="1"/>
+      ${l}
+      <circle cx="-8" cy="0" r="4" fill="#5a4020" stroke="#3a2a1a" stroke-width="0.8"/>
+      <circle cx="8" cy="0" r="4" fill="#5a4020" stroke="#3a2a1a" stroke-width="0.8"/>
+      <line x1="-14" y1="-6" x2="-22" y2="-16" stroke="#5a3a1a" stroke-width="1.4"/>
+    </g>`;
+  }
+  // 隔离坊/善堂（木栅栏屋）
+  function shed(x, y, s, label) {
+    return `<g transform="translate(${x},${y}) scale(${s})">
+      <rect x="-30" y="-34" width="60" height="34" fill="#c8b090" stroke="#5a4020" stroke-width="1.2"/>
+      <path d="M-34,-34 L0,-50 L34,-34 Z" fill="#7a6a4a" stroke="#3a2a1a" stroke-width="1"/>
+      <rect x="-14" y="-24" width="12" height="24" fill="#5a4020"/>
+      <line x1="-4" y1="-18" x2="4" y2="-18" stroke="#8a6a3a" stroke-width="1.4"/>
+      ${label?`<text x="0" y="${-46}" font-size="8" fill="#5a4020" text-anchor="middle" font-family="serif">${label}</text>`:''}
+    </g>`;
+  }
+  // 公堂背景（明镜高悬匾+栅栏）
+  function courtBG(x, y, w) {
+    return `<g transform="translate(${x},${y})">
+      <rect x="${-w/2}" y="-58" width="${w}" height="58" fill="#c8b898" stroke="#5a4020" stroke-width="1.2"/>
+      <rect x="${-w/2+4}" y="-52" width="${w-8}" height="14" fill="#8a4a3a"/>
+      <text x="0" y="-41.5" font-size="9" fill="#f0e8d0" text-anchor="middle" font-family="serif" letter-spacing="2">明镜高悬</text>
+      <path d="M${-w/2+6},-34 h${w-12} M${-w/2+6},-26 h${w-12}" stroke="#5a4020" stroke-width="1"/>
+    </g>`;
+  }
+  // 动作场景公共背景（天空+地面）
+  function actionBG(sc, L, parts) {
+    parts(0, `<defs><linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${sc.skyTop}"/><stop offset="1" stop-color="${sc.skyBot}"/></linearGradient></defs>`);
+    parts(0, `<rect x="0" y="0" width="${W}" height="${H}" fill="url(#sky2)"/>`);
+    parts(0, `<circle cx="380" cy="80" r="22" fill="#f2d060" opacity="0.85"/>`);
+    parts(0, `<g class="cloud-drift">${cloud(80, 70, 1, 0.8)}${cloud(240, 120, 0.8, 0.6)}</g>`);
+    parts(0, `<path d="M0,${GROUND_Y-160} Q110,${GROUND_Y-260} 220,${GROUND_Y-170} Q330,${GROUND_Y-260} 440,${GROUND_Y-180} L440,${GROUND_Y} L0,${GROUND_Y} Z" fill="${sc.hill}" opacity="0.4"/>`);
+    parts(0, `<rect x="0" y="${GROUND_Y}" width="${W}" height="${H-GROUND_Y}" fill="#d8c8a0"/>`);
+    parts(0, `<path d="M0,${GROUND_Y+4} Q110,${GROUND_Y} 220,${GROUND_Y+4} Q330,${GROUND_Y+8} 440,${GROUND_Y+4}" stroke="#c0b090" stroke-width="1.5" fill="none"/>`);
+  }
+
+  // =====================================================================
+  // ====  P1：界画场景重做（斜俯视轴测 + 火柴人战争式人物 + 群像走动）  ====
+  // ====  设计文档：outputs/为官一方/10-场景美术改造方案-界画群像.md    ====
+  // =====================================================================
+
+  // ---- 投影系统（斜轴测平行投影，俯角约 22°，无消失点）----
+  const HORIZON = 380;   // 视平线（上移：天空减少、地面与街市扩展）
+  const NEAR_Y  = 690;   // 最近排脚底基线（上移：底部留出更宽近景街道）
+  const DEPTH0  = 500;   // 世界纵深总长（拉长：视角更远，能容纳更多层次）
+  const KX      = -0.42; // 每单位纵深 → 横向偏移（加大：斜45°感更强）
+  const KY      = 0.32;  // 每单位纵深 → 纵向偏移
+  const X0      = 220;   // 世界横坐标原点 = 画面中线
+  const VIEW_H  = 860;   // 视口高（保持不变）
+
+  const INK  = '#4a3524';  // 松烟墨线（原 #6a4020 太橙）
+  const INK2 = '#3a2a1c';  // 描边（深一档）
+  const PAPER= '#f2e6cc';  // 绢底
+  const TILE = '#5c6b73';  // 青灰瓦（新增）
+  const MIST = '#b9c6c4';  // 淡青灰：远山/远景（新增）
+  const TILE_D = '#46545c'; // 青灰瓦暗面
+
+  const SEASONS2 = {
+    spring: { skyTop: '#e2ece8', skyBot: '#f6f3e6', tree: '#7d9b6a', ground: '#d8c9a4' },
+    summer: { skyTop: '#d6e6dc', skyBot: '#f2f4e0', tree: '#5f8a54', ground: '#cfc396' },
+    autumn: { skyTop: '#ecdfc2', skyBot: '#f8f0dc', tree: '#c08a4a', ground: '#d6c49a' },
+    winter: { skyTop: '#e0e6e8', skyBot: '#f4f5f2', tree: '#8a9a9e', ground: '#dcd6c1' },
+  };
+  function scN(month) { return SEASONS2[season(month)]; }
+
+  function proj(wx, d) { return { x: X0 + wx + d * KX, y: NEAR_Y - d * KY }; }
+  function scaleOf(d) { return 1 - (d / DEPTH0) * 0.45; }  // 1.00 → 0.55
+
+  // ==================== 界画图元 ====================
+
+  // 界画房屋：悬山/歇山，硬边直线 + 平涂 + 瓦垄
+  // (x,y) = 台基底边中心（屏幕坐标）；w = 面阔；dd = 进深
+  function houseJie(x, y, w, opts) {
+    opts = opts || {};
+    const st = opts.state || 'ok';
+    const dd = opts.depth != null ? opts.depth : w * 0.5;
+    const hw = w / 2;
+    const wallH = w * 0.52, baseH = w * 0.085, ridgeH = w * 0.30;
+    const eaveW = w * 0.60, ridgeW = w * 0.44;
+    const bx = dd * 0.55, by = dd * 0.38;      // 纵深偏移（右上）
+    const h0 = wallH + baseH;                  // 檐口高
+    const hR = h0 + ridgeH;                    // 正脊高
+    const wall = opts.wall || PAPER;
+    const roofL = opts.roofLight || TILE;
+    const roofD = opts.roofDark || TILE_D;
+    const L = [];
+    const p = (n) => n.toFixed(1);
+
+    // 台基（须弥座）+ 台阶
+    L.push(`<rect x="${p(-hw - w * 0.05)}" y="${p(-baseH)}" width="${p(w * 1.1)}" height="${p(baseH)}" fill="#c9bda0" stroke="${INK}" stroke-width="0.8"/>`);
+    for (let i = 0; i < 3; i++) {
+      const sw = w * 0.30 + i * w * 0.055;
+      L.push(`<rect x="${p(-sw / 2)}" y="${p(i * 1.6)}" width="${p(sw)}" height="1.6" fill="#d8cdb0" stroke="${INK}" stroke-width="0.5"/>`);
+    }
+
+    // 正立面
+    L.push(`<rect x="${p(-hw)}" y="${p(-h0)}" width="${p(w)}" height="${p(wallH)}" fill="${wall}" stroke="${INK}" stroke-width="1"/>`);
+    // 三开间柱（内柱两根）
+    L.push(`<line x1="${p(-w * 0.167)}" y1="${p(-h0)}" x2="${p(-w * 0.167)}" y2="${p(-baseH)}" stroke="${INK}" stroke-width="1.2"/>`);
+    L.push(`<line x1="${p(w * 0.167)}" y1="${p(-h0)}" x2="${p(w * 0.167)}" y2="${p(-baseH)}" stroke="${INK}" stroke-width="1.2"/>`);
+    // 直棂窗 ×2（各 7 条竖线）
+    [-1, 1].forEach(function (sgn) {
+      const cx = sgn * w * 0.33, ww = w * 0.22, wh = w * 0.18, wy = -h0 + wallH * 0.16;
+      L.push(`<rect x="${p(cx - ww / 2)}" y="${p(wy)}" width="${p(ww)}" height="${p(wh)}" fill="${PAPER}" stroke="${INK}" stroke-width="0.9"/>`);
+      for (let i = 1; i <= 6; i++) {
+        const lx = cx - ww / 2 + (ww / 7) * i;
+        L.push(`<line x1="${p(lx)}" y1="${p(wy)}" x2="${p(lx)}" y2="${p(wy + wh)}" stroke="${INK}" stroke-width="0.5" opacity="0.75"/>`);
+      }
+    });
+    // 门（双扇对开）
+    const dw = w * 0.32, dh = w * 0.36;
+    L.push(`<rect x="${p(-dw / 2)}" y="${p(-baseH - dh)}" width="${p(dw)}" height="${p(dh)}" fill="#8a4a3a" stroke="${INK}" stroke-width="0.9"/>`);
+    L.push(`<line x1="0" y1="${p(-baseH - dh)}" x2="0" y2="${p(-baseH)}" stroke="${INK}" stroke-width="0.8"/>`);
+    L.push(`<circle cx="${p(-dw * 0.14)}" cy="${p(-baseH - dh * 0.45)}" r="1" fill="${INK}"/><circle cx="${p(dw * 0.14)}" cy="${p(-baseH - dh * 0.45)}" r="1" fill="${INK}"/>`);
+
+    // 屋顶顶面：后坡（斜轴测平行四边形）
+    const Ax = -ridgeW, Ay = -hR, Bx = ridgeW, By = -hR;
+    L.push(`<path d="M${p(Ax)},${p(Ay)} L${p(Bx)},${p(By)} L${p(Bx + bx)},${p(By - by)} L${p(Ax + bx)},${p(Ay - by)} Z" fill="${roofD}" stroke="${INK}" stroke-width="0.9"/>`);
+    // 前坡
+    L.push(`<path d="M${p(Ax)},${p(Ay)} L${p(Bx)},${p(By)} L${p(eaveW)},${p(-h0)} L${p(-eaveW)},${p(-h0)} Z" fill="${roofL}" stroke="${INK}" stroke-width="1.1"/>`);
+    // 瓦垄：两条垂脊之间的平行线（真正的界画瓦垄，收敛于正脊两端）
+    for (let i = 1; i <= 7; i++) {
+      const t = i / 8;                       // 沿正脊方向的比例
+      L.push(`<line x1="${p(Ax + (Bx - Ax) * t)},${p(Ay)}" x2="${p(-eaveW + 2 * eaveW * t)},${p(-h0)}" stroke="${INK}" stroke-width="0.55" opacity="0.34"/>`);
+    }
+    // 檐口线（沿前坡底边，界画的"滴水"）
+    L.push(`<line x1="${p(-eaveW)},${p(-h0)}" x2="${p(eaveW)},${p(-h0)}" stroke="${INK}" stroke-width="1.3"/>`);
+    // 正脊
+    if (st === 'broken') {
+      L.push(`<line x1="${p(Ax)}" y1="${p(Ay)}" x2="${p(-ridgeW * 0.15)}" y2="${p(Ay)}" stroke="${INK}" stroke-width="2.2"/>`);
+      L.push(`<line x1="${p(ridgeW * 0.25)}" y1="${p(Ay)}" x2="${p(Bx)}" y2="${p(By)}" stroke="${INK}" stroke-width="2.2"/>`);
+    } else {
+      L.push(`<line x1="${p(Ax)}" y1="${p(Ay)}" x2="${p(Bx)}" y2="${p(By)}" stroke="${INK}" stroke-width="2.2"/>`);
+      L.push(`<path d="M${p(Ax)},${p(Ay)} l${p(-w * 0.03)},${p(-w * 0.045)} l${p(w * 0.06)},0 Z" fill="${INK}"/>`);
+      L.push(`<path d="M${p(Bx)},${p(By)} l${p(-w * 0.03)},${p(-w * 0.045)} l${p(w * 0.06)},0 Z" fill="${INK}"/>`);
+    }
+    // 垂脊
+    L.push(`<line x1="${p(Ax)}" y1="${p(Ay)}" x2="${p(-eaveW)}" y2="${p(-h0)}" stroke="${INK}" stroke-width="1.4"/>`);
+    if (st !== 'broken') L.push(`<line x1="${p(Bx)}" y1="${p(By)}" x2="${p(eaveW)}" y2="${p(-h0)}" stroke="${INK}" stroke-width="1.4"/>`);
+    // 飞檐起翘（二次贝塞尔，界画最显眼特征）
+    const tip = w * 0.17;
+    L.push(`<path d="M${p(-eaveW)},${p(-h0)} Q${p(-eaveW - w * 0.05)},${p(-h0 - tip * 0.55)} ${p(-eaveW - w * 0.10)},${p(-h0 - tip)}" fill="none" stroke="${INK}" stroke-width="1.8" stroke-linecap="round"/>`);
+    L.push(`<path d="M${p(eaveW)},${p(-h0)} Q${p(eaveW + w * 0.05)},${p(-h0 - tip * 0.55)} ${p(eaveW + w * 0.10)},${p(-h0 - tip)}" fill="none" stroke="${INK}" stroke-width="1.8" stroke-linecap="round"/>`);
+    L.push(`<rect x="${p(-eaveW - w * 0.115)}" y="${p(-h0 - tip - 1)}" width="3" height="3" fill="${INK}"/>`);
+    L.push(`<rect x="${p(eaveW + w * 0.085)}" y="${p(-h0 - tip - 1)}" width="3" height="3" fill="${INK}"/>`);
+    // 搏风板 + 悬鱼（山墙侧装饰）
+    L.push(`<path d="M${p(-eaveW)},${p(-h0)} L${p(Ax)},${p(Ay)}" stroke="#8a4a3a" stroke-width="2.4" fill="none" opacity="0.85"/>`);
+    L.push(`<path d="M${p((Ax - eaveW) / 2)},${p((Ay - h0) / 2 - 1)} l3,5 l3,-5 Z" fill="#a03020" opacity="0.9"/>`);
+    // 破损：裂缝
+    if (st === 'broken') {
+      L.push(`<path d="M${p(hw * 0.5)},${p(-h0)} l${p(w * 0.06)},${p(wallH * 0.35)} l${p(-w * 0.04)},${p(wallH * 0.3)}" fill="none" stroke="${INK}" stroke-width="1.1"/>`);
+    }
+    // 着火
+    if (st === 'burning') {
+      L.push(`<g class="fx-flicker"><path d="M${p(-w * 0.12)},${p(-h0 - 6)} q${p(w * 0.08)},${p(-w * 0.3)} ${p(w * 0.16)},${p(-w * 0.04)} q${p(w * 0.06)},${p(-w * 0.22)} ${p(w * 0.14)},${p(w * 0.02)} l${p(-w * 0.02)},${p(w * 0.12)} Z" fill="#e06020" opacity="0.85"/></g>`);
+    }
+    return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})">${L.join('')}</g>`;
+  }
+
+  // 廒仓（米仓）：方廒 + 气窗 + 粮囤 + 旗 —— 用形制表意，不用文字
+  function granaryJie(x, y, w, fullness) {
+    const hw = w / 2, hh = w * 0.72;
+    const n = Math.round(clamp(fullness, 0, 1) * 4);
+    const L = [];
+    const p = (v) => v.toFixed(1);
+    L.push(`<rect x="${p(-hw)}" y="${p(-hh)}" width="${p(w)}" height="${p(hh)}" fill="${PAPER}" stroke="${INK}" stroke-width="1"/>`);
+    // 气窗 4 个小方孔
+    for (let i = 0; i < 4; i++) {
+      const wx0 = -hw + w * 0.14 + i * w * 0.24;
+      L.push(`<rect x="${p(wx0)}" y="${p(-hh * 0.78)}" width="${p(w * 0.09)}" height="${p(w * 0.09)}" fill="#8a7a5a" stroke="${INK}" stroke-width="0.5"/>`);
+    }
+    // 屋顶（简单悬山）
+    L.push(`<path d="M${p(-hw - w * 0.08)},${p(-hh)} L0,${p(-hh - w * 0.32)} L${p(hw + w * 0.08)},${p(-hh)} Z" fill="${TILE}" stroke="${INK}" stroke-width="1"/>`);
+    L.push(`<line x1="${p(-hw * 0.72)}" y1="${p(-hh - w * 0.185)}" x2="${p(hw * 0.72)}" y2="${p(-hh - w * 0.185)}" stroke="${INK}" stroke-width="1.8"/>`);
+    // 旗（只画形状）
+    L.push(`<line x1="${p(-hw * 0.55)}" y1="${p(-hh - w * 0.44)}" x2="${p(-hw * 0.55)}" y2="${p(-hh - w * 0.30)}" stroke="${INK}" stroke-width="0.9"/>`);
+    L.push(`<path d="M${p(-hw * 0.55)},${p(-hh - w * 0.44)} l${p(w * 0.16)},${p(w * 0.05)} l${p(-w * 0.16)},${p(w * 0.05)} Z" fill="#a03020" opacity="0.9"/>`);
+    // 门前粮囤：数量 ∝ 饱满度
+    for (let i = 0; i < n; i++) {
+      const gx = -hw + w * 0.22 + i * w * 0.2;
+      L.push(`<ellipse cx="${p(gx)}" cy="${p(-w * 0.06)}" rx="${p(w * 0.075)}" ry="${p(w * 0.06)}" fill="#d8c9a4" stroke="${INK}" stroke-width="0.7"/>`);
+      L.push(`<path d="M${p(gx - w * 0.075)},${p(-w * 0.06)} L${p(gx)},${p(-w * 0.16)} L${p(gx + w * 0.075)},${p(-w * 0.06)}" fill="none" stroke="${INK}" stroke-width="0.7"/>`);
+    }
+    if (n === 0) {
+      L.push(`<ellipse cx="0" cy="${p(-w * 0.05)}" rx="${p(w * 0.09)}" ry="${p(w * 0.05)}" fill="none" stroke="${INK}" stroke-width="0.7" opacity="0.6"/>`);
+    }
+    return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})">${L.join('')}</g>`;
+  }
+
+  // 县衙：三开间 + 歇山顶 + 高台基 + 石狮 + 灯笼 + 前廊
+  function yamenJie(x, y, w, rep) {
+    const hw = w / 2, wallH = w * 0.46, baseH = w * 0.085, ridgeH = w * 0.34;
+    const eaveW = w * 0.62, ridgeW = w * 0.40, dd = w * 0.62;
+    const bx = dd * 0.55, by = dd * 0.38;
+    const h0 = wallH + baseH, hR = h0 + ridgeH;
+    const L = [];
+    const p = (v) => v.toFixed(1);
+    L.push(`<rect x="${p(-hw - w * 0.07)}" y="${p(-baseH)}" width="${p(w * 1.14)}" height="${p(baseH)}" fill="#c9bda0" stroke="${INK}" stroke-width="0.9"/>`);
+    for (let i = 0; i < 4; i++) {
+      const sw = w * 0.34 + i * w * 0.05;
+      L.push(`<rect x="${p(-sw / 2)}" y="${p(i * 1.7)}" width="${p(sw)}" height="1.7" fill="#d8cdb0" stroke="${INK}" stroke-width="0.5"/>`);
+    }
+    // 前廊（一排细柱）
+    for (let i = 0; i < 7; i++) {
+      const lx = -hw + w * 0.06 + i * (w * 0.88 / 6);
+      L.push(`<line x1="${p(lx)}" y1="${p(-h0 + 2)}" x2="${p(lx)}" y2="${p(-baseH)}" stroke="${INK}" stroke-width="0.9" opacity="0.8"/>`);
+    }
+    // 正立面
+    L.push(`<rect x="${p(-hw)}" y="${p(-h0)}" width="${p(w)}" height="${p(wallH)}" fill="${PAPER}" stroke="${INK}" stroke-width="1.1"/>`);
+    L.push(`<line x1="${p(-w * 0.2)}" y1="${p(-h0)}" x2="${p(-w * 0.2)}" y2="${p(-baseH)}" stroke="${INK}" stroke-width="1.3"/>`);
+    L.push(`<line x1="${p(w * 0.2)}" y1="${p(-h0)}" x2="${p(w * 0.2)}" y2="${p(-baseH)}" stroke="${INK}" stroke-width="1.3"/>`);
+    // 匾（空白的，不写字）
+    L.push(`<rect x="${p(-w * 0.13)}" y="${p(-h0 + wallH * 0.05)}" width="${p(w * 0.26)}" height="${p(w * 0.11)}" fill="#6b5332" stroke="${INK2}" stroke-width="1" rx="1"/>`);
+    // 门
+    const dw = w * 0.22, dh = w * 0.3;
+    L.push(`<rect x="${p(-dw / 2)}" y="${p(-baseH - dh)}" width="${p(dw)}" height="${p(dh)}" fill="#8a4a3a" stroke="${INK}" stroke-width="1"/>`);
+    // 歇山顶（四条垂脊 → 用一个六边形顶面 + 两条戗脊暗示）
+    const Ax = -ridgeW, Ay = -hR, Bx = ridgeW, By = -hR;
+    L.push(`<path d="M${p(Ax)},${p(Ay)} L${p(Bx)},${p(By)} L${p(Bx + bx)},${p(By - by)} L${p(Ax + bx)},${p(Ay - by)} Z" fill="${TILE_D}" stroke="${INK}" stroke-width="1"/>`);
+    L.push(`<path d="M${p(Ax)},${p(Ay)} L${p(Bx)},${p(By)} L${p(eaveW)},${p(-h0)} L${p(-eaveW)},${p(-h0)} Z" fill="${TILE}" stroke="${INK}" stroke-width="1.2"/>`);
+    for (let i = 1; i <= 8; i++) {
+      const t = i / 9;
+      L.push(`<line x1="${p(Ax + (Bx - Ax) * t)},${p(Ay)}" x2="${p(-eaveW + 2 * eaveW * t)},${p(-h0)}" stroke="${INK}" stroke-width="0.55" opacity="0.34"/>`);
+    }
+    L.push(`<line x1="${p(-eaveW)},${p(-h0)}" x2="${p(eaveW)},${p(-h0)}" stroke="${INK}" stroke-width="1.4"/>`);
+    L.push(`<line x1="${p(Ax)}" y1="${p(Ay)}" x2="${p(Bx)}" y2="${p(By)}" stroke="${INK}" stroke-width="2.6"/>`);
+    L.push(`<line x1="${p(Ax)}" y1="${p(Ay)}" x2="${p(-eaveW)}" y2="${p(-h0)}" stroke="${INK}" stroke-width="1.6"/>`);
+    L.push(`<line x1="${p(Bx)}" y1="${p(By)}" x2="${p(eaveW)}" y2="${p(-h0)}" stroke="${INK}" stroke-width="1.6"/>`);
+    const tip = w * 0.19;
+    L.push(`<path d="M${p(-eaveW)},${p(-h0)} Q${p(-eaveW - w * 0.05)},${p(-h0 - tip * 0.55)} ${p(-eaveW - w * 0.11)},${p(-h0 - tip)}" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>`);
+    L.push(`<path d="M${p(eaveW)},${p(-h0)} Q${p(eaveW + w * 0.05)},${p(-h0 - tip * 0.55)} ${p(eaveW + w * 0.11)},${p(-h0 - tip)}" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>`);
+    // 石狮一对
+    [-1, 1].forEach(function (sgn) {
+      const lx = sgn * (hw + w * 0.13);
+      L.push(`<rect x="${p(lx - 3)}" y="${p(-7)}" width="6" height="7" fill="#c9bda0" stroke="${INK}" stroke-width="0.7"/>`);
+      L.push(`<circle cx="${p(lx)}" cy="${p(-9)}" r="3.2" fill="#c9bda0" stroke="${INK}" stroke-width="0.7"/>`);
+    });
+    if (rep > 0.55) {
+      L.push(lantern(x - hw - w * 0.06, y - h0 + 6, 1));
+      if (rep > 0.8) L.push(lantern(x + hw + w * 0.06, y - h0 + 6, 1));
+    }
+    return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})">${L.join('')}</g>`;
+  }
+
+  // 点叶树（界画）：一簇小点，密而碎
+  function treeJie(x, y, s, col, dead) {
+    const c = dead ? '#8a7a5a' : col;
+    let dots = '';
+    const seed = Math.round(x * 7 + y * 3);
+    for (let i = 0; i < 11; i++) {
+      const a = rnd(seed + i * 13) * Math.PI * 2, r = 3 + rnd(seed + i * 29) * 9;
+      dots += `<circle cx="${(Math.cos(a) * r).toFixed(1)}" cy="${(-26 + Math.sin(a) * r * 0.8).toFixed(1)}" r="${(1.5 + rnd(seed + i * 7) * 1.4).toFixed(1)}" fill="${c}" opacity="0.85"/>`;
+    }
+    return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)}) scale(${s.toFixed(2)})">
+      <path d="M0,0 L0,-22" stroke="${INK}" stroke-width="1.4"/>
+      <path d="M0,-14 L-5,-20 M0,-17 L5,-22" stroke="${INK}" stroke-width="0.9" fill="none"/>
+      ${dots}
+    </g>`;
+  }
+
+  // 城墙：加女墙锯齿 + 城楼 + 城门洞
+  function cityWallJie(x, w, broken, scale) {
+    const h = 46 * (scale || 1), bw = w * (scale || 1);
+    let merl = '';
+    for (let i = 0; i < Math.floor(bw / 7); i++) {
+      if (broken && i > 0 && i < 3) continue;
+      merl += `<rect x="${(i * 7).toFixed(0)}" y="${(-h - 5).toFixed(0)}" width="4.5" height="5" fill="#b9ae90" stroke="${INK}" stroke-width="0.6"/>`;
+    }
+    return `<g transform="translate(${x.toFixed(1)},${0}) scale(1)">
+      <rect x="0" y="${(-h).toFixed(0)}" width="${bw.toFixed(0)}" height="${h.toFixed(0)}" fill="#c2b79a" stroke="${INK}" stroke-width="1"/>
+      ${merl}
+      <path d="M${(bw * 0.36).toFixed(0)},${(-h).toFixed(0)} l0,-9 l${(bw * 0.28).toFixed(0)},0 l0,9 Z" fill="${TILE}" stroke="${INK}" stroke-width="0.9"/>
+      <line x1="${(bw * 0.36).toFixed(0)}" y1="${(-h - 9).toFixed(0)}" x2="${(bw * 0.64).toFixed(0)}" y2="${(-h - 9).toFixed(0)}" stroke="${INK}" stroke-width="1.6"/>
+      <path d="M${(bw * 0.40).toFixed(0)},0 l0,${(-h * 0.55).toFixed(0)} q${(bw * 0.1).toFixed(0)},${(-h * 0.28).toFixed(0)} ${(bw * 0.2).toFixed(0)},0 l0,${(h * 0.55).toFixed(0)} Z" fill="${INK2}" stroke="${INK}" stroke-width="0.9"/>
+    </g>`;
+  }
+
+  // 勾线云（内部留白）
+  function cloudJie(x, y, s, op) {
+    return `<g transform="translate(${x},${y}) scale(${s})" opacity="${op}">
+      <path d="M-22,0 Q-26,-8 -16,-9 Q-13,-17 -3,-14 Q4,-19 11,-12 Q21,-13 19,-3 Q24,3 15,4 Z" fill="none" stroke="${INK}" stroke-width="1" opacity="0.55"/>
+      <path d="M-14,-2 Q-6,-6 2,-3" fill="none" stroke="${INK}" stroke-width="0.7" opacity="0.4"/>
+    </g>`;
+  }
+
+  // ==================== 火柴人战争式人物 ====================
+
+  const SK = {            // 骨架关键点（脚底 0,0）
+    ankle: -5, knee: -14, hip: -22, waist: -25,
+    shoulder: -34, elbow: -27, wrist: -20, neck: -35,
+    head: -40, headR: 5.5, crown: -48
+  };
+  const LW = { torso: 6.0, upper: 3.8, fore: 3.4, thigh: 4.6, shin: 4.0, joint: 2.6 };
+
+  const ROLE = {
+    official: { robe: '#2f6a52', sash: '#e8cf8a', hat: 'wusha', buzi: true, walk: { sp: 7, fq: 1.1, leg: 12, arm: 8, bob: 0.8 } },
+    yamen:    { robe: '#8a4a3a', sash: '#d8c8a0', hat: 'zaoli', tool: 'staff', walk: { sp: 9, fq: 1.6, leg: 28, arm: 18, bob: 0.9 } },
+    soldier:  { robe: '#8a4a3a', sash: '#d8c8a0', hat: 'doumu', tool: 'spear', armor: true, walk: { sp: 8.5, fq: 1.5, leg: 26, arm: 16, bob: 0.9 } },
+    commoner: { robe: '#c8a860', sash: '#8a4a3a', hat: 'ruanjin', walk: { sp: 8, fq: 1.4, leg: 24, arm: 20, bob: 0.9 } },
+    peddler:  { robe: '#c8a860', sash: '#8a4a3a', hat: 'futou', tool: 'carry', walk: { sp: 6, fq: 1.2, leg: 20, arm: 6, bob: 1.6 } },
+    farmer:   { robe: '#c8a860', sash: '#8a4a3a', hat: 'douli', tool: 'hoe', rolled: true, walk: { sp: 7.5, fq: 1.3, leg: 22, arm: 16, bob: 1.0 } },
+    refugee:  { robe: '#9a8a70', sash: '#7a6a52', hat: 'none', tattered: true, tool: 'stick', walk: { sp: 5, fq: 0.9, leg: 16, arm: 6, bob: 1.2 } },
+    child:    { robe: '#c8a860', sash: '#8a4a3a', hat: 'ruanjin', small: 0.6, walk: { sp: 5, fq: 2.2, leg: 30, arm: 35, bob: 1.4 } },
+    bandit:   { robe: '#5a4020', sash: '#3a2a1a', hat: 'toujin', mask: true, tool: 'knife', walk: { sp: 6.5, fq: 1.8, leg: 26, arm: 14, bob: 1.1 } },
+    beggar:   { robe: '#9a8a70', sash: '#7a6a52', hat: 'none', tattered: true, tool: 'bowl', sit: true, walk: { sp: 0, fq: 0, leg: 0, arm: 0, bob: 0 } },
+  };
+
+  function hatOf(kind, col) {
+    switch (kind) {
+      case 'wusha':   // 乌纱帽：圆顶 + 两侧硬翅
+        return `<path d="M-5,-43 q5,-5 10,0 Z" fill="#2a2a30" stroke="${INK2}" stroke-width="0.7"/>
+                <rect x="-10.5" y="-43.5" width="7" height="2.4" fill="#2a2a30" stroke="${INK2}" stroke-width="0.6"/>
+                <rect x="3.5" y="-43.5" width="7" height="2.4" fill="#2a2a30" stroke="${INK2}" stroke-width="0.6"/>`;
+      case 'zaoli':   // 皂隶帽：黑色圆筒 + 顶部小圆
+        return `<rect x="-4.6" y="-48" width="9.2" height="8" rx="1.5" fill="#2a2a30" stroke="${INK2}" stroke-width="0.7"/>
+                <circle cx="0" cy="-49" r="1.8" fill="#2a2a30"/>`;
+      case 'doumu':   // 兜鍪：头盔 + 红缨
+        return `<path d="M-5.2,-39 a5.2,5.2 0 0 1 10.4,0 Z" fill="#4a4a52" stroke="${INK2}" stroke-width="0.8"/>
+                <line x1="0" y1="-44" x2="0" y2="-48.5" stroke="${INK2}" stroke-width="1.2"/>
+                <circle cx="0" cy="-49.4" r="2" fill="#a03020"/>`;
+      case 'ruanjin': // 软巾：横布带 + 脑后两片垂布
+        return `<rect x="-5" y="-45.4" width="10" height="2.6" rx="1" fill="#3a3a3a" stroke="${INK2}" stroke-width="0.6"/>
+                <path d="M-4.6,-43 q-2.4,4 -1.2,7" fill="none" stroke="#3a3a3a" stroke-width="2.2"/>`;
+      case 'futou':   // 幞头
+        return `<rect x="-5" y="-45.6" width="10" height="3.4" rx="1.4" fill="#2f2f38" stroke="${INK2}" stroke-width="0.6"/>
+                <rect x="4" y="-45" width="4.4" height="2.4" rx="1" fill="#2f2f38"/>`;
+      case 'douli':   // 斗笠
+        return `<ellipse cx="0" cy="-43.6" rx="8.2" ry="2.6" fill="#c8a860" stroke="${INK}" stroke-width="0.8"/>
+                <path d="M0,-46.6 L0,-43.6" stroke="${INK}" stroke-width="0.8"/>`;
+      case 'toujin':  // 头巾
+        return `<path d="M-5,-44.6 q5,-3.6 10,0 l0,2.2 l-10,0 Z" fill="#3a2a1a" stroke="${INK2}" stroke-width="0.6"/>`;
+      default: return '';
+    }
+  }
+
+  // 一个演员的 <g>：剪影四肢 + 白点眼（火柴人战争风）+ 古装彩袍（区分身份）；面朝右；脚底 (0,0)；总高 46
+  const ACTOR_SCALE = 1.7;   // 骨架 48 单位 → 最近排约 78 单位（画面高 9%），拉远视角后人物整体更小
+
+  function actorSVG(a) {
+    const R = ROLE[a.role] || ROLE.commoner;
+    const sc = scaleOf(a.d) * (a.scale || 1) * ACTOR_SCALE;
+    const p = proj(a.wx, a.d);
+    const ink = INK, ink2 = INK2;
+    const robe = R.robe, sash = R.sash || '#8a4a3a';
+    const L = [];
+    // 剪影四肢色：默认同袍身墨线；兵丁/皂隶略深，近排默认都是深墨剪影
+    const limb = '#2f2a22';
+
+    // ---------- 腿（绕髋 0,-22 旋转）----------
+    const leg = (side) => {
+      const hx = side * 2.2;
+      let s = `<path d="M${hx},${SK.hip} L${hx},${SK.knee} L${hx},${SK.ankle}" stroke="${limb}" stroke-width="${LW.thigh}" stroke-linecap="round" fill="none"/>`;
+      s += `<circle cx="${hx}" cy="${SK.knee}" r="${LW.joint}" fill="${limb}"/>`;
+      // 脚（锥形向前，火柴人战争式，脚跟在后）
+      s += `<path d="M${hx},${SK.ankle} L${hx + 3},0 L${hx - 0.6},0 Z" fill="${limb}"/>`;
+      if (R.rolled) s += `<path d="M${hx},${SK.ankle} L${hx},${SK.knee + 3}" stroke="#e8c4a0" stroke-width="${LW.shin}" stroke-linecap="round"/>`;
+      if (R.tattered) s += `<path d="M${hx - 3},${SK.hip - 6} l6,0 l0,7 l-6,0 Z" fill="${robe}" opacity="0.9"/>`;
+      return s;
+    };
+    // ---------- 臂（绕肩 0,-34 旋转）----------
+    const arm = (side) => {
+      const sx = side * 3.4;
+      let s = `<path d="M${sx},${SK.shoulder} L${sx},${SK.elbow} L${sx},${SK.wrist}" stroke="${limb}" stroke-width="${LW.upper}" stroke-linecap="round" fill="none"/>`;
+      // 前臂加粗成剪影（火柴人战争锥形小臂）；不画肘/腕关节圆点
+      s += `<path d="M${sx},${SK.elbow} L${sx},${SK.wrist}" stroke="${limb}" stroke-width="${LW.fore + 1.2}" stroke-linecap="round" fill="none"/>`;
+      if (R.rolled) s += `<path d="M${sx},${SK.wrist} L${sx},${SK.elbow + 1}" stroke="#e8c4a0" stroke-width="${LW.fore}" stroke-linecap="round"/>`;
+      return s;
+    };
+
+    // ---------- 躯干 ----------
+    let torso = `<path d="M0,${SK.hip} L0,${SK.shoulder}" stroke="${limb}" stroke-width="${LW.torso}" stroke-linecap="round" fill="none"/>`;
+    // 袍身
+    torso += `<path d="M-4.6,${SK.shoulder - 3} L4.6,${SK.shoulder - 3} L5.6,${SK.hip + 6} L-5.6,${SK.hip + 6} Z" fill="${robe}" stroke="${ink2}" stroke-width="0.7"/>`;
+    if (R.tattered) {
+      torso += `<path d="M-5.6,${SK.hip + 6} l2.8,4 l2.8,-4 l2.8,4 l2.8,-4" fill="none" stroke="${ink2}" stroke-width="0.8"/>`;
+    }
+    // 革带
+    torso += `<line x1="-5.4" y1="${SK.waist}" x2="5.4" y2="${SK.waist}" stroke="${sash}" stroke-width="2"/>`;
+    // 胸前补子（官员）
+    if (R.buzi) torso += `<rect x="-3" y="${SK.shoulder + 5}" width="6" height="7" fill="none" stroke="#a03020" stroke-width="0.9"/>`;
+    // 甲片网格（兵丁）
+    if (R.armor) {
+      for (let i = 0; i < 4; i++) torso += `<line x1="-4.6" y1="${SK.shoulder + 2 + i * 3}" x2="4.6" y2="${SK.shoulder + 2 + i * 3}" stroke="${ink2}" stroke-width="0.6" opacity="0.8"/>`;
+      for (let i = 0; i < 3; i++) torso += `<line x1="${-3.2 + i * 3.2}" y1="${SK.shoulder + 2}" x2="${-3.2 + i * 3.2}" y2="${SK.shoulder + 14}" stroke="${ink2}" stroke-width="0.6" opacity="0.8"/>`;
+    }
+    // 头（剪影实心圆 + 白点眼）：火柴人战争式
+    let face = '';
+    const headBase = `<circle cx="0" cy="${SK.head}" r="${SK.headR}" fill="${limb}"/>`;
+    if (R.mask) {
+      face = `<rect x="-4.4" y="-40.4" width="8.8" height="2.6" fill="#3a2a1a"/>`;
+    } else {
+      const eyeR = 0.75;
+      const eyeY = SK.head - 0.6;
+      const eyeDx = 1.9;
+      const eyeL = `<circle cx="${-eyeDx}" cy="${eyeY}" r="${eyeR}" fill="#ffffff"/>`;
+      const eyeRc = `<circle cx="${eyeDx}" cy="${eyeY}" r="${eyeR}" fill="#ffffff"/>`;
+      let mouth = '';
+      if (a.mood === 'happy') mouth = `<path d="M-2,-37 Q0,-35.4 2,-37" fill="none" stroke="#ffffff" stroke-width="0.9" stroke-linecap="round"/>`;
+      else if (a.mood === 'sad') mouth = `<path d="M-2,-36.2 Q0,-37.8 2,-36.2" fill="none" stroke="#ffffff" stroke-width="0.9" stroke-linecap="round"/>`;
+      face = eyeL + eyeRc + mouth;
+    }
+
+    // ---------- 道具 ----------
+    let tool = '';
+    if (R.tool === 'staff') tool = `<line x1="6" y1="-38" x2="6" y2="2" stroke="#8a4a3a" stroke-width="2.2"/><line x1="6" y1="-38" x2="6" y2="-18" stroke="#2a2a30" stroke-width="2.2"/>`;
+    if (R.tool === 'spear') tool = `<line x1="7" y1="-46" x2="7" y2="4" stroke="#5a3a1a" stroke-width="1.8"/><path d="M7,-50 l-2,5 l4,0 Z" fill="#a03020"/>`;
+    if (R.tool === 'stick') tool = `<line x1="6" y1="-30" x2="6" y2="0" stroke="#8a6a3a" stroke-width="1.6"/>`;
+    if (R.tool === 'carry') tool = `<line x1="-11" y1="-38" x2="13" y2="-36" stroke="#8a6a3a" stroke-width="1.6"/><path d="M12,-36 q3,4 0,8 l-6,0 q-3,-4 0,-8 Z" fill="#c8a860" stroke="${ink}" stroke-width="0.7"/>`;
+    if (R.tool === 'hoe') tool = `<line x1="7" y1="-34" x2="7" y2="2" stroke="#8a6a3a" stroke-width="1.6"/><path d="M7,2 l-5,2 l1,2 l5,-2 Z" fill="#6a6a70" stroke="${ink}" stroke-width="0.6"/>`;
+    if (R.tool === 'knife') tool = `<path d="M6,-20 l7,-3 l1,2 l-7,3 Z" fill="#b0b0b8" stroke="${ink}" stroke-width="0.6"/>`;
+    if (R.tool === 'bowl') tool = `<ellipse cx="8" cy="-2" rx="4" ry="2" fill="none" stroke="${ink}" stroke-width="0.9"/>`;
+
+    const head = `${headBase}${face}${hatOf(R.hat)}`;
+
+    const body = `<g class="torso">${torso}</g>
+      <g class="arm-l">${arm(-1)}</g><g class="arm-r">${arm(1)}</g>
+      <g class="leg-l">${leg(-1)}</g><g class="leg-r">${leg(1)}</g>
+      <g class="head">${head}</g>${tool}`;
+
+    return `<g class="actor" data-aid="${a.aid}"><g class="a-body" transform="translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) scale(${(sc * a.dir).toFixed(3)},${sc.toFixed(3)})">${body}</g></g>`;
+  }
+
+  // ==================== 背景层（天空/远景/地面基座 + 街市纹理） ====================
+
+  function renderSceneBG(gs, ctx) {
+    const v = gs.values;
+    const sc = scN(gs.month);
+    const L = [[], [], [], []];           // 0 天空 1 (空置) 2 地面肌理 3 特效
+    const parts = (i, s) => L[i].push(s);
+    const p = (n) => n.toFixed(1);
+
+    // ---- 天空 ----
+    parts(0, `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${sc.skyTop}"/><stop offset="100%" stop-color="${sc.skyBot}"/></linearGradient></defs>`);
+    parts(0, `<rect x="0" y="0" width="${W}" height="${HORIZON}" fill="url(#sky)"/>`);
+    // ---- 远山（固定淡青灰，不随季节变暖）----
+    parts(0, `<path d="M0,${HORIZON - 120} Q70,${HORIZON - 205} 150,${HORIZON - 130} Q225,${HORIZON - 225} 300,${HORIZON - 135} Q380,${HORIZON - 200} 440,${HORIZON - 125} L440,${HORIZON} L0,${HORIZON} Z" fill="${MIST}" opacity="0.85"/>`);
+    parts(0, `<path d="M0,${HORIZON - 62} Q110,${HORIZON - 140} 230,${HORIZON - 72} Q340,${HORIZON - 145} 440,${HORIZON - 80} L440,${HORIZON} L0,${HORIZON} Z" fill="${MIST}" opacity="0.55"/>`);
+    // ---- 勾线云 ----
+    parts(0, `<g class="cloud-drift">${cloudJie(80, 92, 1, 0.8)}${cloudJie(250, 150, 0.75, 0.6)}${cloudJie(370, 66, 0.9, 0.7)}</g>`);
+    // ---- 地面 ----
+    parts(0, `<rect x="0" y="${HORIZON}" width="${W}" height="${H - HORIZON}" fill="${sc.ground}"/>`);
+
+    // ---- 派生指标（沿用原有数值驱动逻辑）----
+    const prosperity = clamp((v.population + v.people + v.tresury) / 300, 0, 1);
+    const famine = clamp((40 - v.granary) / 40, 0, 1);
+    const unrest = clamp((45 - v.security) / 45, 0, 1);
+    const rep = clamp(v.reputation / 100, 0, 1);
+    const warLike = (ctx.lastEventTitle || '').match(/战|兵|匪|乱|寇|攻/) ? 1 : 0;
+    const weatherBad = (ctx.lastEventTitle || '').match(/雨|涝|旱|蝗|疫/) ? 1 : 0;
+
+    // ---- 街市底纹：斜向车辙/横纹 ----
+    for (let i = 0; i < 16; i++) {
+      const d0 = 20 + i * 32, p0 = proj(-440, d0), p1 = proj(440, d0);
+      parts(2, `<line x1="${p(p0.x)}" y1="${p(p0.y)}" x2="${p(p1.x)}" y2="${p(p1.y)}" stroke="${INK}" stroke-width="0.7" opacity="0.20"/>`);
+    }
+    // 街市两侧的屋基线（把街道"托"出来）
+    [0, 1].forEach(function (side) {
+      const d0 = 10, d1 = 480;
+      const a0 = proj(side ? 185 : -185, d0), a1 = proj(side ? 185 : -185, d1);
+      parts(2, `<line x1="${p(a0.x)}" y1="${p(a0.y)}" x2="${p(a1.x)}" y2="${p(a1.y)}" stroke="${INK}" stroke-width="1" opacity="0.28"/>`);
+    });
+
+    // ---- 灾年阴云 ----
+    if (weatherBad) parts(3, `<rect x="0" y="0" width="${W}" height="${HORIZON}" fill="#5c6b73" opacity="0.18"/>`);
+    // ---- 战火烟 ----
+    if (warLike) {
+      const fp = proj(60, 170);
+      parts(3, `<g class="fx-flicker">${fire(fp.x, fp.y - 30, 0.8)}</g>`);
+      parts(3, `<g class="fx-rise">${smoke(fp.x + 10, fp.y - 60, 0.9)}</g>`);
+    }
+    // ---- 前景：地面肌理 + 散落道具 ----
+    parts(2, `<path d="M0,${H - 40} Q110,${H - 52} 220,${H - 40} Q330,${H - 30} 440,${H - 44}" fill="none" stroke="${INK}" stroke-width="0.8" opacity="0.16"/>`);
+    for (let i = 0; i < 7; i++) {
+      const gx = 20 + rnd(i * 17 + 9) * (W - 40), gy = H - 26 - rnd(i * 23 + 4) * 34;
+      parts(2, `<ellipse cx="${p(gx)}" cy="${p(gy)}" rx="${(2 + rnd(i * 3) * 3).toFixed(1)}" ry="1.1" fill="${INK}" opacity="0.13"/>`);
+    }
+
+    const layers = L.map((items, i) => items.length ? `<g class="sc-layer sc-l${i}">${items.join('')}</g>` : '').join('');
+    return `<svg class="scene-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">${layers}</svg>`;
+  }
+
+  // ==================== 人物层（含全部前景物，统一按深度排序 = 清明上河图式遮挡） ====================
+
+  const TIERS = [
+    { d: 0,   cnt: 2, jit: 0.08 },   // 最近
+    { d: 165, cnt: 4, jit: 0.08 },
+    { d: 330, cnt: 6, jit: 0.06 },
+    { d: 500, cnt: 9, jit: 0.05 },   // 最远（剪影）
+  ];
+  const MOVE_ROLES = ['commoner', 'commoner', 'commoner', 'peddler', 'farmer', 'child'];
+
+  // 前景区物品（与人物同层，按脚底深度一起排序）。d = 脚底世界纵深，脚底越远越早画。
+  function buildFgItems(gs, ctx) {
+    const v = gs.values;
+    const sc = scN(gs.month);
+    const prosperity = clamp((v.population + v.people + v.tresury) / 300, 0, 1);
+    const famine = clamp((40 - v.granary) / 40, 0, 1);
+    const unrest = clamp((45 - v.security) / 45, 0, 1);
+    const rep = clamp(v.reputation / 100, 0, 1);
+    const warLike = (ctx.lastEventTitle || '').match(/战|兵|匪|乱|寇|攻/) ? 1 : 0;
+    const items = [];
+
+    // ---- 城墙（最远排之后，d=520）----
+    items.push({ d: 520, t: 0, s: `<g transform="translate(0,${proj(0, 520).y.toFixed(1)})">${cityWallJie(proj(-120, 520).x, 190, unrest > 0.6, scaleOf(520))}</g>` });
+
+    // ---- 民居（数量 ∝ 发展度：人口+民心+库银综合，6~14 间，随发展明显增多）----
+    const nHouses = 6 + Math.round(prosperity * 8);
+    for (let i = 0; i < nHouses; i++) {
+      const side = i % 2 === 0 ? 1 : -1;
+      const d = 60 + rnd(i * 5 + 2) * 400;              // 60~460，纵深铺满整条街
+      const wx = side * (170 + rnd(i * 11 + 5) * 170);   // 横向铺开，覆盖更宽街面
+      const pt = proj(wx, d);
+      let hs = 'ok';
+      if (warLike && i % 2 === 0) hs = 'burning';
+      else if (unrest > 0.62 && i % 2 === 1) hs = 'broken';
+      else if (famine > 0.6 && i % 3 === 2) hs = 'broken';
+      items.push({ d, t: 1, s: houseJie(pt.x, pt.y, 52 * scaleOf(d), { state: hs, depth: 30 * scaleOf(d) }) });
+      if (rnd(i * 13 + 3) > 0.45) {
+        const tp = proj(wx + side * 40, d + 6);
+        items.push({ d: d + 6, t: 1, s: treeJie(tp.x, tp.y, 0.62 * scaleOf(d), sc.tree, hs === 'broken') });
+      }
+    }
+
+    // ---- 县衙（气派 ∝ 官声）----
+    const yp = proj(200, 90);
+    items.push({ d: 90, t: 1, s: yamenJie(yp.x, yp.y, 88 * scaleOf(90), rep) });
+
+    // ---- 廒仓（饱满度 ∝ 粮仓）----
+    const gran = clamp((v.granary - 10) / 80, 0, 1);
+    const gp = proj(-215, 86);
+    items.push({ d: 86, t: 1, s: granaryJie(gp.x, gp.y, 52 * scaleOf(86), gran) });
+
+    return items;
+  }
+
+  function buildActors(gs, ctx) {
+    const v = gs.values;
+    const prosperity = clamp((v.population + v.people + v.tresury) / 300, 0, 1);
+    const famine = clamp((40 - v.granary) / 40, 0, 1);
+    const unrest = clamp((45 - v.security) / 45, 0, 1);
+    const happy = clamp((v.people - 40) / 60, 0, 1);
+    const sad = clamp((40 - v.people) / 40, 0, 1);
+    const mood = happy > 0.5 ? 'happy' : sad > 0.3 ? 'sad' : unrest > 0.5 ? 'angry' : 'normal';
+
+    // 总人数 ∝ 繁华度
+    let total = Math.round(10 + prosperity * 11);   // 10..21
+    const counts = TIERS.map(t => t.cnt);
+    let over = counts.reduce((a, b) => a + b, 0) - total;
+    for (let i = counts.length - 1; i >= 0 && over > 0; i--) {
+      const take = Math.min(counts[i], over);
+      counts[i] -= take; over -= take;
+    }
+
+    const out = [];
+    let n = 0;
+    TIERS.forEach(function (t, ti) {
+      const nHere = counts[ti];
+      if (nHere <= 0) return;
+      const seg = 2 * 380 / Math.max(1, nHere);   // 出画穿越：世界横范围 ±380
+      for (let i = 0; i < nHere; i++) {
+        // 不等距 + 每排留一处空档
+        let wx = -370 + seg * i + (rnd(n * 19 + 3) - 0.5) * seg * 0.75;
+        if (i === Math.floor(nHere / 2)) wx += 26;   // 空档
+        // 朝向：60~75% 朝同一侧（人流主调）
+        const goRight = rnd(n * 31 + 7) < 0.68;
+        const dir = goRight ? 1 : -1;
+        // 角色分配
+        let role = MOVE_ROLES[n % MOVE_ROLES.length];
+        if (n === 2) role = 'official';                                  // 知县固定出镜
+        else if (v.security > 60 && n % 7 === 4) role = 'soldier';
+        else if (unrest > 0.55 && n % 6 === 3) role = 'bandit';
+        else if (famine > 0.35 && n % 5 === 2) role = 'refugee';
+        else if (famine > 0.6 && n % 9 === 5) role = 'beggar';
+        const R = ROLE[role] || ROLE.commoner;
+        const walk = R.walk || { sp: 7, fq: 1.2, leg: 20, arm: 12, bob: 1 };
+        const state = (role === 'official') ? 'walk' : (walk.sp > 0 ? 'walk' : 'idle');
+        // 苏醒时刻（秒，从月结开场算）：近排先醒，同排内从右往左错开 0~0.4s
+        // 未到时刻的演员由 scene_animator 冻结在原位（原地解冻，不从画外走入）
+        const wake = (ti <= 1 ? 1.10 : 1.70) + (380 - wx) / 760 * 0.4;
+        out.push({
+          aid: 'r' + ti + '-' + i, role: role, tier: ti, d: t.d,
+          wx: wx, state: state, dir: dir,
+          speed: walk.sp * 6,           // 单位/秒（步幅×步频的近似）
+          freq: walk.fq, phase: rnd(n * 41 + 11),
+          legAmp: walk.leg, armAmp: walk.arm, bob: walk.bob,
+          scale: 1 + (rnd(n * 53 + 13) - 0.5) * t.jit * 2,
+          mood: role === 'official' ? 'normal' : mood,
+          wxMin: -330, wxMax: 330,
+          silence: ti === 3,            // 最远排：剪影
+          wake: wake,                   // 苏醒时刻（秒）
+        });
+        n++;
+      }
+    });
+    return out;
+  }
+
+  function renderSceneFG(actors, gs, ctx) {
+    const fgItems = buildFgItems(gs, ctx);
+    const pool = [];
+    // 人物：按脚底 (wx, d) 世界坐标参与排序；房屋/树以自身 (wx, d) 参与排序。
+    // d 越大（越远）越先画，近的盖在远的上面 → 人从房前/房后走过，遮挡正确。
+    actors.forEach(function (a) {
+      pool.push({ d: a.d, t: 2, s: actorSVG(a) });
+    });
+    fgItems.forEach(function (it) {
+      pool.push({ d: it.d, t: it.t, s: it.s });
+    });
+    pool.sort(function (x, y) {
+      if (y.d !== x.d) return y.d - x.d;   // 远(d大)在前
+      return y.t - x.t;                    // 同深度：人物(2)在建筑(1)之后、城墙(0)之后 → 人盖在房上（在房前）
+    });
+    return `<svg id="scene-fg" class="scene-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">${pool.map(function (o) { return o.s; }).join('')}</svg>`;
+  }
+
+  // 一次刷新：背景全量重绘 + 人物/前景物 diff + 挂动画
+  function refreshScene(gs, ctx) {
+    const bg = document.getElementById('scene-bg');
+    const fg = document.getElementById('scene-fg');
+    if (bg) bg.innerHTML = renderSceneBG(gs, ctx).replace(/^<svg[^>]*>|<\/svg>$/g, '');
+    const list = buildActors(gs, ctx);
+    if (fg) fg.innerHTML = renderSceneFG(list, gs, ctx).replace(/^<svg[^>]*>|<\/svg>$/g, '');
+    if (global.SceneAnimator) global.SceneAnimator.mount(list);
+    return true;
+  }
+
+  /**
+   * renderChoiceScene(ev, choice, gs) -> svg 字符串
+   * 按事件主题绘制"该选项正在做的事"的场景（预观动画用）
+   */
+  function renderChoiceScene(ev, choice, gs) {
+    const sc = SEASONS[season(gs.month)];
+    const L = [[], [], [], []];
+    const parts = (i, s) => L[i].push(s);
+    actionBG(sc, L, parts);
+    const t = (choice.text || '');
+    const g = GROUND_Y + 4;
+    const off = (ev.id || '').toUpperCase();
+
+    switch (off) {
+      // E01 春旱叩门：龟裂田野 + 粮仓
+      case 'E01': {
+        parts(1, field(160, g-6, 180)); parts(1, tree(80, g, 0.7, '#b0a078', true));
+        parts(1, granary(360, g, 50, 42, 0.8));
+        if (/放粮|平价|放给|放粮给/.test(t)) {
+          parts(2, person(120, g, 1.1, 'happy', { official: true }, 1));
+          parts(2, person(180, g, 1, 'happy', { bowl: true }, 2));
+          parts(2, person(225, g, 1, 'normal', null, 3));
+          parts(2, person(270, g, 0.95, 'normal', null, 4));
+          parts(2, cauldron(320, g-4, 1));
+          parts(3, smoke(320, g-22, 1));
+        } else if (/按兵|赌/.test(t)) {
+          parts(2, person(150, g, 1.1, 'normal', { official: true, fan: true }, 1));
+          parts(2, person(240, g, 1, 'sad', null, 2));
+          parts(3, `<text x="150" y="${g-80}" font-size="12" fill="#8a6a3a" text-anchor="middle" font-family="serif">？？</text>`);
+        } else {
+          parts(2, desk(180, g, 1, 34)); parts(2, person(110, g, 1, 'normal', { official: true }, 1));
+          parts(2, person(240, g, 1, 'normal', null, 2)); parts(2, person(270, g, 0.95, 'sad', { bowl: true }, 3));
+        }
+        break;
+      }
+      // E02 知府寿辰：拜访送礼（官员登门+随从抬黄金/礼盒）
+      case 'E02': {
+        parts(1, mansion(150, g, 1.15)); parts(1, tree(80, g, 0.6, sc.tree));
+        parts(1, lantern(150-34, g-52, 1)); parts(1, lantern(150+34, g-52, 1));
+        if (/二百|厚礼/.test(t)) {
+          parts(2, person(240, g, 1.1, 'happy', { official: true }, 1));
+          parts(2, person(300, g, 1, 'normal', null, 2));
+          parts(2, person(335, g, 1, 'normal', null, 3));
+          parts(2, goldBox(318, g-4, 1.3)); parts(2, goldBox(345, g-4, 1.1));
+        } else if (/薄礼|二十/.test(t)) {
+          parts(2, person(240, g, 1.1, 'happy', { official: true }, 1));
+          parts(2, person(300, g, 1, 'normal', null, 2));
+          parts(2, giftBox(290, g-4, 1.2));
+        } else {
+          parts(2, person(200, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, scroll(260, g-8, 1));
+        }
+        break;
+      }
+      // E03 流民叩城：城门 + 粥厂/盘缠/以工代赈
+      case 'E03': {
+        parts(1, cityWall(20, 150, false));
+        if (/粥|安置|开城/.test(t) && !/修堤/.test(t)) {
+          parts(2, cauldron(260, g-4, 1.3));
+          parts(3, smoke(260, g-24, 1.1));
+          parts(2, person(300, g, 1, 'happy', { bowl: true }, 1));
+          parts(2, person(335, g, 0.95, 'normal', null, 2));
+          parts(2, person(370, g, 0.9, 'normal', null, 3));
+          parts(2, person(160, g, 1.1, 'normal', { official: true }, 4));
+        } else if (/修堤|以工/.test(t)) {
+          parts(1, bridge(300, g-2, 120));
+          parts(2, person(180, g, 1, 'normal', null, 1));
+          parts(2, person(230, g, 1, 'normal', { spear: true }, 2));
+          parts(2, person(340, g, 1, 'normal', null, 3));
+          parts(2, person(385, g, 0.95, 'normal', null, 4));
+          parts(2, person(90, g, 1.1, 'normal', { official: true }, 5));
+        } else {
+          parts(2, person(200, g, 1, 'sad', { bowl: true, refugee: true }, 1));
+          parts(2, person(240, g, 0.95, 'sad', { refugee: true }, 2));
+          parts(2, person(280, g, 0.9, 'sad', null, 3));
+          parts(2, person(330, g, 1.1, 'normal', { official: true }, 4));
+          parts(2, goldBox(360, g-4, 0.9));
+        }
+        break;
+      }
+      // E04 汛期河堤：河堤 + 民夫挑土 / 请款文书 / 募捐
+      case 'E04': {
+        parts(0, `<path d="M0,${GROUND_Y-46} Q150,${GROUND_Y-70} 300,${GROUND_Y-50} Q380,${GROUND_Y-40} 440,${GROUND_Y-56} L440,${GROUND_Y-26} Q300,${GROUND_Y-40} 150,${GROUND_Y-20} Q60,${GROUND_Y-10} 0,${GROUND_Y-16} Z" fill="#7fb0c8" opacity="0.75"/>`);
+        parts(1, `<path d="M0,${GROUND_Y-8} L440,${GROUND_Y-8} L440,${GROUND_Y} L0,${GROUND_Y} Z" fill="#a89068"/>`);
+        if (/强征|民夫|修堤/.test(t) && !/募捐|请款|士绅/.test(t)) {
+          parts(2, person(120, g, 1, 'normal', null, 1)); parts(2, person(170, g, 1, 'normal', null, 2));
+          parts(2, person(220, g, 1, 'normal', { spear: true }, 3));
+          parts(2, person(290, g, 1, 'normal', null, 4)); parts(2, person(345, g, 0.95, 'normal', null, 5));
+          parts(2, person(80, g, 1.1, 'angry', { official: true }, 6));
+        } else if (/募捐|士绅/.test(t)) {
+          parts(2, person(260, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, person(320, g, 1, 'happy', null, 2));
+          parts(2, goldBox(305, g-4, 1.2));
+          parts(2, person(360, g, 0.95, 'normal', null, 3));
+        } else {
+          parts(2, desk(240, g, 1, 34)); parts(2, person(170, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, scroll(260, g-8, 1)); parts(2, person(320, g, 0.95, 'normal', null, 2));
+        }
+        break;
+      }
+      // E05 粮价飞涨：米铺 + 抓奸商/平粜/放任
+      case 'E05': {
+        parts(1, riceShop(120, g, 1.15));
+        if (/限价|抓|囤/.test(t)) {
+          parts(2, person(230, g, 1.1, 'angry', { official: true }, 1));
+          parts(2, person(290, g, 1, 'angry', { soldier: true, spear: true }, 2));
+          parts(2, person(340, g, 1, 'sad', null, 3));
+          parts(3, smoke(250, g-90, 0.8));
+        } else if (/平粜|常平|竞市/.test(t)) {
+          parts(2, cauldron(280, g-4, 1.1)); parts(3, smoke(280, g-22, 1));
+          parts(2, person(320, g, 1, 'happy', { bowl: true }, 1));
+          parts(2, person(355, g, 0.95, 'happy', null, 2));
+          parts(2, person(200, g, 1.1, 'normal', { official: true }, 3));
+        } else {
+          parts(2, person(240, g, 1.1, 'happy', null, 1));
+          parts(2, goldBox(290, g-4, 1.2)); parts(2, goldBox(320, g-4, 1.1));
+          parts(2, person(370, g, 1, 'happy', null, 2));
+        }
+        break;
+      }
+      // E06 盐枭过境：关卡 + 盐车
+      case 'E06': {
+        parts(1, `<g transform="translate(220,${g})"><rect x="-6" y="-44" width="12" height="44" fill="#7a6a4a" stroke="#5a4020" stroke-width="1"/><rect x="-30" y="-30" width="60" height="5" fill="#8a7a5a" stroke="#5a4020" stroke-width="1"/></g>`);
+        parts(1, `<text x="220" y="${g-50}" font-size="9" fill="#5a4020" text-anchor="middle" font-family="serif">关卡</text>`);
+        if (/设卡|严查|硬碰|查办/.test(t)) {
+          parts(2, cart(120, g, 1.1, 'salt'));
+          parts(2, person(80, g, 1, 'angry', { soldier: true, spear: true }, 1));
+          parts(2, person(200, g, 1.1, 'angry', { official: true }, 2));
+          parts(2, person(330, g, 1, 'sad', { hat: true }, 3));
+        } else if (/睁一只眼|睁眼|放过/.test(t)) {
+          parts(2, cart(300, g, 1.1, 'salt'));
+          parts(2, person(230, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, person(360, g, 1, 'normal', { hat: true }, 2));
+        } else {
+          parts(2, cart(110, g, 1.1, 'salt'));
+          parts(2, person(200, g, 1, 'normal', { soldier: true, spear: true }, 1));
+          parts(2, cart(320, g, 1.1, 'salt'));
+          parts(2, person(280, g, 1.1, 'normal', { official: true }, 2));
+          parts(2, person(370, g, 0.9, 'normal', { hat: true }, 3));
+        }
+        break;
+      }
+      // E07 田契之争：公堂
+      case 'E07': {
+        parts(1, courtBG(220, g, 220));
+        parts(1, desk(220, g, 1, 40));
+        if (/升堂|问案/.test(t)) {
+          parts(2, gavel(245, g-16, 1));
+          parts(2, person(220, g, 1.1, 'angry', { official: true }, 1));
+          parts(2, person(130, g, 1, 'sad', null, 2));
+          parts(2, person(315, g, 1, 'angry', null, 3));
+        } else {
+          parts(2, scroll(220, g-8, 1.1));
+          parts(2, person(140, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, person(300, g, 1, 'sad', null, 2));
+        }
+        break;
+      }
+      // E08 义学募捐：学堂
+      case 'E08': {
+        parts(1, shed(140, g, 1.15, '义学'));
+        if (/暂缓|水利/.test(t)) {
+          parts(1, bridge(330, g-2, 100));
+          parts(2, person(240, g, 1, 'normal', null, 1));
+          parts(2, person(290, g, 1, 'normal', null, 2));
+          parts(2, person(90, g, 1.1, 'normal', { official: true }, 3));
+        } else if (/士绅|他们定|捐助/.test(t)) {
+          parts(2, person(90, g, 1.1, 'happy', { official: true }, 1));
+          parts(2, person(230, g, 1, 'happy', null, 2));
+          parts(2, goldBox(245, g-4, 1.2));
+          parts(2, person(310, g, 1, 'happy', { book: true }, 3));
+        } else {
+          parts(2, person(90, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, person(230, g, 1, 'happy', { book: true }, 2));
+          parts(2, person(270, g, 0.95, 'happy', { book: true }, 3));
+          parts(2, person(310, g, 0.9, 'happy', { book: true }, 4));
+        }
+        break;
+      }
+      // E09 瘟疫初现：隔离坊 + 封城
+      case 'E09': {
+        parts(1, shed(110, g, 1.15, '隔离坊'));
+        parts(1, cityWall(300, 110, false));
+        if (/封城/.test(t)) {
+          parts(2, person(200, g, 1.1, 'angry', { official: true }, 1));
+          parts(2, person(350, g, 1, 'sad', null, 2));
+          parts(2, person(385, g, 0.9, 'sad', null, 3));
+          parts(3, smoke(240, g-110, 1.2));
+        } else if (/封锁|拖延|消息/.test(t)) {
+          parts(2, desk(250, g, 1, 32));
+          parts(2, person(180, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, scroll(265, g-8, 1));
+          parts(2, person(340, g, 1, 'sad', null, 2));
+        } else {
+          parts(2, cauldron(280, g-4, 1.2)); parts(3, smoke(280, g-22, 1));
+          parts(2, person(210, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, person(320, g, 1, 'sad', { bowl: true }, 2));
+          parts(2, person(360, g, 0.95, 'sad', null, 3));
+          parts(2, goldBox(180, g-4, 0.9));
+        }
+        break;
+      }
+      // E10 御史风闻：官署奏本
+      case 'E10': {
+        parts(1, house(110, g, 56, 52, 'ok', '#8a4a3a'));
+        parts(1, desk(290, g, 1, 38));
+        if (/自辩|据实/.test(t)) {
+          parts(2, person(200, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, person(290, g, 1, 'normal', null, 2));
+          parts(2, scroll(305, g-8, 1));
+        } else if (/车马费|门路|送/.test(t)) {
+          parts(2, person(160, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, person(320, g, 1.1, 'happy', null, 2));
+          parts(2, giftBox(280, g-4, 1.3)); parts(2, goldBox(315, g-4, 1));
+        } else {
+          parts(2, person(200, g, 1.1, 'angry', { official: true }, 1));
+          parts(2, scroll(255, g-8, 1));
+          parts(3, `<path d="M240,${g-60} L248,${g-68} M246,${g-58} L254,${g-66}" stroke="#b03020" stroke-width="1.4"/>`);
+        }
+        break;
+      }
+      // E11 秋蝗蔽日：田野 + 蝗虫
+      case 'E11': {
+        parts(1, field(200, g-6, 200)); parts(1, tree(360, g, 0.6, '#b0a078'));
+        parts(3, locust(200, g-130, 12));
+        if (/派捐|强征|按亩/.test(t)) {
+          parts(2, person(90, g, 1.1, 'angry', { official: true }, 1));
+          parts(2, person(150, g, 1, 'angry', null, 2));
+          parts(2, person(250, g, 1, 'normal', { spear: true }, 3));
+          parts(2, person(300, g, 0.95, 'normal', null, 4));
+        } else if (/雇/.test(t)) {
+          parts(2, person(120, g, 1, 'normal', null, 1));
+          parts(2, person(220, g, 1, 'normal', null, 2));
+          parts(2, person(300, g, 1.1, 'normal', { official: true }, 3));
+          parts(2, person(360, g, 0.95, 'normal', null, 4));
+        } else {
+          parts(2, person(180, g, 1.1, 'sad', { official: true, fan: true }, 1));
+          parts(2, person(260, g, 1, 'sad', null, 2));
+          parts(2, scroll(320, g-8, 1));
+        }
+        break;
+      }
+      // E12 劫镖大案：镖车 + 缉盗/赔银/悬赏
+      case 'E12': {
+        parts(1, cart(120, g, 1.2, 'silver'));
+        parts(1, tree(80, g, 0.7, sc.tree));
+        if (/限期|缉盗|督办/.test(t)) {
+          parts(2, person(250, g, 1.1, 'angry', { official: true }, 1));
+          parts(2, person(330, g, 1, 'angry', { soldier: true, spear: true }, 2));
+          parts(2, person(375, g, 0.95, 'angry', { soldier: true, spear: true }, 3));
+        } else if (/流匪|赔/.test(t)) {
+          parts(2, person(220, g, 1.1, 'sad', { official: true }, 1));
+          parts(2, goldBox(280, g-4, 1.2)); parts(2, goldBox(310, g-4, 1));
+          parts(2, person(360, g, 0.95, 'normal', null, 2));
+        } else {
+          parts(1, `<g transform="translate(300,${g})"><rect x="-22" y="-34" width="44" height="34" fill="#c8b898" stroke="#5a4020" stroke-width="1.2"/><text x="0" y="-14" font-size="8.5" fill="#5a4020" text-anchor="middle" font-family="serif">缉拿飞贼</text><text x="0" y="-4" font-size="8.5" fill="#8a3a2a" text-anchor="middle" font-family="serif">赏银三百两</text></g>`);
+          parts(2, person(230, g, 1, 'normal', null, 1));
+          parts(2, person(270, g, 0.95, 'normal', null, 2));
+          parts(2, person(360, g, 1.1, 'normal', { official: true }, 3));
+        }
+        break;
+      }
+      // E13 上司推责：官署文书
+      case 'E13': {
+        parts(1, house(110, g, 56, 52, 'ok', '#8a4a3a'));
+        parts(1, desk(290, g, 1, 38));
+        if (/接下|背锅|分忧/.test(t)) {
+          parts(2, person(180, g, 1.1, 'sad', { official: true }, 1));
+          parts(2, scroll(260, g-8, 1)); parts(2, scroll(300, g-8, 0.9));
+        } else if (/力争|回绝|据理/.test(t)) {
+          parts(2, person(180, g, 1.1, 'angry', { official: true }, 1));
+          parts(2, person(310, g, 1, 'normal', null, 2));
+          parts(2, scroll(255, g-8, 1));
+          parts(3, `<path d="M235,${g-55} L243,${g-63} M241,${g-53} L249,${g-61}" stroke="#b03020" stroke-width="1.4"/>`);
+        } else {
+          parts(2, person(180, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, goldBox(300, g-4, 1)); parts(2, scroll(275, g-8, 0.9));
+        }
+        break;
+      }
+      // E14 灾民卖女：城门口
+      case 'E14': {
+        parts(1, cityWall(60, 130, false));
+        if (/自掏|买下|安置/.test(t)) {
+          parts(2, person(200, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, person(280, g, 0.85, 'sad', null, 2));  // 女孩
+          parts(2, person(315, g, 1, 'sad', { refugee: true }, 3));
+          parts(2, goldBox(250, g-4, 1));
+        } else if (/善堂|收容/.test(t)) {
+          parts(1, shed(340, g, 1.05, '善堂'));
+          parts(2, person(220, g, 1, 'normal', { official: true }, 1));
+          parts(2, person(285, g, 0.85, 'sad', null, 2));
+          parts(2, person(320, g, 1, 'sad', { refugee: true }, 3));
+        } else {
+          parts(2, person(200, g, 1.1, 'normal', { official: true, fan: true }, 1));
+          parts(2, person(290, g, 0.85, 'sad', null, 2));
+          parts(2, person(325, g, 1, 'sad', { refugee: true }, 3));
+          parts(3, `<text x="200" y="${g-90}" font-size="12" fill="#8a6a3a" text-anchor="middle" font-family="serif">……</text>`);
+        }
+        break;
+      }
+      // E15 悬梁疑案：书房/公堂
+      case 'E15': {
+        if (/升堂|问案/.test(t)) {
+          parts(1, courtBG(220, g, 220));
+          parts(1, desk(220, g, 1, 40));
+          parts(2, gavel(245, g-16, 1));
+          parts(2, person(220, g, 1.1, 'angry', { official: true }, 1));
+          parts(2, person(130, g, 1, 'sad', null, 2));
+          parts(2, person(315, g, 1, 'normal', null, 3));
+        } else {
+          parts(1, house(150, g, 56, 52, 'ok', '#8a4a3a'));
+          parts(2, person(280, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, scroll(320, g-8, 1));
+          parts(3, smoke(150, g-80, 1));
+        }
+        break;
+      }
+      // E16 京官过境：驿馆接待
+      case 'E16': {
+        parts(1, mansion(130, g, 1.1)); parts(1, lantern(130-34, g-52, 1)); parts(1, lantern(130+34, g-52, 1));
+        if (/盛宴|奢华|土仪/.test(t)) {
+          parts(1, desk(300, g, 1, 40));
+          parts(2, person(220, g, 1.1, 'happy', { official: true }, 1));
+          parts(2, person(300, g, 1.1, 'happy', null, 2));
+          parts(2, person(355, g, 1, 'normal', null, 3));
+          parts(2, giftBox(330, g-4, 1));
+        } else if (/简朴|艰难|明示/.test(t)) {
+          parts(2, person(230, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, person(310, g, 1.1, 'normal', null, 2));
+          parts(2, person(360, g, 0.9, 'normal', null, 3));
+        } else {
+          parts(2, person(230, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, person(310, g, 1.1, 'happy', null, 2));
+          parts(2, person(355, g, 0.95, 'normal', null, 3));
+        }
+        break;
+      }
+      // E17 城中乞儿：街市
+      case 'E17': {
+        parts(1, shed(110, g, 1.1, '养济院'));
+        if (/收编|设官差/.test(t)) {
+          parts(2, person(220, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, person(280, g, 1, 'normal', { soldier: true, spear: true }, 2));
+          parts(2, person(330, g, 0.9, 'normal', null, 3));
+          parts(2, person(365, g, 0.85, 'normal', null, 4));
+        } else if (/取缔|驱散/.test(t)) {
+          parts(2, person(230, g, 1.1, 'angry', { official: true }, 1));
+          parts(2, person(300, g, 1, 'angry', { soldier: true, spear: true }, 2));
+          parts(2, person(360, g, 0.9, 'sad', { bowl: true, refugee: true }, 3));
+        } else {
+          parts(2, person(200, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, person(300, g, 0.85, 'sad', { bowl: true, refugee: true }, 2));
+          parts(2, person(340, g, 0.9, 'sad', { refugee: true }, 3));
+          parts(2, person(375, g, 0.85, 'normal', null, 4));
+        }
+        break;
+      }
+      // E18 修桥募捐：石桥
+      case 'E18': {
+        parts(1, bridge(220, g, 150));
+        if (/认捐|冠名|免查/.test(t)) {
+          parts(2, person(100, g, 1.1, 'happy', { official: true }, 1));
+          parts(2, person(160, g, 1, 'happy', null, 2));
+          parts(2, goldBox(150, g-4, 1.1));
+          parts(2, person(330, g, 1, 'normal', null, 3));
+        } else if (/拒绝|条件/.test(t)) {
+          parts(2, person(100, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, person(160, g, 1, 'sad', null, 2));
+          parts(2, person(330, g, 0.95, 'normal', null, 3));
+        } else {
+          parts(2, person(100, g, 1, 'normal', null, 1));
+          parts(2, person(300, g, 1, 'normal', null, 2));
+          parts(2, person(340, g, 0.95, 'normal', null, 3));
+          parts(2, person(380, g, 0.9, 'normal', null, 4));
+          parts(2, person(200, g, 1.1, 'normal', { official: true }, 5));
+        }
+        break;
+      }
+      // E19 除夕祭天：祭坛
+      case 'E19': {
+        parts(1, altar(220, g, 1.1));
+        if (/隆重|全城|同庆/.test(t)) {
+          parts(1, lantern(110, g-40, 1)); parts(1, lantern(330, g-40, 1));
+          parts(2, person(90, g, 1, 'happy', null, 1));
+          parts(2, person(140, g, 1, 'happy', null, 2));
+          parts(2, person(300, g, 1, 'happy', null, 3));
+          parts(2, person(350, g, 1, 'happy', null, 4));
+          parts(2, person(220, g, 1.1, 'normal', { official: true }, 5));
+          parts(3, smoke(180, g-80, 1.2)); parts(3, smoke(260, g-80, 1));
+        } else if (/从简|修渠/.test(t)) {
+          parts(1, bridge(330, g-2, 90));
+          parts(2, person(100, g, 1, 'normal', null, 1));
+          parts(2, person(150, g, 0.95, 'normal', null, 2));
+          parts(2, person(220, g, 1.1, 'normal', { official: true }, 3));
+        } else {
+          parts(2, person(120, g, 1, 'normal', null, 1));
+          parts(2, person(220, g, 1.1, 'normal', { official: true }, 2));
+          parts(2, person(320, g, 1, 'normal', null, 3));
+          parts(3, smoke(220, g-90, 1));
+        }
+        break;
+      }
+      // E20 卧底考课：账房
+      case 'E20': {
+        parts(1, house(110, g, 56, 52, 'ok', '#8a4a3a'));
+        parts(1, desk(290, g, 1, 40));
+        if (/据实|评中下/.test(t)) {
+          parts(2, person(180, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, scroll(270, g-8, 1)); parts(2, scroll(310, g-8, 0.9));
+        } else if (/微调|粉饰/.test(t)) {
+          parts(2, person(180, g, 1.1, 'normal', { official: true }, 1));
+          parts(2, person(320, g, 0.95, 'normal', null, 2));
+          parts(2, scroll(280, g-8, 1));
+        } else {
+          parts(2, person(180, g, 1.1, 'happy', { official: true }, 1));
+          parts(2, person(320, g, 0.95, 'normal', null, 2));
+          parts(2, scroll(280, g-8, 1)); parts(2, goldBox(315, g-4, 1));
+        }
+        break;
+      }
+      // 兜底：县衙 + 官员
+      default: {
+        parts(1, house(220, g, 60, 56, 'ok', '#8a4a3a'));
+        parts(2, person(120, g, 1.1, 'normal', { official: true }, 1));
+        parts(2, person(330, g, 1, 'normal', null, 2));
+        parts(2, scroll(160, g-8, 1));
+      }
+    }
+
+    const layers = L.map((items, i) =>
+      items.length ? `<g class="sc-layer sc-l${i}">${items.join('')}</g>` : ''
+    ).join('');
+    return `<svg class="scene-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">${layers}</svg>`;
+  }
+
+  global.SceneRenderer = {
+    // 新（P1 界画场景）
+    renderSceneBG, buildActors, actorSVG, renderSceneFG, refreshScene, buildFgItems,
+    proj, scaleOf, houseJie, granaryJie, yamenJie, treeJie, cityWallJie, cloudJie,
+    HORIZON, NEAR_Y, DEPTH0, KX, KY, X0, ROLE, SK, LW, TIERS,
+    // 旧的（#preview 选项预观仍在用，P2 再迁移）
+    renderScene, season, renderChoiceScene,
+  };
+
+})(typeof window !== 'undefined' ? window : globalThis);
+
+// ===================== 人物层动画宿主（SceneAnimator） =====================
+/**
+ * SceneAnimator —— 《为官一方》人物层动画宿主
+ *
+ * 只做一件事：每帧改 actor 的 SVG transform 属性，让火柴人真的在场景里走。
+ *
+ * 三条硬约束（改之前先读）：
+ *   1. 骨骼旋转必须用 SVG 的 transform **属性**（setAttribute），不能用 CSS transform。
+ *      CSS transform 在 WebKit 下作用于 SVG <g> 会以视口原点为轴导致错位。
+ *   2. 不重建 DOM（用 data-sig diff）。innerHTML 一次写入会毁掉全部动画状态。
+ *   3. 不改 <path> 的 d。改 d 会触发几何重算，比改 transform 贵一个数量级。
+ *
+ * 性能：21 人 × 6 属性 = 126 次 setAttribute/帧 ≈ 0.2ms，60fps 下约占 1.2% CPU。
+ */
+(function (g) {
+  'use strict';
+
+  var rafId = 0, last = 0, running = false;
+  var actors = [];
+  var sigPrev = '';
+  var t = 0;          // 苏醒计时（秒），从 mount 起算；settle() 直接推到全部唤醒
+  var settled = false;
+
+  // 与 scene_renderer.js 的投影系统保持一致
+  var DEPTH0 = 500, NEAR_Y = 690, KX = -0.42, KY = 0.32, X0 = 220;
+
+  function proj(wx, d) { return { x: X0 + wx + d * KX, y: NEAR_Y - d * KY }; }
+  function scaleOf(d) { return 1 - (d / DEPTH0) * 0.45; }
+
+  /**
+   * mount(list) —— 人变了才重建 DOM，人没变只更新行为参数
+   * @param {Array} list buildActors() 的返回值
+   */
+  function mount(list) {
+    list = list || [];
+    var fg = document.getElementById('scene-fg');
+    if (!fg) return;
+
+    var sig = list.map(function (a) { return a.aid; }).join('|');
+
+    if (fg.dataset.sig !== sig) {
+      // 人数/身份变了：重建人物层
+      fg.dataset.sig = sig;
+      actors = list.map(function (a) {
+        return {
+          a: a, el: null,
+          body: null, torso: null, head: null,
+          legL: null, legR: null, armL: null, armR: null
+        };
+      });
+      // 重建后重新取节点引用（下一帧生效，避免半帧状态）
+      cacheRefs(fg);
+    } else {
+      // 人数/身份没变：只更新行为参数，保住 DOM 与动画连续性
+      // 但若已 settle（玩家已跳过），新参数要直接按"已唤醒"生效，否则会退回冻结态
+      for (var i = 0; i < actors.length && i < list.length; i++) {
+        actors[i].a = list[i];
+        if (settled) actors[i].a.wake = 0;
+      }
+    }
+    // 苏醒计时归零：每次月结重绘都是一次新的"复活"开场
+    t = 0; settled = false;
+    start();
+  }
+
+  function cacheRefs(fg) {
+    for (var i = 0; i < actors.length; i++) {
+      var aid = actors[i].a.aid;
+      var el = fg.querySelector('[data-aid="' + aid + '"]');
+      if (!el) continue;
+      actors[i].el = el;
+      actors[i].body  = el.querySelector('.a-body');
+      actors[i].torso = el.querySelector('.torso');
+      actors[i].head  = el.querySelector('.head');
+      actors[i].legL  = el.querySelector('.leg-l');
+      actors[i].legR  = el.querySelector('.leg-r');
+      actors[i].armL  = el.querySelector('.arm-l');
+      actors[i].armR  = el.querySelector('.arm-r');
+    }
+  }
+
+  /** 人物层重建后由 renderer 调用 */
+  function rebuildRefs() { cacheRefs(document.getElementById('scene-fg')); }
+
+  function start() {
+    if (running) return;
+    if (!actors.length) return;
+    running = true;
+    last = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function stop() {
+    if (!running) return;
+    running = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = 0;
+  }
+
+  /**
+   * settle() —— 打断苏醒开场，让全部演员立刻进入稳态
+   * 供 skipRecap() 调用：玩家点跳过时画面"现在什么样就定格成什么样"，不要继续演
+   */
+  function settle() {
+    t = 1e6; settled = true;
+    for (var i = 0; i < actors.length; i++) actors[i].a.wake = 0;
+    // 立刻写一帧稳态姿态，避免在 stop() 之前留下半帧冻结态
+    for (var j = 0; j < actors.length; j++) step(actors[j], 0);
+  }
+
+  function tick(now) {
+    if (!running) return;
+    // 卡帧时把 dt 钳到 50ms：不钳的话切回标签页时人物会瞬移到边界
+    var dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    t += dt;                                   // 苏醒计时
+    for (var i = 0; i < actors.length; i++) step(actors[i], dt);
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function step(o, dt) {
+    var a = o.a;
+    if (!o.body) return;
+
+    // ---- 0) 苏醒：未到时刻的演员冻结在原位（原地解冻，姿态为站立） ----
+    var awake = !(t < (a.wake || 0));
+    if (!awake) {
+      var p0 = proj(a.wx, a.d);
+      var s0 = scaleOf(a.d) * a.scale;
+      o.body.setAttribute('transform',
+        'translate(' + p0.x.toFixed(1) + ',' + p0.y.toFixed(1) + ') scale(' + (s0 * a.dir).toFixed(3) + ',' + s0.toFixed(3) + ')');
+      o.torso.setAttribute('transform', 'translate(0,0)');
+      if (o.head) o.head.setAttribute('transform', 'translate(0,0)');
+      o.legL.setAttribute('transform', 'rotate(0,0,-22)');
+      o.legR.setAttribute('transform', 'rotate(0,0,-22)');
+      o.armL.setAttribute('transform', 'rotate(0,0,-34)');
+      o.armR.setAttribute('transform', 'rotate(0,0,-34)');
+      return;
+    }
+
+    // ---- 1) 位移（出画穿越：走出世界范围就折返，SVG 默认裁掉 viewBox 外内容）----
+    if (a.state === 'walk' && a.speed > 0) {
+      a.wx += a.dir * a.speed * dt;
+      if (a.wx > a.wxMax) { a.wx = a.wxMax; a.dir = -1; }
+      if (a.wx < a.wxMin) { a.wx = a.wxMin; a.dir = 1; }
+      a.phase = (a.phase + a.freq * dt) % 1;
+    } else {
+      a.phase = (a.phase + 0.18 * dt) % 1;   // 待机：极慢的呼吸
+    }
+
+    // ---- 2) 姿态：每帧只写 8 条属性 ----
+    var p = proj(a.wx, a.d);
+    var sc = scaleOf(a.d) * a.scale;
+
+    o.body.setAttribute('transform',
+      'translate(' + p.x.toFixed(1) + ',' + p.y.toFixed(1) + ') scale(' + (sc * a.dir).toFixed(3) + ',' + sc.toFixed(3) + ')');
+
+    var sw  = Math.sin(a.phase * Math.PI * 2);            // -1..1 腿步态摆动
+    var swA = Math.sin((a.phase - 0.08) * Math.PI * 2);   // 手臂略滞后于腿，摆幅收一点更自然
+    var bob = -Math.abs(Math.cos(a.phase * Math.PI * 2)) * (a.bob || 1);
+
+    o.torso.setAttribute('transform', 'translate(0,' + bob.toFixed(2) + ')');
+    if (o.head)  o.head.setAttribute('transform', 'translate(0,' + (bob * 0.55).toFixed(2) + ')');
+    o.legL.setAttribute('transform', 'rotate(' + (-sw * a.legAmp).toFixed(1) + ',0,-22)');
+    o.legR.setAttribute('transform', 'rotate(' + ( sw * a.legAmp).toFixed(1) + ',0,-22)');
+    o.armL.setAttribute('transform', 'rotate(' + ( swA * a.armAmp * 0.9).toFixed(1) + ',0,-34)');
+    o.armR.setAttribute('transform', 'rotate(' + (-swA * a.armAmp * 0.9).toFixed(1) + ',0,-34)');
+  }
+
+  g.SceneAnimator = { mount: mount, start: start, stop: stop, rebuildRefs: rebuildRefs, settle: settle };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+// ===================== 核心逻辑（由 GameCore.ts 自动转换） =====================
+/**
+ * GameCore —— 《为官一方》纯逻辑核心
+ * 设计原则：不依赖任何引擎/运行时 API，可在 Node 中直接单测，进入 Cocos 原样复用。
+ * 若在 Node 中测试：import './GameCore.ts'（带扩展名）；Cocos 中：import './GameCore'。
+ */
+
+// ============ 类型定义 ============
+
+                                                                                                   
+                                              
+                                                     
+
+                                                       // x: 仁政+, 严刑-；y: 清廉+, 钻营-
+                               
+                          
+                                    
+                  
+ 
+                         
+             
+               
+                              
+                        
+                      
+                   
+                   
+ 
+                               
+                   
+                    
+                                                            
+                                     
+                        
+                        
+                
+ 
+                            
+             
+                
+               
+                 
+                 
+                                                                               
+                    
+                    
+                         
+               
+                    
+ 
+
+/** 月度政令（主动行动） */
+                             
+             
+               
+               
+                                                         
+                                                                 
+                                                  
+                                                                                          
+                                                   
+ 
+
+                                                                                                                                                                
+                            
+                                
+                              
+                       
+                    
+                      
+                     
+ 
+
+// ============ 常量 ============
+const VALUE_KEYS             = ['tresury', 'granary', 'people', 'security', 'reputation', 'population'];
+const VALUE_MAX = 100;
+const VALUE_MIN = 0;
+const PERSONALITY_MAX = 100;
+const PERSONALITY_MIN = -100;
+const TERM_YEARS = 3;
+const MONTHS_PER_YEAR = 12;
+
+const INITIAL_VALUES                         = {
+  jinshi:   { tresury: 55, granary: 50, people: 50, security: 60, reputation: 60, population: 50 },
+  juren:    { tresury: 45, granary: 60, people: 65, security: 55, reputation: 45, population: 55 },
+  juanguan: { tresury: 70, granary: 40, people: 40, security: 50, reputation: 35, population: 45 },
+};
+const INITIAL_PERSONALITY                              = {
+  jinshi:   { x: 10, y: 15 },
+  juren:    { x: 15, y: 5 },
+  juanguan: { x: -5, y: -20 },
+};
+
+// ============ 工具 ============
+function clamp(v        , min        , max        )         {
+  return Math.max(min, Math.min(max, Math.round(v)));
+}
+function clampValues(values        )         {
+  const out = {}          ;
+  for (const k of VALUE_KEYS) out[k] = clamp(values[k], VALUE_MIN, VALUE_MAX);
+  return out;
+}
+
+/** 浮点 clamp（不取整），用于 taxRate/marketRate 等连续系数 */
+function clampF(v        , min        , max        )         {
+  return Math.max(min, Math.min(max, v));
+}
+function clampPersonality(p             )              {
+  return { x: clamp(p.x, PERSONALITY_MIN, PERSONALITY_MAX), y: clamp(p.y, PERSONALITY_MIN, PERSONALITY_MAX) };
+}
+
+// ============ 游戏状态 ============
+class GameState {
+  values        ;
+  personality             ;
+  year        ;          // 1~3
+  month        ;         // 1~12
+  origin        ;
+  taxRate = 1.0;         // 税赋系数
+  marketRate = 1.0;      // 市集系数
+  flags              = new Set();
+  triggered              = new Set();
+  pendingChains           = [];
+  actionCooldowns                         = {};  // 政令冷却（月），每月递减
+  stats           ;
+  examHistory                                                   = [];
+  eventLog           = [];
+
+  constructor(origin         = 'jinshi') {
+    this.origin = origin;
+    this.values = { ...INITIAL_VALUES[origin] };
+    this.personality = { ...INITIAL_PERSONALITY[origin] };
+    this.year = 1;
+    this.month = 1;
+    this.stats = { populationStartOfYear: this.values.population, populationNetChange: 0, taxCollected: 0, taxTarget: 0, casesSolved: 0, casesTotal: 0 };
+    this.stats.taxTarget = this.computeMonthlyIncome() * MONTHS_PER_YEAR;
+  }
+
+  get phase()                                            {
+    if (this.month <= 3) return 'spring';
+    if (this.month <= 6) return 'summer';
+    if (this.month <= 9) return 'autumn';
+    return 'winter';
+  }
+
+  // —— 月度收入 ——
+  computeMonthlyIncome()         {
+    const tianfu = this.values.population * 0.9 * this.taxRate;
+    const shangshui = this.values.security * 0.35 * this.marketRate;
+    return Math.round(tianfu + shangshui);
+  }
+
+  // —— 月度结算（v0 公式）——
+  monthlySettle()       {
+    const income = this.computeMonthlyIncome();
+    const expense = 25 + 5; // 俸禄 25 + 仓储维护 5（v0 无工程摊销/赈济）
+    const surplus = income - expense;
+    this.values.tresury = clamp(this.values.tresury + Math.round(surplus * 0.35), VALUE_MIN, VALUE_MAX);
+    if (this.values.population >= 55) this.values.granary = clamp(this.values.granary + 1, VALUE_MIN, VALUE_MAX);
+    if (this.taxRate >= 1.1) this.values.people = clamp(this.values.people - 2, VALUE_MIN, VALUE_MAX);
+    else this.values.people = clamp(this.values.people + 0.5, VALUE_MIN, VALUE_MAX);
+    const popDelta = this.values.people >= 60 ? 0.4 : this.values.people <= 30 ? -0.6 : 0;
+    this.values.population = clamp(this.values.population + popDelta, VALUE_MIN, VALUE_MAX);
+    this.stats.taxCollected += income;
+    this.stats.populationNetChange = this.values.population - this.stats.populationStartOfYear;
+  }
+
+  // —— 事件结算 ——
+  applyChoice(choice        )       {
+    const e = choice.effects;
+    for (const k of Object.keys(e.values)              ) {
+      this.values[k] = clamp(this.values[k] + (e.values[k] ?? 0), VALUE_MIN, VALUE_MAX);
+    }
+    this.personality = clampPersonality({
+      x: this.personality.x + (e.personality.x ?? 0),
+      y: this.personality.y + (e.personality.y ?? 0),
+    });
+    if (e.flag) for (const f of e.flag) this.flags.add(f);
+  }
+
+  markTriggered(eventId        )       {
+    this.triggered.add(eventId);
+  }
+
+  /** 政令冷却逐月递减 */
+  tickActionCooldowns()       {
+    const out                         = {};
+    for (const k of Object.keys(this.actionCooldowns)) {
+      const v = this.actionCooldowns[k] - 1;
+      if (v > 0) out[k] = v;
+    }
+    this.actionCooldowns = out;
+  }
+
+  /** 应用一个政令（数值/人格/flag/taxRate/marketRate/冷却） */
+  applyAction(a            )       {
+    const e = a.effects;
+    for (const k of Object.keys(e.values)              ) {
+      this.values[k] = clamp(this.values[k] + (e.values[k] ?? 0), VALUE_MIN, VALUE_MAX);
+    }
+    this.personality = clampPersonality({
+      x: this.personality.x + (e.personality?.x ?? 0),
+      y: this.personality.y + (e.personality?.y ?? 0),
+    });
+    if (e.flag) for (const f of e.flag) this.flags.add(f);
+    if (a.setTaxRate) {
+      this.taxRate = clampF(this.taxRate + a.setTaxRate, 0.6, 1.6);
+    }
+    if (a.setMarketRate) {
+      this.marketRate = clampF(this.marketRate + a.setMarketRate, 0.6, 1.6);
+    }
+    if (a.cooldown) this.actionCooldowns[a.id] = a.cooldown;
+  }
+
+  enqueueChain(chain                      )       {
+    if (chain) for (const c of chain) if (!this.pendingChains.includes(c)) this.pendingChains.push(c);
+  }
+
+  // —— 季度人格回摆（向 0 收敛）——
+  quarterlyPersonalityDrift()       {
+    const drift = (v        ) => (v > 0 ? Math.max(0, v - 2) : Math.min(0, v + 2));
+    this.personality = clampPersonality({ x: drift(this.personality.x), y: drift(this.personality.y) });
+  }
+
+  // —— 年度考课（v0 公式）——
+  evaluateExam()             {
+    const popScore = clamp(this.stats.populationNetChange * 1.5, 0, 30);
+    const ratio = this.stats.taxTarget > 0 ? this.stats.taxCollected / this.stats.taxTarget : 0;
+    const taxScore = clamp(Math.round(ratio * 30), 0, 30);
+    const secScore = clamp(this.values.security >= 60 ? 20 : this.values.security - 40, 0, 20);
+    const caseScore = this.stats.casesTotal > 0 ? Math.round((this.stats.casesSolved / this.stats.casesTotal) * 10) : 5;
+    const respScore = 6; // v0 默认"良"；负面应对在事件数据中用 flag 修正
+    const score = popScore + taxScore + secScore + caseScore + respScore;
+    const grade = this.gradeFor(score);
+    return { score, grade, breakdown: { population: popScore, tax: taxScore, security: secScore, cases: caseScore, response: respScore } };
+  }
+
+  gradeFor(score        )         {
+    if (score >= 90) return '上上';
+    if (score >= 75) return '上';
+    if (score >= 60) return '中上';
+    if (score >= 45) return '中';
+    if (score >= 30) return '中下';
+    return '下';
+  }
+
+  advanceMonth()                    {
+    this.month += 1;
+    this.tickActionCooldowns();
+    if (this.month > MONTHS_PER_YEAR) {
+      this.month = 1;
+      // 先结算刚刚结束的这一年的考课
+      const exam = this.evaluateExam();
+      this.examHistory.push({ year: this.year, score: exam.score, grade: exam.grade });
+      this.year += 1;
+      if (this.year > TERM_YEARS) return exam; // 任期结束（第 3 年考课已结算入档，仍需返回给上层展示）
+      // 重置年度统计
+      this.stats = { populationStartOfYear: this.values.population, populationNetChange: 0, taxCollected: 0, taxTarget: this.computeMonthlyIncome() * MONTHS_PER_YEAR, casesSolved: 0, casesTotal: 0 };
+      return exam;
+    }
+    if (this.month % 3 === 1) this.quarterlyPersonalityDrift();
+    return null;
+  }
+
+  /** 任期是否结束（3 年考课全部完成） */
+  get termEnded()          {
+    return this.year > TERM_YEARS && this.examHistory.length >= TERM_YEARS;
+  }
+
+  // —— 存档 ——
+  serialize()         {
+    return JSON.stringify({
+      values: this.values, personality: this.personality, year: this.year, month: this.month,
+      origin: this.origin, taxRate: this.taxRate, marketRate: this.marketRate,
+      flags: [...this.flags], triggered: [...this.triggered], pendingChains: this.pendingChains,
+      actionCooldowns: this.actionCooldowns,
+      stats: this.stats, examHistory: this.examHistory,
+    });
+  }
+
+  static deserialize(raw        )            {
+    const s = JSON.parse(raw);
+    const gs = new GameState(s.origin);
+    gs.values = s.values; gs.personality = s.personality; gs.year = s.year; gs.month = s.month;
+    gs.taxRate = s.taxRate; gs.marketRate = s.marketRate;
+    gs.flags = new Set(s.flags); gs.triggered = new Set(s.triggered); gs.pendingChains = s.pendingChains;
+    gs.actionCooldowns = s.actionCooldowns ?? {};
+    gs.stats = s.stats; gs.examHistory = s.examHistory;
+    return gs;
+  }
+}
+
+// ============ 事件系统 ============
+class EventSystem {
+          events              = [];
+
+  static load(raw        )              {
+    const es = new EventSystem();
+    es.events = JSON.parse(raw).events               ;
+    return es;
+  }
+
+  get all()              { return this.events; }
+
+  find(id        )                        { return this.events.find(e => e.id === id); }
+
+  /** 判断事件当前是否可触发（连锁事件同样必须满足触发条件，只是抽取时优先） */
+  eligible(ev           , state           )          {
+    if (ev.once && state.triggered.has(ev.id)) return false;
+    const t = ev.trigger ?? {};
+    if (t.month && !t.month.includes(state.month)) return false;
+    if (t.yearTerm && t.yearTerm !== state.year) return false;
+    if (ev.phase && ev.phase !== 'any') {
+      if (ev.phase === 'fixed_december' && state.month !== 12) return false;
+      if (ev.phase !== 'fixed_december' && ev.phase !== state.phase) return false;
+    }
+    if (t.values?.min) {
+      for (const k of Object.keys(t.values.min)              ) {
+        if (state.values[k] < (t.values.min[k] ?? 0)) return false;
+      }
+    }
+    if (t.values?.max) {
+      for (const k of Object.keys(t.values.max)              ) {
+        if (state.values[k] > (t.values.max[k] ?? 0)) return false;
+      }
+    }
+    if (t.personality?.x !== undefined) {
+      const p = t.personality.x;
+      if (p >= 0 && state.personality.x < p) return false;
+      if (p < 0 && state.personality.x > p) return false;
+    }
+    if (t.requireEvent && !state.triggered.has(t.requireEvent)) return false;
+    if (t.excludeEvent && state.triggered.has(t.excludeEvent)) return false;
+    if (t.flag && !state.flags.has(t.flag)) return false;
+    return true;
+  }
+
+  /** 抽取一个可触发事件：优先必发队列（满足条件的连锁事件），否则加权随机；无则返回 null */
+  draw(state           )                   {
+    // 连锁事件满足条件时优先触发
+    for (const cid of state.pendingChains) {
+      const ev = this.find(cid);
+      if (ev && this.eligible(ev, state)) {
+        return ev;
+      }
+    }
+    const pool = this.events.filter(e => this.eligible(e, state));
+    if (pool.length === 0) return null;
+    const total = pool.reduce((sum, e) => sum + e.weight, 0);
+    let roll = Math.random() * total;
+    for (const ev of pool) {
+      roll -= ev.weight;
+      if (roll <= 0) return ev;
+    }
+    return pool[pool.length - 1];
+  }
+}
+
+// ============ 政令系统（月度主动行动） ============
+class ActionSystem {
+          actions               = [];
+
+  static load(raw        )               {
+    const as = new ActionSystem();
+    as.actions = JSON.parse(raw).actions                ;
+    return as;
+  }
+
+  get all()               { return this.actions; }
+
+  find(id        )                         { return this.actions.find(a => a.id === id); }
+
+  /** 政令当前是否可行 */
+  eligible(a            , state           )          {
+    if ((state.actionCooldowns[a.id] ?? 0) > 0) return false;
+    const need = a.need ?? {};
+    if (need.values) {
+      for (const k of Object.keys(need.values)              ) {
+        const min = need.values[k];
+        if (min !== undefined && state.values[k] < min) return false;
+      }
+    }
+    if (need.personality?.x !== undefined) {
+      const p = need.personality.x;
+      if (p >= 0 && state.personality.x < p) return false;
+      if (p < 0 && state.personality.x > p) return false;
+    }
+    if (need.personality?.y !== undefined) {
+      const p = need.personality.y;
+      if (p >= 0 && state.personality.y < p) return false;
+      if (p < 0 && state.personality.y > p) return false;
+    }
+    if (need.flag && !state.flags.has(need.flag)) return false;
+    return true;
+  }
+
+  /** 当前可行的全部政令 */
+  available(state           )               {
+    return this.actions.filter(a => this.eligible(a, state));
+  }
+}
+
+// ============ 结局判定（v0 简化版） ============
+function judgeEnding(state           )               {
+  const { values: v, personality: p, examHistory } = state;
+  const goodGrades = examHistory.filter(h => h.grade === '上上' || h.grade === '上').length;
+  const badGrades = examHistory.filter(h => h.grade === '中下' || h.grade === '下').length;
+
+  if (v.people <= 15 && v.security <= 25) return { ending: '民变烽烟', desc: '民心尽失，乱民揭竿，青阳县头一回被自己的子民攻破。' };
+  if (p.x >= 60 && p.y >= 50 && goodGrades >= 1) return { ending: '名宦千秋', desc: '三年仁政，万民称颂，入祠祭祀，青史留名。' };
+  if (p.y <= -60) return { ending: '巨蠹伏法', desc: '贪墨案发，御史亲临，你被押解进京，三司会审。' };
+  if (p.x <= -60 && p.y >= 30) return { ending: '酷吏遗臭', desc: '严刑峻法，百姓敢怒不敢言，你离任之日，无人相送。' };
+  if (v.reputation >= 75 && goodGrades >= 2) return { ending: '一路高升', desc: '考课连上，吏部文书到：升任知府。' };
+  if (p.y >= 60 && state.flags.has('case_tianqi_done')) return { ending: '青天留名', desc: '明镜高悬，平反冤狱，百姓赠你万民伞。' };
+  if (badGrades >= 2) return { ending: '平调穷县', desc: '考课连年不佳，吏部一纸文书，将你调往边远贫瘠之县。' };
+  return { ending: '善终致仕', desc: '三年任满，平安离任。虽无大功，亦无大过，全身而退。' };
+}
+
+const EventSystem_ = EventSystem; const ActionSystem_ = ActionSystem;
+const GameState_ = GameState; const judgeEnding_ = judgeEnding;
+const VALUE_KEYS_ = VALUE_KEYS;
+
+// ===================== 数据 =====================
+const EVENTS_DATA = {
+  "schemaVersion": "1.0",
+  "events": [
+    {
+      "id": "E01", "title": "春旱叩门", "type": "disaster", "weight": 100, "once": true,
+      "phase": "spring", "priority": "normal", "deadline": 2,
+      "trigger": { "month": [2] },
+      "text": "入春以来滴雨未下，田土龟裂，乡老联名求见。仓廪尚有余粮，但若开仓放粮，秋前粮价恐要失控；若坐视不理，春耕误了，秋税颗粒无收。",
+      "choices": [
+        { "id": "A", "text": "开仓放粮，以平价粜与百姓", "effects": { "values": { "granary": -15, "people": 12, "tresury": -5 }, "personality": { "x": 10, "y": 0 } }, "resultText": "粮车出城，百姓排队长龙。师爷低声说：秋前怕是要勒紧裤腰带了。", "expose": true },
+        { "id": "B", "text": "按兵不动，赌三月初雨", "effects": { "values": { "people": -8 }, "personality": { "x": -3, "y": 0 } }, "resultText": "三月一场透雨解了围。可这两个月的青黄不接，民心已暗生怨言。", "expose": true },
+        { "id": "C", "text": "只放粮给户籍在册农户", "effects": { "values": { "granary": -8, "people": 4, "population": -3 }, "personality": { "x": 0, "y": 0 } }, "resultText": "流民拖家带口出了县境。师爷沉默半晌：倒也省了口粮。", "expose": true }
+      ]
+    },
+    {
+      "id": "E02", "title": "知府寿辰", "type": "official", "weight": 90, "once": true,
+      "phase": "any", "priority": "normal", "deadline": 2,
+      "trigger": { "values": { "min": { "tresury": 20 } } },
+      "text": "直属知府五十大寿，本县几位士绅已备下厚礼结伴赴宴，就差你的贺仪了。师爷递话：别家县令都是二百两起步。你看着拮据的府库，陷入沉默。",
+      "choices": [
+        { "id": "A", "text": "备二百两厚礼", "effects": { "values": { "tresury": -10, "reputation": 10 }, "personality": { "x": 0, "y": -15 } }, "resultText": "寿宴上知府对你格外热络。回程马车里你摸了摸空了一半的钱袋。", "expose": true },
+        { "id": "B", "text": "备薄礼二十两，亲自登门", "effects": { "values": { "tresury": -2, "reputation": 3 }, "personality": { "x": 0, "y": 0 } }, "resultText": "知府客客气气接了礼。席间有人窃窃私语，你只当没听见。", "expose": true },
+        { "id": "C", "text": "托病不去，只递贺帖", "effects": { "values": { "reputation": -5 }, "personality": { "x": 0, "y": 8 } }, "resultText": "次日知府署里便传开了你『拿乔』的话。清名有时就是与热灶无缘。", "expose": true }
+      ]
+    },
+    {
+      "id": "E03", "title": "流民叩城", "type": "people", "weight": 90, "once": true,
+      "phase": "autumn", "priority": "urgent", "deadline": 2,
+      "trigger": { "month": [9, 10, 11, 12] },
+      "text": "邻县遭了兵灾，上千流民涌到城下。开城安置，口粮、住处、防疫都是钱；闭门不纳，良心过不去，也可能激起民变。",
+      "choices": [
+        { "id": "A", "text": "开城安置，设粥厂", "effects": { "values": { "tresury": -12, "people": 10, "security": -3 }, "personality": { "x": 15, "y": 0 } }, "resultText": "粥厂的烟火升起来，流民跪了一地。师爷却盯着账册叹气。", "expose": true },
+        { "id": "B", "text": "闭门不纳，发盘缠劝返", "effects": { "values": { "people": -10, "population": -2 }, "personality": { "x": -10, "y": 0 } }, "resultText": "城下哭声骂声混成一片。夜里有人往县衙墙上扔了石块。", "expose": true },
+        { "id": "C", "text": "开城，组织流民修堤以工代赈", "effects": { "values": { "tresury": -6, "people": 8, "security": 2 }, "personality": { "x": 8, "y": 0 } }, "resultText": "流民吃上了饭，河堤也加固了三里。师爷难得赞了一句：此法妙。", "expose": true }
+      ]
+    },
+    {
+      "id": "E04", "title": "汛期河堤", "type": "disaster", "weight": 95, "once": true,
+      "phase": "spring", "priority": "urgent", "deadline": 3,
+      "trigger": { "month": [4, 5] },
+      "text": "勘察回报：西河堤坝有三处管涌隐患，但府库亏空，请款文书在知府案头压了半个月。秋汛说来就来。",
+      "choices": [
+        { "id": "A", "text": "强征民夫自筹物料连夜修堤", "effects": { "values": { "tresury": -10, "people": -5 }, "personality": { "x": -5, "y": 0 }, "flag": ["river_repaired"] }, "resultText": "堤坝在秋汛前合龙。百姓骂着『劳役』，却没人真敢说这堤修得不对。", "expose": true },
+        { "id": "B", "text": "再上请款文书，静候批复", "effects": { "values": { "people": 0 }, "personality": { "x": 0, "y": 0 }, "flag": ["river_broken"] }, "resultText": "文书如石沉大海。七月汛期，西河决口，百姓哭声震天。", "expose": true },
+        { "id": "C", "text": "向士绅募捐修堤", "effects": { "values": { "tresury": -3 }, "personality": { "x": 3, "y": 0 }, "flag": ["river_repaired"]}, "resultText": "士绅捐了银子，也留下话头：日后县里有事，别忘今日之情。", "expose": true }
+      ]
+    },
+    {
+      "id": "E05", "title": "粮价飞涨", "type": "people", "weight": 85, "once": true,
+      "phase": "spring", "priority": "urgent", "deadline": 2,
+      "trigger": { "month": [3] },
+      "text": "米铺三日三价，百姓买不起粮，传言是城中三家粮商联手囤积。限制粮价，粮商扬言停市；放任不管，怕要出乱子。",
+      "choices": [
+        { "id": "A", "text": "限价，抓囤积奸商", "effects": { "values": { "people": 10, "security": 2 }, "personality": { "x": 8, "y": 0 } }, "resultText": "粮商被锁拿三家，粮价应声回落。市井拍手称快，商铺却紧了粮袋子。", "expose": true },
+        { "id": "B", "text": "开常平仓平粜，与粮商竞市", "effects": { "values": { "granary": -10, "people": 8, "tresury": -3 }, "personality": { "x": 5, "y": 0 } }, "resultText": "官仓与粮商打起了价格战。粮价稳住了，仓廪薄了一层。", "expose": true },
+        { "id": "C", "text": "放任市场自我调节", "effects": { "values": { "people": -10 }, "personality": { "x": -8, "y": 0 } }, "resultText": "三月末粮价果然回落——『不管之治』倒成了美谈。只是这一个月，饿坏了不少人。", "expose": true }
+      ]
+    },
+    {
+      "id": "E06", "title": "盐枭过境", "type": "security", "weight": 80, "once": true,
+      "phase": "summer", "priority": "normal", "deadline": 3,
+      "trigger": { "month": [5, 6, 7] },
+      "text": "缉私探子密报：本地盐枭与邻县绿林勾结，每月私盐过境，抽水丰厚。查办，盐枭可能狗急跳墙，且此线背后似有京官背景；不办，私盐毁的是官盐税源。",
+      "choices": [
+        { "id": "A", "text": "设卡严查，与盐枭硬碰", "effects": { "values": { "security": -3, "reputation": 8 }, "personality": { "x": 0, "y": 10 } }, "resultText": "盐枭夜里在县衙门前插了把飞刀。你把它钉在堂上：查，查到底。", "expose": true },
+        { "id": "B", "text": "睁一只眼闭一只眼", "effects": { "values": { "tresury": 8, "security": -6, "reputation": -3 }, "personality": { "x": 0, "y": -12 } }, "resultText": "盐枭每月派人送来『孝敬』。账上多了银子，心里却像是漏了个洞。", "expose": true, "chain": ["E10"] },
+        { "id": "C", "text": "明查私盐，暗中放走有背景那条线", "effects": { "values": { "security": 4, "reputation": 5 }, "personality": { "x": 0, "y": -8 }, "flag": ["smuggler_leak"] }, "resultText": "盐枭抓了几个顶包的，风头过去，那条暗线依旧在走。你告诉自己：这叫分寸。", "expose": true, "chain": ["E10"] }
+      ]
+    },
+    {
+      "id": "E07", "title": "田契之争", "type": "justice", "weight": 100, "once": true,
+      "phase": "any", "priority": "urgent", "deadline": 2,
+      "trigger": { "yearTerm": 1 },
+      "text": "击鼓鸣冤！佃户张三状告乡绅钱有田，倚强夺其耕种十五载的西岗坡水田五亩。一方白纸黑字，一方说是祖产，公堂之上各执一词。",
+      "choices": [
+        { "id": "A", "text": "升堂问案（进入断案流程）", "effects": { "values": { "people": 8, "reputation": 5 }, "personality": { "x": 5, "y": 0 }, "flag": ["case_tianqi_done"] }, "resultText": "惊堂木一拍，田契之争有了公断。县民交口称赞，钱家却记下了这笔账。", "expose": false },
+        { "id": "B", "text": "批示移交师爷调停", "effects": { "values": { "people": -3 }, "personality": { "x": 0, "y": -3 } }, "resultText": "师爷居中调停，钱家赔了十两银了事。张家不敢再告，你耳边总像有叹息声。", "expose": false }
+      ]
+    },
+    {
+      "id": "E08", "title": "义学募捐", "type": "people", "weight": 75, "once": true,
+      "phase": "autumn", "priority": "normal", "deadline": 3,
+      "trigger": { "month": [8, 9, 10] },
+      "text": "乡贤提议在城西兴办义学，供寒门子弟读书。县库拨不出钱，士绅们说愿意捐，但条件是义学山长由他们举荐——谁知道会教出什么学生。",
+      "choices": [
+        { "id": "A", "text": "县库硬挤，自掌山长", "effects": { "values": { "tresury": -10, "population": 5, "reputation": 3 }, "personality": { "x": 0, "y": 5 } }, "resultText": "义学开馆，山长是退隐的老翰林。士绅们在门外看了半天，没说话。", "expose": true },
+        { "id": "B", "text": "接受士绅捐助，山长由他们定", "effects": { "values": { "population": 3 }, "personality": { "x": 0, "y": -8 } }, "resultText": "义学开了，山长是卢家举荐的举人。课堂上念的什么书，你心里隐约有数。", "expose": true },
+        { "id": "C", "text": "暂缓义学，先修水利", "effects": { "values": { "granary": 4 }, "personality": { "x": 0, "y": 0 } }, "resultText": "义学的事搁下了。渠道修通那年，田里收成好了两成。", "expose": true }
+      ]
+    },
+    {
+      "id": "E09", "title": "瘟疫初现", "type": "disaster", "weight": 90, "once": true,
+      "phase": "any", "priority": "urgent", "deadline": 2,
+      "trigger": { "values": { "max": { "population": 40 } } },
+      "text": "西市药铺掌柜报称：三日内十余人高热不退、呕吐抽搐，疑似瘟疫。封城防疫，商税断绝、人心惶惶；上报不封，怕是拦不住。",
+      "choices": [
+        { "id": "A", "text": "立即封城，设隔离坊", "effects": { "values": { "tresury": -10, "security": -6, "people": 10 }, "personality": { "x": 12, "y": 0 } }, "resultText": "城门紧闭，隔离坊里飘着药味。三个月后疫消，人丁安然。", "expose": true },
+        { "id": "B", "text": "封锁消息，拖延上报", "effects": { "values": { "population": -8, "reputation": -10 }, "personality": { "x": -15, "y": 0 } }, "resultText": "纸包不住火。疫病传开那日，你的桌上堆着三份弹劾奏本。", "expose": true },
+        { "id": "C", "text": "封城并组织防疫义仓募捐", "effects": { "values": { "tresury": -6, "people": 8 }, "personality": { "x": 8, "y": 0 } }, "resultText": "城中士绅捐了防疫银两，虽有微词，疫病总算被挡在城外。", "expose": true }
+      ]
+    },
+    {
+      "id": "E10", "title": "御史风闻", "type": "official", "weight": 80, "once": true,
+      "phase": "any", "priority": "urgent", "deadline": 2,
+      "trigger": { "personality": { "maxY": -40 } },
+      "text": "巡按御史到临县，风闻本县有『卖官鬻爵、私放盐枭』的传言。师爷连夜拟了两封奏本：一封自辩，一封反参知府。",
+      "choices": [
+        { "id": "A", "text": "上表自辩，据实陈情", "effects": { "values": { "reputation": 3 }, "personality": { "x": 0, "y": 8 } }, "resultText": "御史查核三日，还了你个『查无实据』。清白一身，走路都轻快。", "expose": true },
+        { "id": "B", "text": "走门路，送御史车马费", "effects": { "values": { "reputation": 5, "tresury": -6 }, "personality": { "x": 0, "y": -15 }, "flag": ["bribed_censor"] }, "resultText": "御史收了银子，风头过去。只是那本假账，又多记了一笔。", "expose": true, "chain": ["E20"] },
+        { "id": "C", "text": "反参知府，先下手为强", "effects": { "values": { "reputation": 5 }, "personality": { "x": 0, "y": -5 }, "flag": ["enemy_zhifu"] }, "resultText": "知府被申饬了一通。从今往后，你递上去的公文，批复都慢了三日。", "expose": true, "chain": ["E13"] }
+      ]
+    },
+    {
+      "id": "E11", "title": "秋蝗蔽日", "type": "disaster", "weight": 80, "once": true,
+      "phase": "summer", "priority": "urgent", "deadline": 2,
+      "trigger": { "month": [7, 8] },
+      "text": "蝗虫遮天蔽日，落在刚抽穗的田里。捕蝗要征发民夫、按亩捐米，百姓骂娘；不捕，秋收完了。",
+      "choices": [
+        { "id": "A", "text": "按亩派捐，强征捕蝗", "effects": { "values": { "people": -8, "population": -2 }, "personality": { "x": -10, "y": 0 } }, "resultText": "蝗灭了，秋收保住了。只是粮捐的数目，被骂了整整一个冬天。", "expose": true },
+        { "id": "B", "text": "官府出钱雇人捕蝗", "effects": { "values": { "tresury": -12, "people": 3, "granary": 8 }, "personality": { "x": 6, "y": 0 } }, "resultText": "雇来的乡民举着火把烧蝗，火光映着你的脸。账上数字跳了跳，你移开眼。", "expose": true },
+        { "id": "C", "text": "听天由命，报灾请蠲免", "effects": { "values": { "granary": -12, "people": -6 }, "personality": { "x": 0, "y": 0 } }, "resultText": "秋收减了四成，蠲免文书批下来了。朝廷体恤，百姓的灶台却还是空的。", "expose": true }
+      ]
+    },
+    {
+      "id": "E12", "title": "劫镖大案", "type": "security", "weight": 85, "once": true,
+      "phase": "summer", "priority": "urgent", "deadline": 3,
+      "trigger": { "values": { "max": { "security": 50 } } },
+      "text": "官道上一支税银镖队被劫，白银三千两，留话『知县若多事，明年今日祭奠你全家』。缉盗要兴师动众，镖行催着限期破案，幕僚劝你报个流匪压下了事。",
+      "choices": [
+        { "id": "A", "text": "限期缉盗，亲自督办", "effects": { "values": { "security": 8, "reputation": 8 }, "personality": { "x": 0, "y": 8 } }, "resultText": "三个月后，匪首锁拿归案，赃银追回大半。百姓称你『铁面知县』。", "expose": true },
+        { "id": "B", "text": "报流匪，赔镖行了事", "effects": { "values": { "security": -5, "reputation": -3, "tresury": -5 }, "personality": { "x": 0, "y": -10 } }, "resultText": "镖行拿了赔银走了。官道上从此不太平，你知道这只是个开始。", "expose": true },
+        { "id": "C", "text": "加码悬赏，让镖行与乡勇自查", "effects": { "values": { "security": 3, "tresury": -3 }, "personality": { "x": 0, "y": 0 } }, "resultText": "重赏之下，乡勇拿住了两个毛贼，大头却早跑了。银子花了，脸面保了一半。", "expose": true }
+      ]
+    },
+    {
+      "id": "E13", "title": "上司推责", "type": "official", "weight": 80, "once": true,
+      "phase": "any", "priority": "urgent", "deadline": 2,
+      "trigger": { "flag": ["enemy_zhifu"] },
+      "text": "上季水患，邻县赈灾款被知府截留挪用，如今朝廷追查，知府递来一封『通融』的信——要你把账背下来，事后来日方长。",
+      "choices": [
+        { "id": "A", "text": "接下背锅，为知府分忧", "effects": { "values": { "reputation": -8 }, "personality": { "x": 0, "y": -12 }, "flag": ["scapegoat"] }, "resultText": "你认了失察之罪，被记过一次。知府派人送来一箱银两，你连看都没看。", "expose": true },
+        { "id": "B", "text": "据理力争，写明公文回绝", "effects": { "values": { "reputation": 6 }, "personality": { "x": 0, "y": 10 } }, "resultText": "你的回文被知府摔在地上。你把它捡起来，吹了吹灰，存档入库。", "expose": true },
+        { "id": "C", "text": "阳奉阴违：先应承，私下留证据", "effects": { "values": { "reputation": 0 }, "personality": { "x": 0, "y": 2 }, "flag": ["zhifu_evidence"] }, "resultText": "你应下了，转身却让师爷把知府的信件、批文都誊抄了一份。底牌在手里，心里才踏实。", "expose": true }
+      ]
+    },
+    {
+      "id": "E14", "title": "灾民卖女", "type": "people", "weight": 70, "once": true,
+      "phase": "winter", "priority": "normal", "deadline": 2,
+      "trigger": { "month": [11, 12] },
+      "text": "城门口，一个老农牵着小女儿插草标卖身，『换三斗米，救我全家』。你路过，幕僚低声说：县里揭不开锅的多了，管不过来。",
+      "choices": [
+        { "id": "A", "text": "自掏俸禄，买下安置到善堂", "effects": { "values": { "tresury": -2, "people": 6, "reputation": 3 }, "personality": { "x": 8, "y": 8 } }, "resultText": "老农给你磕了三个响头。你背过身，想起自己家里的女儿。", "expose": true },
+        { "id": "B", "text": "下令善堂收容，不动县库", "effects": { "values": { "people": 3 }, "personality": { "x": 3, "y": 0 } }, "resultText": "善堂挤一挤，倒也住下了。只是这样的孩子，何止这一个。", "expose": true },
+        { "id": "C", "text": "视而不见，扬长而去", "effects": { "values": { "people": -5 }, "personality": { "x": -10, "y": 0 } }, "resultText": "那一夜你睡得不好。梦里全是草标和冻红的小脸。", "expose": true }
+      ]
+    },
+    {
+      "id": "E15", "title": "悬梁疑案", "type": "justice", "weight": 90, "once": true,
+      "phase": "winter", "priority": "urgent", "deadline": 3,
+      "trigger": { "flag": ["case_tianqi_done"], "month": [10, 11, 12] },
+      "text": "富商赵守业悬梁自尽于书房，其妻哭诉丈夫死前一日还在谋划收购盐引，绝无死志，定是小叔赵文达谋财害命。遗书在案，哭声满堂。",
+      "choices": [
+        { "id": "A", "text": "升堂问案（进入断案流程）", "effects": { "values": { "people": 8, "reputation": 10 }, "personality": { "x": 3, "y": 0 }, "flag": ["case_xuanliang_done"] }, "resultText": "结案那日，你让人把『神断』二字挂上了大堂。赵文达押入死牢。", "expose": false },
+        { "id": "B", "text": "以自缢结案，草草了事", "effects": { "values": { "people": -6, "reputation": -8 }, "personality": { "x": 0, "y": -5 } }, "resultText": "案结了，赵钱氏却在府衙门口长跪不起。那哭声，衙役们说听了三年都忘不掉。", "expose": false }
+      ]
+    },
+    {
+      "id": "E16", "title": "京官过境", "type": "official", "weight": 75, "once": true,
+      "phase": "any", "priority": "normal", "deadline": 2,
+      "trigger": {},
+      "text": "工部侍郎回籍省亲，途经本县，驿站递来帖子要住一晚。接待规格高，花钱如流水，但侍郎在吏部说得上话；接待简陋，怕是要记你一笔。",
+      "choices": [
+        { "id": "A", "text": "盛宴接待，安排土仪", "effects": { "values": { "tresury": -10, "reputation": 8 }, "personality": { "x": 0, "y": -10 } }, "resultText": "侍郎酒足饭饱，走时拍了拍你的肩。师爷记账的手都抖了。", "expose": true },
+        { "id": "B", "text": "中规中矩，尽礼数不逾制", "effects": { "values": { "tresury": -4, "reputation": 3 }, "personality": { "x": 0, "y": 0 } }, "resultText": "侍郎留宿一夜，宾主尽欢，无话。不功不过，已是难得。", "expose": true },
+        { "id": "C", "text": "简朴接待，明示县库艰难", "effects": { "values": { "reputation": -3 }, "personality": { "x": 0, "y": 8 } }, "resultText": "侍郎看了看桌上的四菜一汤，竟笑了：『难得有个说实话的。』只是这话传出去，又有人说你沽名钓誉。", "expose": true }
+      ]
+    },
+    {
+      "id": "E17", "title": "城中乞儿", "type": "people", "weight": 70, "once": true,
+      "phase": "any", "priority": "normal", "deadline": 3,
+      "trigger": {},
+      "text": "丐帮头目『金九』求见，称愿约束全城乞儿不再骚扰商铺，条件是官府默许他的地盘。师爷说：这帮人管好了是治安助力，管不好是养虎为患。",
+      "choices": [
+        { "id": "A", "text": "收编丐帮，设官差帮办", "effects": { "values": { "security": 6, "tresury": -2 }, "personality": { "x": 5, "y": 0 }, "flag": ["gai_bang_used"] }, "resultText": "金九手下的乞儿穿上了官差马甲，街面果然清净了。只是这份清净的代价，你心里清楚。", "expose": true },
+        { "id": "B", "text": "取缔丐帮，驱散乞儿", "effects": { "values": { "security": -4, "people": -3 }, "personality": { "x": -8, "y": 0 } }, "resultText": "乞儿四散，城里却多了几起夜间偷盗。骂你『赶尽杀绝』的声音，比谢你的还响。", "expose": true },
+        { "id": "C", "text": "设养济院，收容老弱，驱散强乞", "effects": { "values": { "tresury": -6, "security": 3, "people": 5 }, "personality": { "x": 6, "y": 0 } }, "resultText": "老弱进了养济院，青壮遣散归农。金九没了根基，灰溜溜离了城。", "expose": true }
+      ]
+    },
+    {
+      "id": "E18", "title": "修桥募捐", "type": "finance", "weight": 75, "once": true,
+      "phase": "autumn", "priority": "normal", "deadline": 3,
+      "trigger": { "month": [8, 9, 10] },
+      "text": "城南石桥年久失修，塌了半边。修桥要八百两。士绅代表提出：他们认捐全款，但桥名要冠他们商号，且日后商货过关免查。",
+      "choices": [
+        { "id": "A", "text": "接受认捐，冠名免查照办", "effects": { "values": { "people": 4, "security": -3 }, "personality": { "x": 0, "y": -10 }, "flag": ["bridge_tax_free"] }, "resultText": "桥通了，匾上写着士绅的商号。关口哨卡对那几家的商队，从此睁一只眼。", "expose": true },
+        { "id": "B", "text": "接受认捐，但拒绝免查条件", "effects": { "values": { "people": 4 }, "personality": { "x": 0, "y": 3 } }, "resultText": "士绅不情不愿地捐了银子，桥也修了。只是他们的笑脸，明显冷了几分。", "expose": true },
+        { "id": "C", "text": "县库自筹，慢修半年", "effects": { "values": { "tresury": -12, "people": 2 }, "personality": { "x": 0, "y": 8 } }, "resultText": "半年后桥成，一分人情没欠。县库却薄得能看见底。", "expose": true }
+      ]
+    },
+    {
+      "id": "E19", "title": "除夕祭天", "type": "ritual", "weight": 100, "once": false,
+      "phase": "winter", "priority": "normal", "deadline": 1,
+      "trigger": { "month": [12] },
+      "text": "年前照例要办祭天大典。办得隆重，百姓说你有敬畏之心；办得简省，有人嘀咕『知县是不是不敬神明』。师爷提醒：去年旱灾，今年祭祀马虎不得。",
+      "choices": [
+        { "id": "A", "text": "隆重操办，全城同庆", "effects": { "values": { "tresury": -8, "people": 6 }, "personality": { "x": 3, "y": 0 } }, "resultText": "烟火升空，万民同庆。爆竹声里，你看见百姓脸上久违的笑意。", "expose": true },
+        { "id": "B", "text": "按旧例操办，不增不减", "effects": { "values": { "tresury": -3, "people": 2 }, "personality": { "x": 0, "y": 0 } }, "resultText": "中规中矩的祭典，无人喝彩，也无人骂。平安是福。", "expose": true },
+        { "id": "C", "text": "一切从简，明示与其敬神不如修渠", "effects": { "values": { "tresury": -1, "people": -2, "reputation": 2 }, "personality": { "x": 8, "y": 0 } }, "resultText": "祭典从简，你把省下的银子拨给了河渠岁修。有人赞你务实，有人说你渎神。", "expose": true }
+      ]
+    },
+    {
+      "id": "E20", "title": "卧底考课", "type": "official", "weight": 100, "once": true,
+      "phase": "fixed_december", "priority": "urgent", "deadline": 1,
+      "trigger": { "month": [12] },
+      "text": "考课在即，本县这三年的户口、赋税、刑狱都要见分晓。深夜，师爷捧来一本『往年惯例』——邻县能年年上考，是因为他们都在账目上做了手脚。你也有一本假账可做。",
+      "choices": [
+        { "id": "A", "text": "据实呈报，哪怕评中下", "effects": { "values": { "reputation": -2 }, "personality": { "x": 0, "y": 15 }, "flag": ["honest_report"] }, "resultText": "考课文书送出，你夜观星象，心里一片坦然。为官以实，天知地知。", "expose": true },
+        { "id": "B", "text": "微调数字，粉饰一二", "effects": { "values": { "reputation": 5 }, "personality": { "x": 0, "y": -12 }, "flag": ["cooked_books"] }, "resultText": "账目天衣无缝。考课评了中上，你却在半夜惊醒——那数字，是假的。", "expose": true },
+        { "id": "C", "text": "大幅做账，冲击上上", "effects": { "values": { "reputation": 10 }, "personality": { "x": 0, "y": -18 }, "flag": ["cooked_books_big"] }, "resultText": "考课得了上上，府里张灯结彩贺你高升。只有师爷低着头，不敢看你的眼睛。", "expose": true, "chain": ["E10"] }
+      ]
+    }
+  ]
+}
+;
+const ACTIONS_DATA = {
+  "actions": [
+    {
+      "id": "relief_porridge",
+      "name": "设粥棚",
+      "desc": "在四门设棚施粥，赈济流民。",
+      "effects": { "values": { "tresury": -6, "people": 4 }, "personality": { "x": 3, "y": 2 } },
+      "cooldown": 2
+    },
+    {
+      "id": "repair_dike",
+      "name": "修堤筑坝",
+      "desc": "征发民夫整修青阳河堤，防患于未然。",
+      "effects": { "values": { "tresury": -8, "security": 2, "population": 1 }, "personality": { "x": 1 } },
+      "cooldown": 4
+    },
+    {
+      "id": "inspect_rural",
+      "name": "巡视乡里",
+      "desc": "轻骑简从，下乡察访民情。",
+      "effects": { "values": { "people": 3, "security": 2, "reputation": 2 }, "personality": { "x": 2 } },
+      "cooldown": 1
+    },
+    {
+      "id": "crackdown_bandits",
+      "name": "清剿盗匪",
+      "desc": "调集弓手团练，进山剿匪。",
+      "effects": { "values": { "tresury": -7, "security": 6, "people": -1 } },
+      "cooldown": 3
+    },
+    {
+      "id": "build_school",
+      "name": "兴办学堂",
+      "desc": "拨银修学舍、聘塾师，教化百姓。",
+      "effects": { "values": { "tresury": -8, "reputation": 4 }, "personality": { "x": 2, "y": 1 } },
+      "need": { "values": { "tresury": 30 } },
+      "cooldown": 5
+    },
+    {
+      "id": "reduce_tax",
+      "name": "减免赋税",
+      "desc": "请奏朝廷蠲免本年部分田赋。",
+      "effects": { "values": { "people": 5, "granary": -3 }, "personality": { "x": 4 } },
+      "setTaxRate": -0.1,
+      "need": { "values": { "granary": 30 } },
+      "cooldown": 6
+    },
+    {
+      "id": "increase_tax",
+      "name": "加征赋税",
+      "desc": "加派杂税以充府库（民心大损）。",
+      "effects": { "values": { "tresury": 8, "people": -7 }, "personality": { "x": -3, "y": -4 } },
+      "setTaxRate": 0.15,
+      "need": { "values": { "tresury": 15 } },
+      "cooldown": 6
+    },
+    {
+      "id": "open_granary",
+      "name": "开仓放粮",
+      "desc": "平价粜粮，平抑米价。",
+      "effects": { "values": { "granary": -8, "people": 5, "security": 1 }, "personality": { "x": 3 } },
+      "need": { "values": { "granary": 40 } },
+      "cooldown": 3
+    },
+    {
+      "id": "banquet_gentry",
+      "name": "宴请士绅",
+      "desc": "设宴款待本地士绅，笼络人心。",
+      "effects": { "values": { "tresury": -5, "reputation": 3, "people": 1 }, "personality": { "x": -1, "y": -2 } },
+      "cooldown": 4
+    },
+    {
+      "id": "enforce_law",
+      "name": "严刑峻法",
+      "desc": "重典治县，盗息讼止。",
+      "effects": { "values": { "security": 6, "people": -3 }, "personality": { "x": -5 } },
+      "cooldown": 3
+    },
+    {
+      "id": "salt_subsidy",
+      "name": "盐政惠民",
+      "desc": "整顿盐市，平抑盐价。",
+      "effects": { "values": { "tresury": -4, "people": 4, "granary": 1 }, "personality": { "y": 3 } },
+      "need": { "values": { "tresury": 25 } },
+      "cooldown": 5
+    },
+    {
+      "id": "pray_rain",
+      "name": "率众祈雨",
+      "desc": "久旱之时，率僚属于龙王庙祈雨。",
+      "effects": { "values": { "people": 2, "security": -1 }, "personality": { "x": 2 } },
+      "cooldown": 2
+    }
+  ]
+}
+;
+const PREVIEW_IMGS = {"E01_A":"assets-g/img-1259c20d896b.webp","E01_B":"assets-g/img-756ed932280a.webp","E01_C":"assets-g/img-f860a44e9647.webp","E02_A":"assets-g/img-a53365a1ad5d.webp","E02_B":"assets-g/img-4ca9f3cad4bb.webp","E02_C":"assets-g/img-9a947a7f0ae8.webp","E03_A":"assets-g/img-690f9a8450a7.webp","E03_B":"assets-g/img-e40c5f6029c5.webp","E03_C":"assets-g/img-1e6d70fa1206.webp","E04_A":"assets-g/img-17c7f13154c6.webp","E04_B":"assets-g/img-59eede0b9800.webp","E04_C":"assets-g/img-598f0008af36.webp","E05_A":"assets-g/img-1185d5ac9e82.webp","E05_B":"assets-g/img-1d4f118bac4a.webp","E05_C":"assets-g/img-29d47572fdb3.webp","E06_A":"assets-g/img-7bad9aaea8f6.webp","E06_B":"assets-g/img-77fd24c54776.webp","E06_C":"assets-g/img-37a37f0d34d1.webp","E07_A":"assets-g/img-c4ce0e782acb.webp","E07_B":"assets-g/img-acaaad293e43.webp","E08_A":"assets-g/img-5312724a8cd9.webp","E08_B":"assets-g/img-eaa2858196b3.webp","E08_C":"assets-g/img-f44a0f08d734.webp","E09_A":"assets-g/img-41e04cfc7a5d.webp","E09_B":"assets-g/img-b0eae8f38850.webp","E09_C":"assets-g/img-7921335e9a2e.webp","E10_A":"assets-g/img-620beb600aa6.webp","E10_B":"assets-g/img-b5d0ec52d770.webp","E10_C":"assets-g/img-f9cd14eb0d52.webp","E11_A":"assets-g/img-db3550005b5c.webp","E11_B":"assets-g/img-2929b6c3ecab.webp","E11_C":"assets-g/img-4b41d694a087.webp","E12_A":"assets-g/img-b71ee2d23d1b.webp","E12_B":"assets-g/img-7fd714255c2b.webp","E12_C":"assets-g/img-a8cd73d0586a.webp","E13_A":"assets-g/img-54f34b0a37bf.webp","E13_B":"assets-g/img-da718b38b327.webp","E13_C":"assets-g/img-6aaa2769448d.webp","E14_A":"assets-g/img-4893ed1b6b76.webp","E14_B":"assets-g/img-d9f11b3b5a98.webp","E14_C":"assets-g/img-eeeef78a5753.webp","E15_A":"assets-g/img-03b9d15827d6.webp","E15_B":"assets-g/img-b4f24864b22a.webp","E16_A":"assets-g/img-c8ffe9c30f58.webp","E16_B":"assets-g/img-7586eda3aff5.webp","E16_C":"assets-g/img-a006d2456cf9.webp","E17_A":"assets-g/img-7999b73f0773.webp","E17_B":"assets-g/img-3811a28fee8c.webp","E17_C":"assets-g/img-fef0ffcfc110.webp","E18_A":"assets-g/img-72c14820c72a.webp","E18_B":"assets-g/img-413002bef48b.webp","E18_C":"assets-g/img-76b084524ceb.webp","E19_A":"assets-g/img-a8b36244cb90.webp","E19_B":"assets-g/img-2ff59831412f.webp","E19_C":"assets-g/img-da1e604f0d95.webp","E20_A":"assets-g/img-abbd1b410df8.webp","E20_B":"assets-g/img-b792d24a6110.webp","E20_C":"assets-g/img-e7f50eeb280f.webp"};   // 事件选项场景图：key = "E01_A" → dataURL
+const START_BG = "assets-g/img-9b57a7e1d9de.webp";        // 主界面背景（府衙门楼位图）
+const VALUE_NAMES = { tresury:'银库', granary:'粮仓', people:'民心', security:'治安', reputation:'官声', population:'人口' };
+const ORIGIN_NAMES = { jinshi:'进士', juren:'举人', juanguan:'捐官' };
+const SAVE_KEY = 'weiguan_yifang_save_v1';
+
+const state = {
+  gs: null, sys: null, as: null, curEv: null, page: 0, demoDone: false, actPanel: false,
+  sceneEvent: null,   // 最近一次影响场景的事件标题（供背景联动）
+};
+
+// ===================== 官职体系（明清文官官服配色 + 补子绣花） =====================
+// 由考课历史推算品级：开局正七品县令；"上上"升1品、"上"攒1/2级，封顶正四品知府
+const RANKS = [
+  { id: 'p7',  level: 7,  name: '正七品 县令',   color: '#2f6a52', deep: '#1d4736', robe: '青绿', bird: '鸂鶒' }, // 鸂鶒(xīchì)紫鸳鸯
+  { id: 'p6',  level: 6,  name: '从六品 州判',   color: '#2e5f7a', deep: '#1c3f55', robe: '靛青', bird: '鹭鸶' },
+  { id: 'p5',  level: 5,  name: '正五品 知州',   color: '#4a6f9a', deep: '#31537a', robe: '浅蓝', bird: '白鹇' },
+  { id: 'p4',  level: 4,  name: '从四品 知府',   color: '#3a5a8f', deep: '#253d66', robe: '深蓝', bird: '云雁' },
+  { id: 'p3',  level: 3,  name: '正三品 布政使', color: '#6b3f8a', deep: '#452a5e', robe: '绛紫', bird: '孔雀' },
+  { id: 'p2',  level: 2,  name: '正二品 巡抚',   color: '#9a3a3a', deep: '#6e2323', robe: '绯红', bird: '锦鸡' },
+  { id: 'p1',  level: 1,  name: '正一品 尚书',   color: '#b03434', deep: '#7c1d1d', robe: '正红', bird: '仙鹤' },
+];
+const RANK_MAX = 7; // p7 起步
+function rankIndex(gs){
+  if(!gs || !gs.examHistory) return 0;
+  let up = 0;
+  for(const h of gs.examHistory){
+    if(h.grade === '上上') up += 1;
+    else if(h.grade === '上') up += 0.5;
+  }
+  return Math.min(RANK_MAX - 1, Math.floor(up));
+}
+function currentRank(gs){ return RANKS[rankIndex(gs)]; }
+// 补子绣花：品级越高鸟越华贵，绣于官服胸前方补（简笔禽鸟 + 祥云）
+function buziSVG(rank){
+  const bird = rank.bird;
+  const col = rank.color;
+  // 各品禽鸟简笔画（差异化身形）
+  let b = '';
+  switch(bird){
+    case '鸂鶒': b = '<path d="M7,15 Q5,11 6,8 L4,7 Q2,5 4,4 L7,5 L8,4 Q9,2 10,4 L10,6 L13,7 Q14,8 13,9 L10,9 L10,12 Q9,14 7,15 Z" fill="#2f6a52"/>'; break; // 鸳鸯短小
+    case '鹭鸶': b = '<path d="M6,16 L6,10 L5,7 Q4,5 6,4 L8,4 Q10,5 9,7 L8,10 L8,16 Z" fill="#e8e4d8"/><path d="M8,4 L10,2 M7,5 L9,3" stroke="#2e5f7a" stroke-width="1"/>'; break; // 白鹭纤长
+    case '白鹇': b = '<path d="M7,15 Q6,11 6,8 L4,6 Q3,4 5,4 L8,5 L11,4 Q13,4 12,6 L10,8 L10,10 Q9,13 7,15 Z" fill="#e8e4d8"/><path d="M9,12 Q13,12 14,14 Q13,15 12,13" stroke="#4a6f9a" stroke-width="1" fill="none"/>'; break; // 白雉长尾
+    case '云雁': b = '<path d="M6,14 Q5,10 6,7 L4,5 Q3,4 4,3 L6,4 L7,6 L8,5 Q9,4 10,5 L9,7 L10,10 Q9,13 6,14 Z" fill="#3a5a8f"/><path d="M4,4 Q2,2 1,3 M10,4 Q12,2 13,3" stroke="#3a5a8f" stroke-width="1"/>'; break; // 展翅雁
+    case '孔雀': b = '<path d="M7,16 Q6,12 6,8 L8,6 Q10,5 10,7 L9,9 Q10,12 7,16 Z" fill="#2f6a52"/><path d="M10,8 Q15,7 15,10 Q15,12 12,11 Q14,13 11,12" stroke="#2f6a52" stroke-width="1.1" fill="none"/><circle cx="6" cy="5" r="1.6" fill="#7fbfbf"/>'; break; // 孔雀扇尾
+    case '锦鸡': b = '<path d="M7,16 Q6,12 6,8 L4,6 Q3,4 5,4 L8,5 L11,4 Q13,4 12,6 L10,8 L9,12 Q8,14 7,16 Z" fill="#9a3a3a"/><path d="M10,8 Q14,9 15,12 Q14,13 13,11" stroke="#c8a860" stroke-width="1.2" fill="none"/>'; break; // 锦鸡金尾
+    case '仙鹤': b = '<path d="M7,16 L7,9 L6,6 Q5,4 7,3 L9,3 Q11,4 10,6 L9,9 L9,16 Z" fill="#f2efe6"/><path d="M9,3 L11,1 M8,4 L10,2" stroke="#6a4020" stroke-width="1"/><circle cx="6.5" cy="3" r="1.1" fill="#b03434"/><path d="M8,9 L11,12 M7,10 L10,13" stroke="#3a2a1a" stroke-width="0.8"/>'; break; // 丹顶鹤
+  }
+  return `<svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0.5" y="0.5" width="17" height="17" fill="${col}" opacity="0.25" stroke="#e8cf8a" stroke-width="0.8" rx="1"/>
+    <path d="M1,3 Q3,1.5 5,3 M13,3 Q15,1.5 17,3 M1,15 Q3,16.5 5,15 M13,15 Q15,16.5 17,15" stroke="#e8cf8a" stroke-width="0.6" fill="none" opacity="0.7"/>
+    ${b}
+  </svg>`;
+}
+// 官服品级徽标（状态栏小圆章）
+function rankPill(gs){
+  const r = currentRank(gs);
+  return `<span class="rank-pill" style="--rc:${r.color};--rc-deep:${r.deep}">${r.name} · ${r.bird}</span>`;
+}
+// 官服配色按钮：补子绣花 + 选项文本 + 效果预览；点击→预览场景，点"继续"→才确定选此项
+function rankBtnHTML(i, text, eff, gs, sel){
+  const r = currentRank(gs);
+  return `<button class="rank-btn${sel?' sel':''}" style="--rc:${r.color};--rc-deep:${r.deep}" onclick="selectChoice(${i})">
+    <span class="buzi">${buziSVG(r)}</span>
+    <span class="buzi-text"><span class="t1">${esc(text)}</span><span class="t2">${esc(eff||'')}</span></span>
+    <span class="buzi-eff">${esc(eff||'')}</span>
+    <span class="buzi-rank">${r.bird}补 · ${r.robe}</span>
+  </button>`;
+}
+
+// ===================== UI 辅助 =====================
+const $ = id => document.getElementById(id);
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtValues(gs){
+  return VALUE_KEYS_.map(k => esc(`${VALUE_NAMES[k]||k} ${Math.round(gs.values[k])}`)).join('　');
+}
+function refreshStatus(){
+  const gs = state.gs; if(!gs){ $('statusBox').innerHTML=''; return; }
+  // 官服主题同步：当前品级色驱动所有面板边框（随升迁换色，默认 p7 青绿）
+  const r = currentRank(gs);
+  if(document.documentElement){
+    document.documentElement.style.setProperty('--frame', r.color);
+    document.documentElement.style.setProperty('--frame-deep', r.deep);
+  }
+  const valsHtml = VALUE_KEYS_.map(k =>
+    `<span>${esc(VALUE_NAMES[k]||k)} <b>${Math.round(gs.values[k])}</b></span>`).join('');
+  $('statusBox').innerHTML = `<div class="idline"><b>${ORIGIN_NAMES[gs.origin]}出身</b> · 第 ${gs.year} 年 ${gs.month} 月${rankPill(gs)}</div>` +
+    `<div class="vals">${valsHtml}</div>` +
+    `<div class="meta-line">仁政 ${gs.personality.x}　清廉 ${gs.personality.y}　税赋 ${Math.round(gs.taxRate*100)}%</div>`;
+  refreshScene();
+}
+// 背景场景联动：数值 + 最近事件 → 动态 SVG 场景
+function refreshScene(){
+  const gs = state.gs; const sc = document.getElementById('scene');
+  if(!gs || !sc){ if(sc) sc.innerHTML=''; return; }
+  // 新版：背景层全量重绘 + 人物层 diff（保住 DOM，动画才连续）+ 挂 rAF 动画
+  SceneRenderer.refreshScene(gs, { lastEventTitle: state.sceneEvent || '' });
+  if(SceneAnimator) SceneAnimator.rebuildRefs();
+}
+function setEvent(t){
+  const el = $('eventText');
+  el.innerHTML = esc(t);
+  // 事件文本全展开后量出实际高度，供预览区顶部跟随（测试环境无 offsetHeight 时跳过）
+  if(document.documentElement && el.offsetHeight){
+    document.documentElement.style.setProperty('--evh', el.offsetHeight + 'px');
+  }
+}
+function setTip(t){ $('tip').textContent = t||''; }
+function fmtEff(a){
+  const p=[]; const ev=a.effects.values||{};
+  for(const k of VALUE_KEYS_){ if(ev[k]) p.push(`${VALUE_NAMES[k]}${ev[k]>0?'+':''}${ev[k]}`); }
+  if(a.setTaxRate) p.push(`税赋${a.setTaxRate>0?'+':''}${Math.round(a.setTaxRate*100)}%`);
+  if(a.setMarketRate) p.push(`市集${a.setMarketRate>0?'+':''}${Math.round(a.setMarketRate*100)}%`);
+  if(a.effects.personality?.x) p.push(`仁政${a.effects.personality.x>0?'+':''}${a.effects.personality.x}`);
+  if(a.effects.personality?.y) p.push(`清廉${a.effects.personality.y>0?'+':''}${a.effects.personality.y}`);
+  return p.join(' ');
+}
+
+// ===================== 存档 =====================
+function saveGame(){
+  if(!state.gs || state.gs.termEnded) return;
+  localStorage.setItem(SAVE_KEY, JSON.stringify({
+    state: state.gs.serialize(),
+    currentEventId: state.curEv ? state.curEv.id : null,
+    pendingAction: state.actPanel,
+    origin: state.gs.origin, ts: Date.now(),
+  }));
+}
+function loadSave(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY); if(!raw) return null;
+    const d = JSON.parse(raw);
+    const st = GameState_.deserialize(d.state);
+    return {...d, termEnded: st.termEnded, year: st.year, month: st.month};
+  }catch(e){ return null; }
+}
+
+// ===================== 主流程 =====================
+function newGame(origin){
+  hideStartPanel();
+  state.gs = new GameState_(origin); state.demoDone=false; state.curEv=null;
+  state.sceneEvent=null;
+  refreshStatus(); nextTurn({recap:false});
+}
+function continueGame(save){
+  hideStartPanel();
+  state.gs = GameState_.deserialize(save.state);
+  state.demoDone=false; state.curEv=null; state.actPanel=false;
+  refreshStatus();
+  if(save.currentEventId){
+    const ev = state.sys.find(save.currentEventId);
+    if(ev){ state.curEv=ev; showEvent(ev); return; }
+  }
+  if(save.pendingAction){ showActionPanel(); return; }
+  nextTurn({recap:false});
+}
+function nextTurn(opts){
+  opts = opts || {};
+  const gs=state.gs; if(!gs || gs.termEnded) return;
+  state.recapPrev = { ...gs.values };      // 结算前快照（月度变化）
+  gs.monthlySettle(); refreshStatus();
+  if(opts.recap === false){ showActionPanel(); return; }  // 新开档/读档首次不展示月结
+  showMonthRecap();   // 月结：全屏展示治理后的场景
+}
+// ===== 月结全屏展示层 =====
+// 每月结算后全屏展示动态场景（分层入场动画），右上角/任意点击开启下月
+function showMonthRecap(){
+  const gs=state.gs; if(!gs || gs.termEnded) return;
+  // 摘要：本月数值增减（结算前快照 vs 当前）
+  state.recapTitle = `${gs.year} 年 ${gs.month} 月 · 治理小成`;
+  $('recapTitle').textContent = state.recapTitle;
+  $('recapChanges').innerHTML = recapDiffHTML(state.recapPrev || {}, gs.values);
+  const r = $('recap');
+  state.recapT0 = (typeof performance!=='undefined' ? performance.now() : Date.now());  // 跳过闸门计时起点
+  r.classList.add('on');
+  $('scene').classList.add('on');   // 场景层提升到 UI 之上，全屏展示动态场景（清明上河图视角+火柴人）
+  // 重绘场景（全屏展示时重新触发分层入场动画）
+  refreshScene();
+  setTip('');
+}
+function recapDiffHTML(prev, cur){
+  const parts = [];
+  VALUE_KEYS_.forEach(k=>{
+    const d = Math.round(cur[k]) - Math.round(prev[k]);
+    if(d!==0) parts.push(`<span>${VALUE_NAMES[k]||k} <b class="${d>0?'ch-up':'ch-down'}">${d>0?'+':''}${d}</b></span>`);
+  });
+  if(state.sceneEvent) parts.push(`<span>· 昨事：${esc(state.sceneEvent)}</span>`);
+  return parts.length ? parts.join('　') : '<span>四方无事 · 岁月静好</span>';
+}
+// 跳过展示/动画，开启下月治理（右上角按钮或任意点击）
+// 苏醒开场 2.4 秒内不可跳过（按钮与提示文案此时也不显示，见 CSS）
+function skipRecap(){
+  const r = $('recap'); if(!r.classList.contains('on')) return;
+  const now = (typeof performance!=='undefined' ? performance.now() : Date.now());
+  if(state.recapT0 && now - state.recapT0 < 2400) return;   // 时间闸门：只做时间戳比较，不新增定时器
+  r.classList.remove('on');
+  $('scene').classList.remove('on');
+  if(window.SceneAnimator){ if(window.SceneAnimator.settle) window.SceneAnimator.settle(); window.SceneAnimator.stop(); }
+  showActionPanel();
+}
+function showActionPanel(){
+  state.actPanel = true; state.curEv = null;
+  const gs = state.gs;
+  const avail = state.as.available(gs);
+  const pages = Math.max(1, Math.ceil(avail.length/6));
+  if(state.page>=pages) state.page=pages-1;
+  const slice = avail.slice(state.page*6, (state.page+1)*6);
+  // 背景：当前治下场景全屏（与开局页同风格）
+  const sc = gs ? SceneRenderer.renderScene(gs, { lastEventTitle: state.sceneEvent || '' }) : '';
+  let h = `<div class="start-scene">${sc}</div>` +
+    `<div class="start-scrim"></div>` +
+    `<div class="act-card"><h2>第 ${gs.year} 年 ${gs.month} 月 · 政令</h2>`;
+  h += `<h3>${pages>1 ? '施一政令安一方民 · 第 '+(state.page+1)+'/'+pages+' 页' : '施一政令，安一方民'}</h3>`;
+  if(slice.length===0) h += '<h3>本月无可行政令</h3>';
+  slice.forEach(a=>{
+    h += `<button class="act-btn" onclick="pickAction('${a.id}')">` +
+      `<span class="act-name">${esc(a.name)}<span class="act-eff">　${esc(fmtEff(a))}</span></span>` +
+      (a.desc ? `<span class="act-desc">${esc(a.desc)}</span>` : '') +
+      `</button>`;
+  });
+  if(pages>1){
+    h += '<div class="pager">';
+    if(state.page>0) h += `<button class="btn" onclick="actPage(-1)">◀ 上页</button>`;
+    if(state.page<pages-1) h += `<button class="btn" onclick="actPage(1)">下页 ▶</button>`;
+    h += '</div>';
+  }
+  h += `<button class="act-rest" onclick="pickAction(null)">留白休整（本月不施政令）</button></div>`;
+  h += `<div class="act-foot">大人请定夺</div>`;
+  const p = $('actionPanel');
+  p.innerHTML = h;
+  p.classList.add('on');
+  hidePreview();
+  setTip(''); saveGame();
+}
+function actPage(d){ state.page+=d; showActionPanel(); }
+function pickAction(id){
+  if(!state.gs || state.gs.termEnded) return;
+  const p = $('actionPanel'); if(p) p.classList.remove('on');
+  if(id){ const a=state.as.find(id); if(a) state.gs.applyAction(a); }
+  state.actPanel=false; state.page=0; refreshStatus();
+  afterAction();
+}
+function afterAction(){
+  const gs=state.gs; if(!gs || gs.termEnded) return;
+  const ev = state.sys.draw(gs);
+  if(!ev){
+    setEvent('本月无事，百姓安居。'); state.curEv=null;
+    $('choices').innerHTML = '<button class="btn" onclick="advance()">迈入下月 ▶</button>';
+    hidePreview(); setTip(''); return;
+  }
+  state.curEv = ev; gs.markTriggered(ev.id); showEvent(ev);
+}
+function showEvent(ev){
+  state.sceneEvent = ev.title;
+  state.selChoice = null;   // 尚未点选任何选项
+  let msg = `【${ev.title}】`;
+  if(ev.trigger?.yearTerm || ev.trigger?.month)
+    msg += `\n限定：${ev.trigger.yearTerm??''}年 ${ev.trigger.month?ev.trigger.month.join('/')+'月':''}`;
+  msg += `\n${ev.text}\n`;
+  setEvent(msg);
+  renderChoices();
+  showPreview('<div class="pv-tag">预观 · 请点选一项</div>');
+  setTip('点选一项预观其果，再按继续定夺 ↓'); saveGame();
+}
+// 渲染选项按钮 + 底部"继续"按钮（未点选项时禁用）
+function renderChoices(){
+  const ev = state.curEv; if(!ev) return;
+  const gs = state.gs;
+  $('choices').innerHTML =
+    ev.choices.map((c,i)=>rankBtnHTML(i, c.text, fmtChoice(c), gs, i===state.selChoice)).join('') +
+    `<button class="btn gold" id="confirmBtn" onclick="choose()"${state.selChoice==null?' disabled':''}>继续 ▶</button>`;
+}
+// 点击某选项：仅预览场景+高亮，不真正选择；点"继续"才确定
+function selectChoice(i){
+  const ev = state.curEv; if(!ev || !ev.choices[i]) return;
+  state.selChoice = i;
+  renderChoices();
+  previewChoice(i);
+  setTip('已预观该策之果，点「继续」定夺 ↓');
+}
+// 确定选择当前高亮项（由"继续"按钮触发）
+function choose(){
+  if(!state.curEv || state.demoDone) return;
+  const i = state.selChoice; if(i==null) return;
+  const ev = state.curEv; const c = ev.choices[i]; if(!c) return;
+  state.gs.applyChoice(c);
+  if(c.resultText) setEvent(ev.text + '\n\n【后果】' + c.resultText);
+  if(c.chain) state.gs.enqueueChain(c.chain);
+  refreshStatus();
+  hidePreview();
+  $('choices').innerHTML='';
+  setTimeout(advance, 350);
+}
+// 中间预览区显隐：仅事件选择时显示，其余场景隐藏（保持原有排版）
+function showPreview(html){ const p=$('preview'); if(!p) return; p.style.display='block'; p.innerHTML=html; }
+function hidePreview(){ const p=$('preview'); if(!p) return; p.style.display='none'; p.innerHTML=''; }
+// 选项效果摘要（供按钮第二行展示）
+function fmtChoice(c){
+  const p=[]; const ev=c.effects.values||{};
+  for(const k of VALUE_KEYS_){ if(ev[k]) p.push(`${VALUE_NAMES[k]}${ev[k]>0?'+':''}${ev[k]}`); }
+  if(c.effects.personality?.x) p.push(`仁政${c.effects.personality.x>0?'+':''}${c.effects.personality.x}`);
+  if(c.effects.personality?.y) p.push(`清廉${c.effects.personality.y>0?'+':''}${c.effects.personality.y}`);
+  return p.join('　');
+}
+// 场景预览：模拟"选择该选项后"的数值 → 渲染对应场景到中间大块
+function previewChoice(i){
+  const gs = state.gs, ev = state.curEv;
+  if(!gs || !ev) return;
+  const c = ev.choices[i]; if(!c) return;
+  const tag = `<div class="pv-tag">预观 · 择「${esc(c.text)}」</div>`;
+  // 优先显示 事件选项场景图（E01_A … E20_C，来自 outputs/imagegen 成品）
+  const imgKey = ev.id + '_' + c.id;   // 如 E01 + A → "E01_A"
+  const img = PREVIEW_IMGS[imgKey];
+  if(img){
+    showPreview(tag + `<img class="pv-img" src="${img}" alt="">`);
+    return;
+  }
+  // 查不到对应图 → 回退程序化 SVG 动作场景
+  const sim = {
+    values: { ...gs.values },
+    personality: { ...gs.personality },
+    month: gs.month, year: gs.year, taxRate: gs.taxRate,
+  };
+  const eff = c.effects.values||{};
+  for(const k of Object.keys(eff)) sim.values[k] = Math.max(0, Math.min(100, sim.values[k] + (eff[k]||0)));
+  const svg = SceneRenderer.renderChoiceScene(ev, c, sim);
+  showPreview(tag + svg);
+}
+function advance(){
+  const gs=state.gs; if(!gs || state.demoDone) return;
+  const exam = gs.advanceMonth();
+  if(exam){
+    if(gs.termEnded){
+      const end = judgeEnding_(gs);
+      localStorage.removeItem(SAVE_KEY);
+      state.demoDone=true; state.curEv=null;
+      refreshStatus();
+      setEvent(`【结局】${end.ending}\n\n${end.desc}\n\n任期档案：\n` +
+        gs.examHistory.map(h=>`${h.year}年 考课 ${h.grade}（${h.score}分）`).join('\n'));
+      $('choices').innerHTML = '<button class="btn" onclick="location.reload()">重新开堂 ▶</button>';
+      setTip('任期已满 · 新晋接印');
+      hidePreview();
+      return;
+    }
+    setEvent(`——第 ${gs.year} 年考课：${exam.grade}（${exam.score} 分）——\n\n`);
+  }
+  state.curEv=null;
+  nextTurn();
+}
+function showStartPanel(){
+  const p = $('startPanel'); if(!p) return;
+  // 背景：府衙门楼位图（CSS background 已内联 START_BG），不再叠加 SVG 场景
+  p.innerHTML =
+    `<div class="start-scrim"></div>` +
+    `<div class="start-card" id="startCard"></div>` +
+    `<div class="start-foot">青阳县衙 · 恭候明公上任</div>`;
+  p.classList.add('on');
+  renderStartCard();
+}
+function renderStartCard(){
+  const save = loadSave();
+  const card = $('startCard'); if(!card) return;
+  let h = '<h2>青阳县令上任</h2><h3>大衍朝 · 治县三载，考课定前程</h3>';
+  if(save && !save.termEnded)
+    h += `<button class="btn gold" onclick="continueGame(loadSave())">继续上任（${ORIGIN_NAMES[save.origin]} · 第${save.year}年${save.month}月）</button>`;
+  [['jinshi','进士出身　银库55 民心50 官声60'],
+   ['juren','举人出身　银库45 民心65 官声45'],
+   ['juanguan','捐官出身　银库70 民心40 官声35']].forEach(([o,t])=>{
+    h += `<button class="btn" onclick="newGame('${o}')">${t}</button>`;
+  });
+  if(save) h += '<div class="start-note">选择出身将覆盖旧存档</div>';
+  card.innerHTML = h;
+}
+function hideStartPanel(){
+  const p = $('startPanel'); if(!p) return;
+  p.classList.remove('on'); p.innerHTML='';
+}
+function showStart(){
+  $('eventText').innerHTML = '';
+  $('choices').innerHTML=''; hidePreview(); setTip('');
+  showStartPanel();
+}
+// ===================== 启动 =====================
+$('recap').addEventListener('click', skipRecap);
+state.sys = EventSystem_.load(JSON.stringify(EVENTS_DATA));
+state.as = ActionSystem_.load(JSON.stringify(ACTIONS_DATA));
+showStart();
+</script>
+</body>
+</html>
