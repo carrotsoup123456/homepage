@@ -62,6 +62,8 @@ function onQuickWheel(e) {
   if (max <= 0) return
   e.preventDefault()
   el.scrollLeft += e.deltaY || e.deltaX
+  // scrollLeft 直接赋值不会触发 scroll 事件，这里手动同步箭头状态
+  updateQuickArrows()
 }
 function quickScroll(dir) {
   const el = quickRef.value
