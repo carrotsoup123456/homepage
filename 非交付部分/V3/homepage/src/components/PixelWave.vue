@@ -9,10 +9,18 @@ import { ref, onMounted, onUnmounted } from 'vue'
 // ---- 参数（克制为上）----
 const CELL = 18 // 网格步长：波经过的方块都对齐这张网格，才有"像素场"的整齐感
 const BLOCK = 14 // 方块边长（留 4px 缝隙，点阵感而不是实心圆环）
-const SPEED = 280 // 扩散速度 px/s：配合 220px 半径，单波寿命约 0.8s
-const R_MAX = 220 // 到这个半径完全消失：参考常见点击涟漪的克制尺度，
-  // 点击点周围一小圈就散掉，不惊动页面其他内容
-const PEAK = 0.4 // 峰值透明度：颜色不深，但要有存在感
+// 桌面档：参考常见点击涟漪的克制尺度
+const SPEED_DESK = 280 // 扩散速度 px/s：配合 220px 半径，单波寿命约 0.8s
+const R_MAX_DESK = 220 // 最远扩散半径：点击点周围一小圈就散，不惊动页面其他内容
+// 手机档：窄屏上同样的像素半径视觉占比是桌面的 3 倍多，必须再收一档——
+// 更小（150px 约手机屏宽 40%）、更慢（寿命仍 ~0.7s）、更轻（透明度降一档），
+// 涟漪是"指尖的小水花"而不是"整屏水波"，贴着手指才舒服
+const SPEED_MOBILE = 215
+const R_MAX_MOBILE = 150
+const PEAK_DESK = 0.4
+const PEAK_MOBILE = 0.32
+
+const isNarrow = () => Math.min(window.innerWidth, window.innerHeight) < 560
 // 三道波带：主波最亮，两条尾波渐弱——有层次而不是一根孤零零的线
 const BANDS = [
   { off: 0, amp: 1.0 },
@@ -29,7 +37,16 @@ let raf = 0
 let green = '#4a8a5c'
 
 function spawnAt(x, y) {
-  waves.push({ x, y, t0: performance.now() })
+  // 参数出生时定格：波扩散中途旋转屏幕/调窗口也不会突变
+  const narrow = isNarrow()
+  waves.push({
+    x,
+    y,
+    t0: performance.now(),
+    speed: narrow ? SPEED_MOBILE : SPEED_DESK,
+    rMax: narrow ? R_MAX_MOBILE : R_MAX_DESK,
+    peak: narrow ? PEAK_MOBILE : PEAK_DESK,
+  })
   if (waves.length > MAX_WAVES) waves.shift()
   if (!raf) raf = requestAnimationFrame(draw)
 }
@@ -37,7 +54,8 @@ function spawnAt(x, y) {
 // ---- 持续接触连发 ----
 // 手指/鼠标按住不放：每单位时间在「当前接触位置」续一个波。
 // 这样手机上滑动时不是原地一个孤波，而是一路点过去一路涟漪。
-const HOLD_EVERY = 300 // ms：接触期间每 300ms 一个新波
+const HOLD_EVERY = 120 // ms：接触期间每 120ms 一个新波（约 8 个/秒），
+  // 慢滑时波距 ~36px 基本连成涟漪带，滑动观感连贯
 let holdTimer = null
 let lastX = 0
 let lastY = 0
@@ -104,13 +122,13 @@ function draw() {
   const h = window.innerHeight
   ctx.clearRect(0, 0, w, h)
   const now = performance.now()
-  waves = waves.filter((wv) => ((now - wv.t0) / 1000) * SPEED < R_MAX)
+  waves = waves.filter((wv) => ((now - wv.t0) / 1000) * wv.speed < wv.rMax)
   if (waves.length === 0) return
 
   ctx.fillStyle = green
   for (const wv of waves) {
-    const r = ((now - wv.t0) / 1000) * SPEED
-    const fade = 1 - r / R_MAX // 距离越远越淡，到 R_MAX 归零
+    const r = ((now - wv.t0) / 1000) * wv.speed
+    const fade = 1 - r / wv.rMax // 距离越远越淡，到各自半径归零
     if (fade <= 0) continue
     // 只遍历波带附近的格子（r±90px 的外接范围）
     const i0 = Math.floor((wv.x - r - 70) / CELL)
@@ -130,7 +148,7 @@ function draw() {
           const t = (d - (r + b.off)) / SIGMA
           a += b.amp * Math.exp(-t * t)
         }
-        a *= PEAK * fade
+        a *= wv.peak * fade
         if (a < 0.015) continue
         ctx.globalAlpha = a
         ctx.fillRect(cx - BLOCK / 2, cy - BLOCK / 2, BLOCK, BLOCK)
