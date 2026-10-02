@@ -107,29 +107,40 @@ export const notes = Object.entries(modules)
       summary: data.summary || fallbackSummary(body, title),
       body,
       minutes: estimateMinutes(body),
+      category: data.category === 'reading' ? 'reading' : 'project',
     }
   })
   // 按日期倒序（新的在前）；日期缺失的排最后
   .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
 
-/** 全部标签（去重，按出现频次倒序） */
-export const allTags = (() => {
+/** 各栏数量 */
+export const categoryCounts = (() => {
+  const c = { reading: 0, project: 0 }
+  for (const n of notes) c[n.category] = (c[n.category] || 0) + 1
+  return c
+})()
+
+/** 全部标签（去重，按出现频次倒序）——不传栏则统计全部 */
+export function tagsOf(category = '') {
   const freq = new Map()
   for (const n of notes) {
+    if (category && n.category !== category) continue
     for (const t of n.tags) freq.set(t, (freq.get(t) || 0) + 1)
   }
   return [...freq.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t)
-})()
+}
+export const allTags = tagsOf()
 
 /**
  * 按关键词 + 标签检索。
  * @param {string} keyword 关键词（空字符串表示不过滤）
  * @param {string} tag     标签（'全部' 或空表示不过滤）
  */
-export function searchNotes(keyword = '', tag = '全部') {
+export function searchNotes(keyword = '', tag = '全部', category = '') {
   const kw = keyword.trim().toLowerCase()
 
   return notes.filter((n) => {
+    if (category && n.category !== category) return false
     const tagOk = !tag || tag === '全部' || n.tags.includes(tag)
     if (!tagOk) return false
     if (!kw) return true

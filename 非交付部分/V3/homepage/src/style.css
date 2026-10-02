@@ -1740,3 +1740,54 @@ mark {
     transition: none;
   }
 }
+
+/* ---- 知识库分栏切换 ---- */
+.kb-cats {
+  display: flex;
+  gap: 10px;
+  margin: 18px 0 6px;
+  flex-wrap: wrap;
+}
+.kb-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: var(--panel);
+  color: var(--ink-soft);
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.kb-cat:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+.kb-cat.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.kb-cat-count {
+  font-size: 12px;
+  padding: 1px 8px;
+  border-radius: 9px;
+  background: rgb(255 255 255 / 25%);
+  font-variant-numeric: tabular-nums;
+}
+.kb-cat:not(.active) .kb-cat-count {
+  background: var(--line);
+}
+.kb-reading-intro {
+  margin: 14px 0 4px;
+  padding: 14px 18px;
+  border-left: 3px solid var(--accent);
+  background: var(--panel);
+  border-radius: 0 12px 12px 0;
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: var(--ink-soft);
+}

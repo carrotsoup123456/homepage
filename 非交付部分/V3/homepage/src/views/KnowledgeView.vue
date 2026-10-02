@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
-import { allTags, searchNotes } from '../data/notes.js'
+import { searchNotes, tagsOf, categoryCounts } from '../data/notes.js'
 import { setPageMeta } from '../data/meta.js'
 import FeedbackWidget from '../components/FeedbackWidget.vue'
 import { notesQa } from '../data/notes-qa.js'
@@ -11,8 +11,23 @@ import { notesQa } from '../data/notes-qa.js'
 const keyword = ref('')
 const tagFilter = ref('全部')
 
-// 检索结果（纯函数，见 src/data/notes.js）
-const filtered = computed(() => searchNotes(keyword.value, tagFilter.value))
+// 两个栏目：reading = 读书笔记，project = 项目知识
+const activeCat = ref('reading')
+const catCounts = categoryCounts
+
+// 检索结果（纯函数，见 src/data/notes.js；在当前栏目内检索）
+const filtered = computed(() => searchNotes(keyword.value, tagFilter.value, activeCat.value))
+
+// 当前栏目的标签池（随栏切换）
+const allTags = computed(() => tagsOf(activeCat.value))
+
+// 切栏清掉残留的关键词/标签过滤，避免「切过去一篇都没有」的困惑
+function switchCat(cat) {
+  if (activeCat.value === cat) return
+  activeCat.value = cat
+  keyword.value = ''
+  tagFilter.value = '全部'
+}
 
 // 当前选中的笔记放到地址栏 ?note=id → 可以分享链接、可以用浏览器后退
 const route = useRoute()
@@ -85,7 +100,34 @@ watch(filtered, (list) => {
     <section v-reveal>
       <h1 class="page-title">知识库 · 笔记</h1>
       <p class="page-subtitle">
-        我的学习笔记与技术复盘，共 {{ filtered.length }} 篇 —— 支持关键词搜索与标签筛选。
+        读书笔记与技术复盘分两栏 —— 支持关键词搜索与标签筛选。
+      </p>
+
+      <!-- 栏目切换 -->
+      <div class="kb-cats" role="tablist" aria-label="笔记栏目">
+        <button
+          class="kb-cat"
+          role="tab"
+          :class="{ active: activeCat === 'reading' }"
+          :aria-selected="activeCat === 'reading'"
+          @click="switchCat('reading')"
+        >
+          📚 读书笔记 <span class="kb-cat-count">{{ catCounts.reading }}</span>
+        </button>
+        <button
+          class="kb-cat"
+          role="tab"
+          :class="{ active: activeCat === 'project' }"
+          :aria-selected="activeCat === 'project'"
+          @click="switchCat('project')"
+        >
+          🛠 项目知识 <span class="kb-cat-count">{{ catCounts.project }}</span>
+        </button>
+      </div>
+
+      <!-- 读书栏介绍 -->
+      <p v-if="activeCat === 'reading'" class="kb-reading-intro">
+        这些是高二到高三的读书笔记，从手写本上一条条转录整理。《价值心法》是我的启蒙——读完把「自己」当成一家公司设计了一整套系统；之后纳瓦尔、阿德勒、芒格、里德利一路读下来。其间还有一段和母亲在返校路上关于「现在该读什么书」的长谈，没有争出输赢，却悄悄改变了之后书单的方向。笔记按阅读时间倒序排列。
       </p>
 
       <!-- 搜索框 -->
