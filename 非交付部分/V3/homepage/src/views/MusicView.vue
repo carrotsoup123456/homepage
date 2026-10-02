@@ -39,14 +39,14 @@ const dur = computed(() => fmt(timeDur.value))
       <template #label>音乐</template>
       <template #title>我喜欢的歌</template>
       <template #desc>
-        写代码时的循环列表，还有一段我自己的鼓。全站背景音是程序合成的雨中森林（本页可控制播放与音量）；
+        写代码时的循环列表，还有一段我自己的鼓。全站背景音是一首开放授权的管弦圆舞曲（本页可控制播放与音量）；
         下面这九首是我的真实歌单——歌能上榜，音频和真实专辑封面不能上站，原因写在页脚。
       </template>
     </SectionBand>
 
     <!-- 背景音乐 -->
     <section class="bgm-card" aria-label="背景音乐播放器">
-      <img class="bgm-cover" :src="bgm.cover" width="120" height="120" alt="雨中森林插画封面：深绿雨林与溪流" loading="lazy">
+      <img class="bgm-cover" :src="bgm.cover" width="120" height="120" alt="圆舞曲插画封面：金色舞厅与水晶吊灯" loading="lazy">
       <div class="bgm-body">
         <div class="bgm-head">
           <span class="bgm-kicker">背景音乐 · 全站常驻</span>
@@ -122,7 +122,7 @@ const dur = computed(() => fmt(timeDur.value))
     <p class="music-legal">
       关于音频与封面：流行音乐录音和官方专辑封面的公开传播权都在唱片公司手里，个人主页（尤其是课程公开链接）放不了；
       歌单墙的封面是按我对每首歌的私人意象生成的原创插画，不指向任何真实专辑——喜欢歌本身请去正版平台。
-      背景音乐「雨中森林」由 ffmpeg 程序合成（雨滴颗粒/雨幕/远雷三层，无版权负担）；鼓视频是本人录制、音频经现场感处理。
+      背景音乐 Victory Waltz 来自 Pixabay（Pixabay License：免费商用、无需署名）；鼓视频是本人录制、音频经现场感处理。
       浏览器不允许页面自动出声，所有声音都是你点了才播。
     </p>
   </div>
