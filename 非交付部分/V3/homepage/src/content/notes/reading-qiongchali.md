@@ -30,7 +30,7 @@ category: reading
 
 - 采购防误判
 - 沃尔玛策略
-- 选择良好竞争环境行业（麦片、航空）
+- 选择良好竞争环境行业（麦片、opp、航空）
 - 不超过能力圈
 - 删除"补偿"的思考（工伤补偿被等量瓜分分析）
 - 海军赏罚制度案例（"as a result of increasing the captain's attention"）
