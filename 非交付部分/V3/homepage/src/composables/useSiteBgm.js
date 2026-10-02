@@ -79,12 +79,18 @@ function videoResume() {
   if (wantPlay.value && !playing.value) tryPlay()
 }
 
-// ---- 自动播放兜底：首次任意交互启动（一次性监听） ----
+// ---- 自动播放兜底：首次任意交互启动（成功后才注销监听） ----
 function firstGesturePlay() {
   if (wantPlay.value && !playing.value) tryPlay()
-  window.removeEventListener('pointerdown', firstGesturePlay, true)
-  window.removeEventListener('keydown', firstGesturePlay, true)
-  window.removeEventListener('touchstart', firstGesturePlay, true)
+  // tryPlay 后立即检查：若仍未在播（极少数情况下 play 又被拒），
+  // 保留监听等待下一次交互，而不是错过唯一机会。
+  setTimeout(() => {
+    if (playing.value) {
+      window.removeEventListener('pointerdown', firstGesturePlay, true)
+      window.removeEventListener('keydown', firstGesturePlay, true)
+      window.removeEventListener('touchstart', firstGesturePlay, true)
+    }
+  }, 200)
 }
 
 /**

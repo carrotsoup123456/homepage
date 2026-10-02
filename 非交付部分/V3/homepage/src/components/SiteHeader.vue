@@ -10,6 +10,10 @@ const toggleBtn = ref(null)
 const theme = inject('theme')
 const toggleTheme = inject('toggleTheme')
 
+// ---- 全站背景音乐开关（audio 挂在 App.vue，单例状态）----
+import { useSiteBgm } from '../composables/useSiteBgm.js'
+const { playing, togglePlay } = useSiteBgm()
+
 // 导航图标：手绘 1.8px 线条小图（24 网格），随文字颜色变色（currentColor）。
 // 统一圆头线帽，与全站圆润气质一致。
 const icons = {
@@ -95,6 +99,22 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
           </RouterLink>
         </li>
         <li>
+          <button
+            type="button"
+            class="bgm-toggle"
+            :class="{ 'is-playing': playing }"
+            data-testid="bgm-toggle"
+            @click="togglePlay"
+            :aria-label="playing ? '暂停背景音乐（雨中森林）' : '播放背景音乐（雨中森林）'"
+            :aria-pressed="playing"
+            :title="playing ? '暂停背景音乐' : '播放背景音乐'"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 18V5l12-2v13" />
+              <circle cx="6" cy="18" r="3" />
+              <circle cx="18" cy="16" r="3" />
+            </svg>
+          </button>
           <button
             class="theme-toggle"
             type="button"

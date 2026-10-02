@@ -1791,3 +1791,38 @@ mark {
   line-height: 1.9;
   color: var(--ink-soft);
 }
+
+
+/* ---- 页头全站背景音乐开关 ---- */
+.bgm-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  background: var(--panel);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.16s ease;
+  opacity: 0.55;
+}
+.bgm-toggle:hover {
+  opacity: 1;
+  border-color: var(--accent);
+  color: var(--ink);
+}
+.bgm-toggle.is-playing {
+  opacity: 1;
+  color: var(--accent);
+  border-color: var(--accent);
+  animation: bgm-sway 2.6s ease-in-out infinite;
+}
+@keyframes bgm-sway {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bgm-toggle.is-playing { animation: none; }
+}
