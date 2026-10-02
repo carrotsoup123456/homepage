@@ -21,11 +21,11 @@ export const bgm = {
 // ---- 我的鼓演奏（本人录制）----
 export const drumVideo = {
   id: 'drum-cover',
-  title: '架子鼓练习',
-  desc: '在家练鼓的一段记录（Roland 电鼓）。原视频是手机直录，声音又闷又平；这一版把音频重新处理过：提亮鼓棒的 attack 和镲片的高频、收紧低频、加了房间早反射和立体声展宽——更接近站在旁边听的感觉。',
+  title: '架子鼓训练视频',
+  desc: '这一段是我在演奏草东没有派对的《大石碎胸口》，视频展现的是其最后一段的高潮片段。',
   src: asset('music/drum-video.mp4'),
   poster: asset('music/covers/drum.webp'),
-  alt: '架子鼓演奏视频：条纹衫鼓手在 Roland 电鼓前练习',
+  alt: '架子鼓训练视频：鼓手演奏《大石碎胸口》高潮片段',
 }
 
 // ---- 我喜欢的歌（歌单墙，原创意象封面，仅展示）----

@@ -13,7 +13,7 @@ describe('音乐页数据', () => {
   it('鼓视频带源、封面与说明', () => {
     expect(drumVideo.src).toMatch(/music\/drum-video\.mp4$/)
     expect(drumVideo.poster).toMatch(/covers\/drum\.webp$/)
-    expect(drumVideo.desc.length).toBeGreaterThan(20)
+    expect(drumVideo.desc).toContain('大石碎胸口')
   })
 
   it('愿望歌单 9 首、每首带原创封面且不带音频（不会误传）', () => {
@@ -55,9 +55,10 @@ describe('MusicView 渲染与交互', () => {
     }
   })
 
-  it('BGM audio 默认 preload=none（不偷偷下载）', () => {
+  it('BGM audio 开启 loop 自动循环', () => {
     const w = mount(MusicView)
-    expect(w.find('audio').attributes('preload')).toBe('none')
+    // jsdom 不渲染 loop 属性到 attributes，用 DOM 属性断言
+    expect(w.find('audio').element.loop).toBe(true)
   })
 
   it('鼓视频 preload=metadata 且带 poster', () => {

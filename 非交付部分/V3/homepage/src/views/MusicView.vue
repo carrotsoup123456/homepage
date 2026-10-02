@@ -4,24 +4,34 @@ import { bgm, drumVideo, wishlist } from '../data/music.js'
 import SectionBand from '../components/SectionBand.vue'
 
 // ---- BGM 播放器状态 ----
+// wantPlay：BGM 的「意愿状态」。
+// 页面进入即自动播放；用户点暂停 = 明确不想听（wantPlay=false）；
+// 播鼓视频时临时让路（audio 暂停但 wantPlay 不变），视频停了自动接回来。
 const audio = ref(null)
+const videoEl = ref(null)
 const playing = ref(false)
+const wantPlay = ref(true)
 const volume = ref(0.55)
 const progress = ref(0) // 0~100
 const timeCur = ref(0)
 const timeDur = ref(0)
 const VOL_KEY = 'homepage-music-volume'
 
-// 环境音循环：结束后 loop（audio 上的 loop 属性也行，但手动控时间显示更稳）
-const ok = (b) => b
+// 防御式 play：jsdom / 自动播放被拒时都安静返回
+function tryPlay() {
+  const a = audio.value
+  if (!a) return
+  const r = a.play?.()
+  if (r && typeof r.catch === 'function') r.catch(() => (playing.value = false))
+}
 
 function togglePlay() {
   if (playing.value) {
+    wantPlay.value = false
     audio.value?.pause()
   } else {
-    audio.value?.play().catch(() => {
-      playing.value = false
-    })
+    wantPlay.value = true
+    tryPlay()
   }
 }
 
@@ -32,19 +42,29 @@ function onTimeUpdate() {
   timeDur.value = a?.duration || 0
 }
 
-function onEnded() {
-  // 环境音到头从头再放（只有手动暂停才会真的停）
-  const a = audio.value
-  if (a) {
-    a.currentTime = 0
-    a.play().catch(() => (playing.value = false))
-  }
-}
-
 function setVolume(e) {
   volume.value = Number(e.target.value)
   if (audio.value) audio.value.volume = volume.value
   localStorage.setItem(VOL_KEY, String(volume.value))
+}
+
+// ---- 鼓视频联动：视频出声，BGM 让路；视频停，BGM 接回 ----
+function onVideoPlay() {
+  // 视频要出声：BGM 静静让路（不动 wantPlay）
+  if (playing.value) audio.value?.pause()
+}
+function onVideoStop() {
+  // 视频暂停或播完：若 BGM 仍是意愿播放态，接回来
+  if (wantPlay.value && !playing.value) tryPlay()
+}
+
+// ---- 自动播放兜底：直接输 URL 进来时浏览器会拦自动出声，
+// 访客的第一次任意点击/按键把 BGM 带起来（一次性监听） ----
+function firstGesturePlay() {
+  if (wantPlay.value && !playing.value) tryPlay()
+  window.removeEventListener('pointerdown', firstGesturePlay, true)
+  window.removeEventListener('keydown', firstGesturePlay, true)
+  window.removeEventListener('touchstart', firstGesturePlay, true)
 }
 
 function fmt(s) {
@@ -66,12 +86,22 @@ onMounted(() => {
   } else {
     a.volume = volume.value
   }
+  a.loop = true // 一直循环，只有暂停键能停
   a.addEventListener('playing', () => (playing.value = true))
   a.addEventListener('pause', () => (playing.value = false))
+  // 进页自动播放（同站内导航过来通常有手势上下文，能直接出声）
+  tryPlay()
+  // 无手势兜底：首次任意交互启动
+  window.addEventListener('pointerdown', firstGesturePlay, true)
+  window.addEventListener('keydown', firstGesturePlay, true)
+  window.addEventListener('touchstart', firstGesturePlay, true)
 })
 
 onBeforeUnmount(() => {
   audio.value?.pause()
+  window.removeEventListener('pointerdown', firstGesturePlay, true)
+  window.removeEventListener('keydown', firstGesturePlay, true)
+  window.removeEventListener('touchstart', firstGesturePlay, true)
 })
 </script>
 
@@ -125,23 +155,26 @@ onBeforeUnmount(() => {
       <audio
         ref="audio"
         :src="bgm.src"
-        preload="none"
+        preload="auto"
         @timeupdate="onTimeUpdate"
-        @ended="onEnded"
       ></audio>
     </section>
 
     <!-- 我的鼓 -->
     <section class="drum-section" aria-label="我的架子鼓演奏">
-      <h2 class="sec-title">我打架子鼓</h2>
+      <h2 class="sec-title">架子鼓训练视频</h2>
       <figure class="drum-fig">
         <video
+          ref="videoEl"
           class="drum-video"
           :src="drumVideo.src"
           :poster="drumVideo.poster"
           controls
           playsinline
           preload="metadata"
+          @play="onVideoPlay"
+          @pause="onVideoStop"
+          @ended="onVideoStop"
         ></video>
         <figcaption class="drum-caption">
           {{ drumVideo.desc }}
