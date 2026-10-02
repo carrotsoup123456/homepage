@@ -44,10 +44,10 @@ function enter() {
   phase.value = 'dive'
   setTimeout(() => {
     phase.value = 'settle'
-  }, 1000)
+  }, 1500)
   setTimeout(() => {
     phase.value = 'fade'
-  }, 2100)
+  }, 3100)
   setTimeout(() => {
     phase.value = 'done'
     show.value = false
@@ -56,7 +56,7 @@ function enter() {
     } catch {
       /* ignore */
     }
-  }, 2800)
+  }, 4000)
 }
 </script>
 
@@ -102,7 +102,7 @@ function enter() {
 }
 .intro-cloud {
   transform: scale(1.06);
-  animation: intro-breathe 7s ease-in-out infinite;
+  animation: intro-breathe 8s ease-in-out infinite;
 }
 .intro-canopy {
   opacity: 0;
@@ -135,7 +135,15 @@ function enter() {
     0 0 16px rgb(255 255 255 / 85%),
     0 0 42px rgb(255 255 255 / 50%),
     0 4px 28px rgb(150 145 130 / 45%);
-  animation: cta-drift 5.5s ease-in-out infinite;
+  animation:
+    cta-emerge 1.3s ease-out 0.35s both,
+    cta-drift 5.5s ease-in-out 1.8s infinite;
+}
+@keyframes cta-emerge {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
 }
 .cta-sub {
   font-size: 13px;
@@ -155,14 +163,14 @@ function enter() {
 /* ---- 阶段 2：dive——云向上散去（镜头下拉），树冠从下方显现 ---- */
 .intro-dive .intro-cloud {
   animation: none;
-  transform: scale(1.65) translateY(-42%);
+  transform: scale(1.22);
   opacity: 0;
-  transition: transform 1.05s cubic-bezier(0.5, 0, 0.8, 0.4), opacity 0.95s ease 0.1s;
+  transition: transform 1.5s cubic-bezier(0.45, 0, 0.55, 1), opacity 1.5s ease;
 }
 .intro-dive .intro-canopy {
   opacity: 1;
-  transform: scale(1.08) translateY(0);
-  transition: transform 1.1s cubic-bezier(0.45, 0.05, 0.55, 0.95) 0.15s, opacity 0.55s ease 0.15s;
+  transform: scale(1.16);
+  transition: transform 1.5s cubic-bezier(0.45, 0, 0.55, 1) 0.25s, opacity 1.25s ease 0.25s;
 }
 .intro-dive .intro-cta,
 .intro-settle .intro-cta,
@@ -173,23 +181,23 @@ function enter() {
 /* ---- 阶段 3：settle——树冠继续推近，森林（首页背景）淡入定格 ---- */
 .intro-settle .intro-cloud {
   opacity: 0;
-  transform: scale(1.65) translateY(-42%);
+  transform: scale(1.22);
 }
 .intro-settle .intro-canopy {
   opacity: 1;
-  transform: scale(1.5) translateY(-8%);
-  transition: transform 1.15s cubic-bezier(0.5, 0, 0.75, 0.6);
+  transform: scale(1.3);
+  transition: transform 1.6s cubic-bezier(0.4, 0.1, 0.5, 1);
 }
 .intro-settle .intro-forest {
   opacity: 1;
-  transform: scale(1.12);
-  transition: transform 1.2s cubic-bezier(0.4, 0.1, 0.5, 1), opacity 0.8s ease 0.25s;
+  transform: scale(1.08);
+  transition: transform 1.6s cubic-bezier(0.4, 0.1, 0.5, 1) 0.4s, opacity 1.3s ease 0.4s;
 }
 
 /* ---- 阶段 4：fade——整体淡出，露出（背景同图的）首页 ---- */
 .intro-fade {
   opacity: 0;
-  transition: opacity 0.7s ease;
+  transition: opacity 0.9s ease;
 }
 .intro-fade .intro-canopy,
 .intro-fade .intro-cloud {
@@ -197,7 +205,8 @@ function enter() {
 }
 .intro-fade .intro-forest {
   opacity: 1;
-  transform: scale(1.06);
+  transform: scale(1.04);
+  transition: transform 0.9s ease;
 }
 
 /* 无动画偏好像：直接可用 */

@@ -354,6 +354,10 @@ export const imageSizes = {
     "w": 1280,
     "h": 720
   },
+  "projects/carrot/phone.webp": {
+    "w": 1440,
+    "h": 1920
+  },
   "projects/carrot/ui.webp": {
     "w": 1280,
     "h": 720

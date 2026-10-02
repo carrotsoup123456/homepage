@@ -319,6 +319,18 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- ===================== 阅读：代码之外的另一半时间 ===================== -->
+    <section class="section reading-strip" v-reveal>
+      <div class="container reading-strip-inner">
+        <p class="eyebrow">Beyond Code</p>
+        <p class="reading-strip-text">
+          代码之外的另一半时间在书里：斯多葛哲学、阿德勒心理学、《反脆弱》《穷查理宝典》《基因组》……
+          读完不止摘抄，还要变成自己的——手抄过 22 条误判心理学，把《纳瓦尔宝典》抄成习惯清单，
+          也给人生设计过一套「自身 1.0」系统。<RouterLink to="/knowledge">读书笔记都在这里</RouterLink>。
+        </p>
+      </div>
+    </section>
+
         <!-- 区块交界带：山丘+植物+浮叶+生长分隔符 -->
     <SectionBand />
 
@@ -352,6 +364,18 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- ===================== 阅读：代码之外的另一半时间 ===================== -->
+    <section class="section reading-strip" v-reveal>
+      <div class="container reading-strip-inner">
+        <p class="eyebrow">Beyond Code</p>
+        <p class="reading-strip-text">
+          代码之外的另一半时间在书里：斯多葛哲学、阿德勒心理学、《反脆弱》《穷查理宝典》《基因组》……
+          读完不止摘抄，还要变成自己的——手抄过 22 条误判心理学，把《纳瓦尔宝典》抄成习惯清单，
+          也给人生设计过一套「自身 1.0」系统。<RouterLink to="/knowledge">读书笔记都在这里</RouterLink>。
+        </p>
       </div>
     </section>
 
@@ -408,6 +432,18 @@ onUnmounted(() => {
       </div>
     </section>
 
+    <!-- ===================== 阅读：代码之外的另一半时间 ===================== -->
+    <section class="section reading-strip" v-reveal>
+      <div class="container reading-strip-inner">
+        <p class="eyebrow">Beyond Code</p>
+        <p class="reading-strip-text">
+          代码之外的另一半时间在书里：斯多葛哲学、阿德勒心理学、《反脆弱》《穷查理宝典》《基因组》……
+          读完不止摘抄，还要变成自己的——手抄过 22 条误判心理学，把《纳瓦尔宝典》抄成习惯清单，
+          也给人生设计过一套「自身 1.0」系统。<RouterLink to="/knowledge">读书笔记都在这里</RouterLink>。
+        </p>
+      </div>
+    </section>
+
         <!-- 区块交界带：山丘+植物+浮叶+生长分隔符 -->
     <SectionBand />
 
@@ -439,6 +475,18 @@ onUnmounted(() => {
             </div>
           </li>
         </ul>
+      </div>
+    </section>
+
+    <!-- ===================== 阅读：代码之外的另一半时间 ===================== -->
+    <section class="section reading-strip" v-reveal>
+      <div class="container reading-strip-inner">
+        <p class="eyebrow">Beyond Code</p>
+        <p class="reading-strip-text">
+          代码之外的另一半时间在书里：斯多葛哲学、阿德勒心理学、《反脆弱》《穷查理宝典》《基因组》……
+          读完不止摘抄，还要变成自己的——手抄过 22 条误判心理学，把《纳瓦尔宝典》抄成习惯清单，
+          也给人生设计过一套「自身 1.0」系统。<RouterLink to="/knowledge">读书笔记都在这里</RouterLink>。
+        </p>
       </div>
     </section>
 

@@ -99,6 +99,7 @@ export const projects = [
     role: '独立设计与开发（起点基于第三方开源壳，详见正文）',
     images: [
       { src: asset('projects/carrot/ui.webp'), alt: 'carrot 最终形态：对话区 + 快捷指令栏 + 技能库面板 + 上下文余量条' },
+      { src: asset('projects/carrot/phone.webp'), alt: '手机远程操控实拍：手里的 iPhone 经公网隧道连着电脑上的同一个 carrot 会话——电脑干活，手机接力' },
       { src: asset('projects/claude-code/card.webp'), alt: '第一步改装 Claude Code：注入的技能库面板（全中文名 + 分类）' },
       { src: asset('projects/carrot/toolbox.webp'), alt: 'carrot 工具箱面板：内置工具与浏览器模组一览（MCP 可视化）' },
       { src: asset('projects/carrot/goals.webp'), alt: 'carrot 目标面板：GOALS.md 界面化，勾选即回写文件' },
@@ -122,7 +123,7 @@ export const projects = [
 - **浏览器能力**：接入 Playwright MCP，22 个浏览器工具（导航/点击/截图/快照）
 - **上下文管理**：余量条实时显示、自动压缩、手动 /compact 一键触发
 - **目标面板 + 工具箱 + 快捷指令栏**：GOALS.md 界面化、MCP 模组可视化、六个一键技能按钮
-- **双端同步 + 手机公网入口**：多端同时在线实时同步；手机不用装 App，浏览器直达
+- **手机远程操控**：出门在外也能遥控电脑上的 carrot——手机浏览器直达公网隧道入口，不用装 App。指令在手机上发、活在电脑上干，多端同时在线、会话实时同步：电脑跑着构建，我在别处用手机看它的排障汇报、接着下一条指令（项目图集里那张 iPhone 与 MacBook 同屏同一个会话的实拍就是日常工作的样子）
 
 ### 一路踩的坑（挑几个真的疼的）
 - **Playwright MCP 三连坑**：--browser 参数写 headless-shell 静默失效回落；--browser chromium 要的完整版 1247 没装就是起不来；macOS unix socket 路径上限 104 字节，playwright 默认目录 115 字节必挂——三个坑一个不响，全靠日志一点点挖
@@ -137,7 +138,7 @@ export const projects = [
     highlights: [
       '从改装到原创的完整三步历程',
       '六个真实踩坑与修法，全部留痕',
-      '记忆系统 / 浏览器能力 / 手机公网入口',
+      '记忆系统 / 浏览器能力 / 手机远程操控',
     ],
   },  {
     id: 'carbon-brain',

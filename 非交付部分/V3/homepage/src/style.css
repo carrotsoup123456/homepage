@@ -1834,3 +1834,45 @@ mark {
   position: relative;
   z-index: 1;
 }
+
+
+/* ---- 音乐页：歌单小标题 ---- */
+.wish-head {
+  max-width: 720px;
+  margin: 70px auto 26px;
+  padding: 0 24px;
+  text-align: center;
+}
+
+/* ---- 关于页：我的书桌（阅读段落） ---- */
+.about-reading {
+  max-width: 780px;
+  line-height: 2;
+  font-size: 15.5px;
+  color: var(--ink-soft, #5c6650);
+  margin: 0;
+}
+.about-reading a {
+  color: var(--carrot, #e8842c);
+  font-weight: 600;
+}
+
+/* ---- 首页：阅读小段 ---- */
+.reading-strip {
+  padding: 10px 0 0;
+}
+.reading-strip-inner {
+  text-align: center;
+}
+.reading-strip-text {
+  max-width: 720px;
+  margin: 14px auto 0;
+  line-height: 2.05;
+  font-size: 15.5px;
+  color: var(--ink-soft, #5c6650);
+}
+.reading-strip-text a {
+  color: var(--carrot, #e8842c);
+  font-weight: 600;
+  white-space: nowrap;
+}

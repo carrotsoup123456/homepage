@@ -104,8 +104,15 @@ const dur = computed(() => fmt(timeDur.value))
       </figure>
     </section>
 
+    <!-- 歌单小标题 -->
+    <section class="wish-head" v-reveal>
+      <p class="eyebrow">My Playlist</p>
+      <h2 class="section-title">我的歌单</h2>
+      <p class="section-desc">九首真实在循环的歌；封面是按我对每首歌的私人意象画的原创插画，不指向任何真实专辑。</p>
+    </section>
+
     <!-- 歌单墙 -->
-    <section class="wish-grid" aria-label="我喜欢的歌，仅文字与原创封面展示">
+    <section class="wish-grid" aria-label="我的歌单，仅文字与原创封面展示">
       <article v-for="w in wishlist" :key="w.id" class="wish-card">
         <div class="wish-cover">
           <img :src="w.cover" :alt="`「${w.title}」的原创意象封面插画`" width="640" height="640" loading="lazy">
