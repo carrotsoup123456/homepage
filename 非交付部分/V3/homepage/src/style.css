@@ -1826,3 +1826,11 @@ mark {
 @media (prefers-reduced-motion: reduce) {
   .bgm-toggle.is-playing { animation: none; }
 }
+
+/* ---- 音乐页内容层级：压住区块交界带的草叶/山丘装饰，避免遮挡文字 ----
+   交界带(hill-band)内的装饰是绝对定位元素，默认画在普通流内容之上；
+   给音乐页除 hero 交界带外的直接子内容建立层级即可盖住装饰。 */
+.music-page > :not(.music-hero-band) {
+  position: relative;
+  z-index: 1;
+}

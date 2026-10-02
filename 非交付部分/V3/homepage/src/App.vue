@@ -5,6 +5,7 @@ import SiteHeader from './components/SiteHeader.vue'
 import SiteFooter from './components/SiteFooter.vue'
 import ChatBot from './components/ChatBot.vue'
 import PixelWave from './components/PixelWave.vue'
+import SiteIntro from './components/SiteIntro.vue'
 import { setPageMeta } from './data/meta.js'
 import { bgm } from './data/music.js'
 import { useSiteBgm } from './composables/useSiteBgm.js'
@@ -142,7 +143,9 @@ function skipToMain(e) {
   <SiteFooter />
   <ChatBot />
     <PixelWave />
-  <!-- 全站背景音乐：雨声森林（音乐页可控制） -->
+  <!-- 进站开场动画：云层点击进入 → 穿云 → 树冠 → 定格首页森林（点击=音频解锁手势） -->
+  <SiteIntro />
+  <!-- 全站背景音乐：圆舞曲（音乐页可控制） -->
   <audio
     ref="bgmAudioEl"
     :src="bgm.src"
