@@ -8,7 +8,7 @@ import { useSiteBgm } from '../src/composables/useSiteBgm.js'
 
 describe('音乐页数据', () => {
   it('BGM 是雨中森林且带音频与封面', () => {
-    expect(bgm.src).toMatch(/music\/bgm-rainforest\.mp3$/)
+    expect(bgm.src).toMatch(/music\/bgm-rainforest-v2\.mp3$/)
     expect(bgm.cover).toMatch(/covers\/rainforest\.webp$/)
     expect(bgm.title).toContain('雨中森林')
   })

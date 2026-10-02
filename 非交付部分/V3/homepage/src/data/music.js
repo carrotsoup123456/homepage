@@ -2,7 +2,7 @@
 // 「我喜欢的歌」只做文字+原创封面展示（不上传音频，也不使用真实专辑封面——
 // 唱片封面是唱片公司的美术作品，公开网页展示同样需要授权）。
 // 封面图由 AI 按每首歌的私人标签意象生成，是本站原创插画。
-// BGM 是程序合成的「雨中森林」环境音（雨幕/远雷/风，零版权负担）。
+// BGM 是程序合成的「雨中森林」环境音（雨滴颗粒/雨幕/远雷，零版权负担）。
 // 鼓演奏视频为本人录制，音频做过现场感处理。
 
 const asset = (p) => `${import.meta.env.BASE_URL}${p.replace(/^\//, '')}`
@@ -12,10 +12,10 @@ export const bgm = {
   id: 'bgm-rainforest',
   title: '雨中森林（环境音 BGM）',
   artist: '程序合成',
-  tag: '雨幕 · 远雷 · 风',
-  src: asset('music/bgm-rainforest.mp3'),
+  tag: '雨滴 · 雨幕 · 远雷',
+  src: asset('music/bgm-rainforest-v2.mp3'),
   cover: asset('music/covers/rainforest.webp'),
-  note: '雨幕（粉噪声滤波）+ 远雷（棕噪声脉冲）+ 风（低频慢波动）三层合成，三分钟循环',
+  note: '雨滴颗粒（下滑频率正弦脉冲 + 稀疏回波扩散）+ 雨幕垫底（粉噪低通）+ 远雷（棕噪脉冲）三层合成，三分钟循环',
 }
 
 // ---- 我的鼓演奏（本人录制）----
