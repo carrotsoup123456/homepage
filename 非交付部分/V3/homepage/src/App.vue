@@ -6,6 +6,8 @@ import SiteFooter from './components/SiteFooter.vue'
 import ChatBot from './components/ChatBot.vue'
 import PixelWave from './components/PixelWave.vue'
 import { setPageMeta } from './data/meta.js'
+import { bgm } from './data/music.js'
+import { useSiteBgm } from './composables/useSiteBgm.js'
 
 // ---- 页面标题与分享信息 ----
 // 放在最外层组件而不是路由钩子里：它总是存在，
@@ -99,6 +101,8 @@ onMounted(() => {
   window.addEventListener('scroll', onBarScroll, { passive: true })
   window.addEventListener('resize', onBarScroll, { passive: true })
   updateProgress()
+  // 全站 BGM：进站自动尝试播放（含首次交互兜底），详见 useSiteBgm.js
+  attachBgm(bgmAudioEl.value)
 })
 
 // 提供主题给子组件（Header 的切换按钮）
@@ -109,6 +113,12 @@ provide('toggleTheme', toggleTheme)
 // 本站在用 hash 路由（地址形如 #/about），如果让链接真的跳 #main，
 // 浏览器会改地址、路由会以为要切到 /main 页面。
 // 所以这里拦掉默认行为，直接把键盘焦点交给主内容区。
+// ---- 全站背景音乐（雨中森林）----
+// <audio> 挂在 App 层：路由切换不销毁，全站每个页面都有配乐。
+// 控制（播放/暂停/音量）在音乐页；行为规则见 composables/useSiteBgm.js。
+const bgmAudioEl = ref(null)
+const { attach: attachBgm, onTimeUpdate: onBgmTimeUpdate } = useSiteBgm()
+
 const mainEl = ref(null)
 function skipToMain(e) {
   e.preventDefault()
@@ -132,6 +142,15 @@ function skipToMain(e) {
   <SiteFooter />
   <ChatBot />
     <PixelWave />
+  <!-- 全站背景音乐：雨声森林（音乐页可控制） -->
+  <audio
+    ref="bgmAudioEl"
+    :src="bgm.src"
+    loop
+    preload="auto"
+    @timeupdate="onBgmTimeUpdate"
+    aria-label="全站背景音乐：雨中森林"
+  ></audio>
 </template>
 
 <style scoped>

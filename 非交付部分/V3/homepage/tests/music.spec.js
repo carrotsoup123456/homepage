@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { bgm, drumVideo, wishlist } from '../src/data/music.js'
 import MusicView from '../src/views/MusicView.vue'
+import { useSiteBgm } from '../src/composables/useSiteBgm.js'
 
 describe('音乐页数据', () => {
   it('BGM 是雨中森林且带音频与封面', () => {
@@ -39,12 +42,16 @@ describe('音乐页数据', () => {
 })
 
 describe('MusicView 渲染与交互', () => {
-  it('渲染 9 张封面卡 + 鼓视频 + BGM 播放器', () => {
+  it('渲染 9 张封面卡 + 鼓视频 + BGM 播放器（控制台模式，audio 已上移 App 层）', () => {
     const w = mount(MusicView)
     expect(w.findAll('.wish-card')).toHaveLength(9)
     expect(w.find('video.drum-video').exists()).toBe(true)
-    expect(w.find('audio').exists()).toBe(true)
+    // BGM 已全局化：本页不再有 <audio>，只有控制 UI（播放键/音量）
+    expect(w.find('audio').exists()).toBe(false)
+    expect(w.find('.bgm-controls').exists()).toBe(true)
+    expect(w.find('.p-vol input').exists()).toBe(true)
     expect(w.text()).toContain('公开传播权')
+    expect(w.text()).toContain('全站')
   })
 
   it('封面图片全部带 alt（无障碍）', () => {
@@ -55,10 +62,27 @@ describe('MusicView 渲染与交互', () => {
     }
   })
 
-  it('BGM audio 开启 loop 自动循环', () => {
-    const w = mount(MusicView)
-    // jsdom 不渲染 loop 属性到 attributes，用 DOM 属性断言
-    expect(w.find('audio').element.loop).toBe(true)
+  it('BGM 全局化：<audio> 挂在 App.vue 且开启 loop（源码断言）', () => {
+    // jsdom 下 App.vue 需要 router 才能整体挂载，这里断言源码结构：
+    // audio 元素在 App 模板中、绑定全局 bgm.src、loop 常开、preload=auto
+    const appSrc = readFileSync(resolve(process.cwd(), 'src/App.vue'), 'utf-8')
+    expect(appSrc).toContain('ref="bgmAudioEl"')
+    expect(appSrc).toContain(':src="bgm.src"')
+    expect(appSrc).toContain('loop')
+    expect(appSrc).toContain('preload="auto"')
+    expect(appSrc).toContain('useSiteBgm')
+  })
+
+  it('useSiteBgm 单例：暂停写 muted 标记，恢复清除', () => {
+    const s = useSiteBgm()
+    // 初始意愿为播（模块级单例，测试环境未 attach audio）
+    expect(typeof s.togglePlay).toBe('function')
+    expect(typeof s.videoYield).toBe('function')
+    // playing=false 时 togglePlay 走恢复分支：wantPlay=true 且清 muted
+    sessionStorage.setItem('homepage-bgm-muted', '1')
+    s.togglePlay()
+    expect(sessionStorage.getItem('homepage-bgm-muted')).toBe(null)
+    expect(s.wantPlay.value).toBe(true)
   })
 
   it('鼓视频 preload=metadata 且带 poster', () => {

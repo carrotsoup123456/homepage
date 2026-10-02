@@ -1,71 +1,27 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { computed } from 'vue'
 import { bgm, drumVideo, wishlist } from '../data/music.js'
 import SectionBand from '../components/SectionBand.vue'
+import { useSiteBgm } from '../composables/useSiteBgm.js'
 
-// ---- BGM 播放器状态 ----
-// wantPlay：BGM 的「意愿状态」。
-// 页面进入即自动播放；用户点暂停 = 明确不想听（wantPlay=false）；
-// 播鼓视频时临时让路（audio 暂停但 wantPlay 不变），视频停了自动接回来。
-const audio = ref(null)
-const videoEl = ref(null)
-const playing = ref(false)
-const wantPlay = ref(true)
-const volume = ref(0.55)
-const progress = ref(0) // 0~100
-const timeCur = ref(0)
-const timeDur = ref(0)
-const VOL_KEY = 'homepage-music-volume'
+// ---- 背景音乐（全站常驻，本页是控制台）----
+// <audio> 挂在 App.vue，切页面不断；播放/暂停/音量的状态与行为
+// 全部来自 useSiteBgm 单例（行为规则见该文件）。
+const {
+  playing,
+  volume,
+  progress,
+  timeCur,
+  timeDur,
+  togglePlay,
+  setVolume,
+  videoYield,
+  videoResume,
+} = useSiteBgm()
 
-// 防御式 play：jsdom / 自动播放被拒时都安静返回
-function tryPlay() {
-  const a = audio.value
-  if (!a) return
-  const r = a.play?.()
-  if (r && typeof r.catch === 'function') r.catch(() => (playing.value = false))
-}
-
-function togglePlay() {
-  if (playing.value) {
-    wantPlay.value = false
-    audio.value?.pause()
-  } else {
-    wantPlay.value = true
-    tryPlay()
-  }
-}
-
-function onTimeUpdate() {
-  const a = audio.value
-  if (a && a.duration > 0) progress.value = (a.currentTime / a.duration) * 100
-  timeCur.value = a?.currentTime || 0
-  timeDur.value = a?.duration || 0
-}
-
-function setVolume(e) {
-  volume.value = Number(e.target.value)
-  if (audio.value) audio.value.volume = volume.value
-  localStorage.setItem(VOL_KEY, String(volume.value))
-}
-
-// ---- 鼓视频联动：视频出声，BGM 让路；视频停，BGM 接回 ----
-function onVideoPlay() {
-  // 视频要出声：BGM 静静让路（不动 wantPlay）
-  if (playing.value) audio.value?.pause()
-}
-function onVideoStop() {
-  // 视频暂停或播完：若 BGM 仍是意愿播放态，接回来
-  if (wantPlay.value && !playing.value) tryPlay()
-}
-
-// ---- 自动播放兜底：直接输 URL 进来时浏览器会拦自动出声，
-// 访客的第一次任意点击/按键把 BGM 带起来（一次性监听） ----
-function firstGesturePlay() {
-  if (wantPlay.value && !playing.value) tryPlay()
-  window.removeEventListener('pointerdown', firstGesturePlay, true)
-  window.removeEventListener('keydown', firstGesturePlay, true)
-  window.removeEventListener('touchstart', firstGesturePlay, true)
-}
+// 鼓视频联动：视频出声 → BGM 让路；视频停/播完 → 自动接回
+const onVideoPlay = videoYield
+const onVideoStop = videoResume
 
 function fmt(s) {
   if (!Number.isFinite(s)) return '0:00'
@@ -75,34 +31,6 @@ function fmt(s) {
 }
 const cur = computed(() => fmt(timeCur.value))
 const dur = computed(() => fmt(timeDur.value))
-
-onMounted(() => {
-  const a = audio.value
-  if (!a) return
-  const vv = parseFloat(localStorage.getItem(VOL_KEY) || '')
-  if (!Number.isNaN(vv)) {
-    volume.value = vv
-    a.volume = vv
-  } else {
-    a.volume = volume.value
-  }
-  a.loop = true // 一直循环，只有暂停键能停
-  a.addEventListener('playing', () => (playing.value = true))
-  a.addEventListener('pause', () => (playing.value = false))
-  // 进页自动播放（同站内导航过来通常有手势上下文，能直接出声）
-  tryPlay()
-  // 无手势兜底：首次任意交互启动
-  window.addEventListener('pointerdown', firstGesturePlay, true)
-  window.addEventListener('keydown', firstGesturePlay, true)
-  window.addEventListener('touchstart', firstGesturePlay, true)
-})
-
-onBeforeUnmount(() => {
-  audio.value?.pause()
-  window.removeEventListener('pointerdown', firstGesturePlay, true)
-  window.removeEventListener('keydown', firstGesturePlay, true)
-  window.removeEventListener('touchstart', firstGesturePlay, true)
-})
 </script>
 
 <template>
@@ -111,7 +39,7 @@ onBeforeUnmount(() => {
       <template #label>音乐</template>
       <template #title>我喜欢的歌</template>
       <template #desc>
-        写代码时的循环列表，还有一段我自己的鼓。背景音是程序合成的雨中森林；
+        写代码时的循环列表，还有一段我自己的鼓。全站背景音是程序合成的雨中森林（本页可控制播放与音量）；
         下面这九首是我的真实歌单——歌能上榜，音频和真实专辑封面不能上站，原因写在页脚。
       </template>
     </SectionBand>
@@ -121,7 +49,7 @@ onBeforeUnmount(() => {
       <img class="bgm-cover" :src="bgm.cover" width="120" height="120" alt="雨中森林插画封面：深绿雨林与溪流" loading="lazy">
       <div class="bgm-body">
         <div class="bgm-head">
-          <span class="bgm-kicker">背景音乐</span>
+          <span class="bgm-kicker">背景音乐 · 全站常驻</span>
           <h2 class="bgm-title">{{ bgm.title }}</h2>
           <p class="bgm-note">{{ bgm.note }}</p>
         </div>
@@ -152,12 +80,6 @@ onBeforeUnmount(() => {
           </label>
         </div>
       </div>
-      <audio
-        ref="audio"
-        :src="bgm.src"
-        preload="auto"
-        @timeupdate="onTimeUpdate"
-      ></audio>
     </section>
 
     <!-- 我的鼓 -->
