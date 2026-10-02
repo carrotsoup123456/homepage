@@ -170,7 +170,94 @@ ${this.parser.parse(e)}</blockquote>
 ${e}</tr>
 `}tablecell(e){let t=this.parser.parseInline(e.tokens),n=e.header?`th`:`td`;return(e.align?`<${n} align="${e.align}">`:`<${n}>`)+t+`</${n}>
 `}strong({tokens:e}){return`<strong>${this.parser.parseInline(e)}</strong>`}em({tokens:e}){return`<em>${this.parser.parseInline(e)}</em>`}codespan({text:e}){return`<code>${dm(e,!0)}</code>`}br(e){return`<br>`}del({tokens:e}){return`<del>${this.parser.parseInline(e)}</del>`}link({href:e,title:t,tokens:n}){let r=this.parser.parseInline(n),i=fm(e);if(i===null)return r;e=i;let a=`<a href="`+e+`"`;return t&&(a+=` title="`+dm(t)+`"`),a+=`>`+r+`</a>`,a}image({href:e,title:t,text:n,tokens:r}){r&&(n=this.parser.parseInline(r,this.parser.textRenderer));let i=fm(e);if(i===null)return dm(n);e=i;let a=`<img src="${e}" alt="${dm(n)}"`;return t&&(a+=` title="${dm(t)}"`),a+=`>`,a}text(e){return`tokens`in e&&e.tokens?this.parser.parseInline(e.tokens):`escaped`in e&&e.escaped?e.text:dm(e.text)}},Cm=class{strong({text:e}){return e}em({text:e}){return e}codespan({text:e}){return e}del({text:e}){return e}html({text:e}){return e}text({text:e}){return e}link({text:e}){return``+e}image({text:e}){return``+e}br(){return``}checkbox({raw:e}){return e}},wm=class e{options;renderer;textRenderer;constructor(e){this.options=e||qf,this.options.renderer=this.options.renderer||new Sm,this.renderer=this.options.renderer,this.renderer.options=this.options,this.renderer.parser=this,this.textRenderer=new Cm}static parse(t,n){return new e(n).parse(t)}static parseInline(t,n){return new e(n).parseInline(t)}parse(e){this.renderer.parser=this;let t=``;for(let n=0;n<e.length;n++){let r=e[n];if(this.options.extensions?.renderers?.[r.type]){let e=r,n=this.options.extensions.renderers[e.type].call({parser:this},e);if(n!==!1||![`space`,`hr`,`heading`,`code`,`table`,`blockquote`,`list`,`checkbox`,`html`,`def`,`paragraph`,`text`].includes(e.type)){t+=n||``;continue}}let i=r;switch(i.type){case`space`:t+=this.renderer.space(i);break;case`hr`:t+=this.renderer.hr(i);break;case`heading`:t+=this.renderer.heading(i);break;case`code`:t+=this.renderer.code(i);break;case`table`:t+=this.renderer.table(i);break;case`blockquote`:t+=this.renderer.blockquote(i);break;case`list`:t+=this.renderer.list(i);break;case`checkbox`:t+=this.renderer.checkbox(i);break;case`html`:t+=this.renderer.html(i);break;case`def`:t+=this.renderer.def(i);break;case`paragraph`:t+=this.renderer.paragraph(i);break;case`text`:t+=this.renderer.text(i);break;default:{let e=`Token with "`+i.type+`" type was not found.`;if(this.options.silent)return console.error(e),``;throw Error(e)}}}return t}parseInline(e,t=this.renderer){this.renderer.parser=this;let n=``;for(let r=0;r<e.length;r++){let i=e[r];if(this.options.extensions?.renderers?.[i.type]){let e=this.options.extensions.renderers[i.type].call({parser:this},i);if(e!==!1||![`escape`,`html`,`link`,`image`,`checkbox`,`strong`,`em`,`codespan`,`br`,`del`,`text`].includes(i.type)){n+=e||``;continue}}let a=i;switch(a.type){case`escape`:n+=t.text(a);break;case`html`:n+=t.html(a);break;case`link`:n+=t.link(a);break;case`image`:n+=t.image(a);break;case`checkbox`:n+=t.checkbox(a);break;case`strong`:n+=t.strong(a);break;case`em`:n+=t.em(a);break;case`codespan`:n+=t.codespan(a);break;case`br`:n+=t.br(a);break;case`del`:n+=t.del(a);break;case`text`:n+=t.text(a);break;default:{let e=`Token with "`+a.type+`" type was not found.`;if(this.options.silent)return console.error(e),``;throw Error(e)}}}return n}},Tm=class{options;block;constructor(e){this.options=e||qf}static passThroughHooks=new Set([`preprocess`,`postprocess`,`processAllTokens`,`emStrongMask`]);static passThroughHooksRespectAsync=new Set([`preprocess`,`postprocess`,`processAllTokens`]);preprocess(e){return e}postprocess(e){return e}processAllTokens(e){return e}emStrongMask(e){return e}provideLexer(e=this.block){return e?xm.lex:xm.lexInline}provideParser(e=this.block){return e?wm.parse:wm.parseInline}},Em=new class{defaults=Kf();options=this.setOptions;parse=this.parseMarkdown(!0);parseInline=this.parseMarkdown(!1);Parser=wm;Renderer=Sm;TextRenderer=Cm;Lexer=xm;Tokenizer=bm;Hooks=Tm;constructor(...e){this.use(...e)}walkTokens(e,t){let n=[];for(let r of e)switch(n=n.concat(t.call(this,r)),r.type){case`table`:{let e=r;for(let r of e.header)n=n.concat(this.walkTokens(r.tokens,t));for(let r of e.rows)for(let e of r)n=n.concat(this.walkTokens(e.tokens,t));break}case`list`:{let e=r;n=n.concat(this.walkTokens(e.items,t));break}default:{let e=r;this.defaults.extensions?.childTokens?.[e.type]?this.defaults.extensions.childTokens[e.type].forEach(r=>{let i=e[r].flat(1/0);n=n.concat(this.walkTokens(i,t))}):e.tokens&&(n=n.concat(this.walkTokens(e.tokens,t)))}}return n}use(...e){let t=this.defaults.extensions||{renderers:{},childTokens:{}};return e.forEach(e=>{let n={...e};if(n.async=this.defaults.async||n.async||!1,e.extensions&&(e.extensions.forEach(e=>{if(!e.name)throw Error(`extension name required`);if(`renderer`in e){let n=t.renderers[e.name];n?t.renderers[e.name]=function(...t){let r=e.renderer.apply(this,t);return r===!1&&(r=n.apply(this,t)),r}:t.renderers[e.name]=e.renderer}if(`tokenizer`in e){if(!e.level||e.level!==`block`&&e.level!==`inline`)throw Error(`extension level must be 'block' or 'inline'`);let n=t[e.level];n?n.unshift(e.tokenizer):t[e.level]=[e.tokenizer],e.start&&(e.level===`block`?t.startBlock?t.startBlock.push(e.start):t.startBlock=[e.start]:e.level===`inline`&&(t.startInline?t.startInline.push(e.start):t.startInline=[e.start]))}`childTokens`in e&&e.childTokens&&(t.childTokens[e.name]=e.childTokens)}),n.extensions=t),e.renderer){let t=this.defaults.renderer||new Sm(this.defaults);for(let n in e.renderer){if(!(n in t))throw Error(`renderer '${n}' does not exist`);if([`options`,`parser`].includes(n))continue;let r=n,i=e.renderer[r],a=t[r];t[r]=(...e)=>{let n=i.apply(t,e);return n===!1&&(n=a.apply(t,e)),n||``}}n.renderer=t}if(e.tokenizer){let t=this.defaults.tokenizer||new bm(this.defaults);for(let n in e.tokenizer){if(!(n in t))throw Error(`tokenizer '${n}' does not exist`);if([`options`,`rules`,`lexer`].includes(n))continue;let r=n,i=e.tokenizer[r],a=t[r];t[r]=(...e)=>{let n=i.apply(t,e);return n===!1&&(n=a.apply(t,e)),n}}n.tokenizer=t}if(e.hooks){let t=this.defaults.hooks||new Tm;for(let n in e.hooks){if(!(n in t))throw Error(`hook '${n}' does not exist`);if([`options`,`block`].includes(n))continue;let r=n,i=e.hooks[r],a=t[r];t[r]=Tm.passThroughHooks.has(n)?e=>{if(this.defaults.async&&Tm.passThroughHooksRespectAsync.has(n))return(async()=>{let n=await i.call(t,e);return a.call(t,n)})();let r=i.call(t,e);return a.call(t,r)}:(...e)=>{if(this.defaults.async)return(async()=>{let n=await i.apply(t,e);return n===!1&&(n=await a.apply(t,e)),n})();let n=i.apply(t,e);return n===!1&&(n=a.apply(t,e)),n}}n.hooks=t}if(e.walkTokens){let t=this.defaults.walkTokens,r=e.walkTokens;n.walkTokens=function(e){let n=[];return n.push(r.call(this,e)),t&&(n=n.concat(t.call(this,e))),n}}this.defaults={...this.defaults,...n}}),this}setOptions(e){return this.defaults={...this.defaults,...e},this}lexer(e,t){return xm.lex(e,t??this.defaults)}parser(e,t){return wm.parse(e,t??this.defaults)}parseMarkdown(e){return(t,n)=>{let r={...n},i={...this.defaults,...r},a=this.onError(!!i.silent,!!i.async);if(this.defaults.async===!0&&r.async===!1)return a(Error(`marked(): The async option was set to true by an extension. Remove async: false from the parse options object to return a Promise.`));if(typeof t>`u`||t===null)return a(Error(`marked(): input parameter is undefined or null`));if(typeof t!=`string`)return a(Error(`marked(): input parameter is of type `+Object.prototype.toString.call(t)+`, string expected`));if(i.hooks&&(i.hooks.options=i,i.hooks.block=e),i.async)return(async()=>{let n=i.hooks?await i.hooks.preprocess(t):t,r=await(i.hooks?await i.hooks.provideLexer(e):e?xm.lex:xm.lexInline)(n,i),a=i.hooks?await i.hooks.processAllTokens(r):r;i.walkTokens&&await Promise.all(this.walkTokens(a,i.walkTokens));let o=await(i.hooks?await i.hooks.provideParser(e):e?wm.parse:wm.parseInline)(a,i);return i.hooks?await i.hooks.postprocess(o):o})().catch(a);try{i.hooks&&(t=i.hooks.preprocess(t));let n=(i.hooks?i.hooks.provideLexer(e):e?xm.lex:xm.lexInline)(t,i);i.hooks&&(n=i.hooks.processAllTokens(n)),i.walkTokens&&this.walkTokens(n,i.walkTokens);let r=(i.hooks?i.hooks.provideParser(e):e?wm.parse:wm.parseInline)(n,i);return i.hooks&&(r=i.hooks.postprocess(r)),r}catch(e){return a(e)}}}onError(e,t){return n=>{if(n.message+=`
-Please report this to https://github.com/markedjs/marked.`,e){let e=`<p>An error occurred:</p><pre>`+dm(n.message+``,!0)+`</pre>`;return t?Promise.resolve(e):e}if(t)return Promise.reject(n);throw n}}};function $(e,t){return Em.parse(e,t)}$.options=$.setOptions=function(e){return Em.setOptions(e),$.defaults=Em.defaults,Jf($.defaults),$},$.getDefaults=Kf,$.defaults=qf;function Dm(...e){return Em.use(...e),$.defaults=Em.defaults,Jf($.defaults),$}$.use=Dm,$.walkTokens=function(e,t){return Em.walkTokens(e,t)},$.parseInline=Em.parseInline,$.Parser=wm,$.parser=wm.parse,$.Renderer=Sm,$.TextRenderer=Cm,$.Lexer=xm,$.lexer=xm.lex,$.Tokenizer=bm,$.Hooks=Tm,$.parse=$,$.options,$.setOptions,$.walkTokens,$.parseInline,wm.parse,xm.lex;var Om={class:`container page nf-page`},km={class:`fireflies nf-flies`,"aria-hidden":`true`},Am={class:`page-subtitle`},jm={class:`nf-path`},Mm={class:`nf-links`},Nm=dl({__name:`NotFoundView`,setup(e){let t=ul(),n=[{left:`12%`,top:`28%`,size:7,dur:11,delay:0,dx:-30,dy:-52,peak:.7},{left:`82%`,top:`22%`,size:5,dur:13,delay:2.5,dx:26,dy:-40,peak:.6},{left:`70%`,top:`66%`,size:6,dur:9,delay:1.2,dx:-22,dy:-60,peak:.75},{left:`25%`,top:`74%`,size:5,dur:12,delay:4,dx:30,dy:-30,peak:.55}];return(e,r)=>(B(),V(`div`,Om,[H(`div`,km,[(B(),V(z,null,R(n,(e,t)=>H(`span`,{key:t,style:ue({left:e.left,top:e.top,width:e.size+`px`,height:e.size+`px`,"--dur":e.dur+`s`,"--delay":e.delay+`s`,"--dx":e.dx+`px`,"--dy":e.dy+`px`,"--peak":e.peak})},null,4)),64))]),r[5]||=H(`p`,{class:`nf-code`,"aria-hidden":`true`},`404`,-1),r[6]||=H(`h1`,{class:`page-title`},`这个页面不存在`,-1),H(`p`,Am,[r[0]||=W(` 地址 `,-1),H(`code`,jm,A(F(t).fullPath),1),r[1]||=W(` 没有对应内容，可能打错了字，或者内容已经改名。 `,-1)]),H(`ul`,Mm,[H(`li`,null,[U(F(el),{to:`/`},{default:I(()=>[...r[2]||=[W(`← 回到首页`,-1)]]),_:1})]),H(`li`,null,[U(F(el),{to:`/knowledge`},{default:I(()=>[...r[3]||=[W(`去看看知识库`,-1)]]),_:1})]),H(`li`,null,[U(F(el),{to:`/about`},{default:I(()=>[...r[4]||=[W(`了解一下我`,-1)]]),_:1})])])]))}},[[`__scopeId`,`data-v-3f115b1e`]]),Pm={class:`container page`},Fm={class:`detail-hero`},Im={class:`detail-icon`},Lm={class:`page-title`},Rm={class:`detail-tags`},zm={key:0,class:`meta-tag`},Bm={key:1,class:`meta-tag meta-role`},Vm={class:`detail-body`},Hm=[`innerHTML`],Um={key:0,class:`detail-action`},Wm={key:1,class:`detail-action`},Gm=[`href`],Km={key:2,class:`detail-gallery`},qm={class:`gallery-grid`},Jm=[`aria-label`,`onClick`],Ym=[`src`,`alt`],Xm={key:0},Zm=[`aria-label`],Qm=[`src`,`alt`],$m={key:0,class:`lightbox-caption`},eh={key:3,class:`detail-highlights`},th={class:`skill-tags`},nh=dl({__name:`ProjectDetailView`,setup(e){let t=ul(),n=K(()=>Mu.find(e=>e.id===t.params.id)),r=K(()=>n.value?$.parse(n.value.long||``):``);Fn(n,e=>{if(!e){Tu({title:`页面不存在`,desc:`这个地址没有对应内容。`,path:t.path});return}Tu({title:e.title,desc:`${e.title}：${e.role||``}${e.tech?` · `+e.tech:``}`.trim(),path:`/project/${e.id}`})},{immediate:!0,flush:`post`});let i=P(null),a=P(null),o=null;function s(e,t){o=t?.currentTarget??null,i.value=e,vn(()=>a.value?.focus())}function c(){i.value=null,o?.focus?.(),o=null}function l(e){e.key===`Escape`&&i.value&&c()}return Fn(i,e=>{typeof document>`u`||(e?document.addEventListener(`keydown`,l):document.removeEventListener(`keydown`,l))}),br(()=>{typeof document<`u`&&document.removeEventListener(`keydown`,l)}),(e,t)=>{let o=jr(`reveal`);return B(),V(`div`,Pm,[n.value?(B(),V(z,{key:0},[U(F(el),{to:`/`,class:`back-link`},{default:I(()=>[...t[0]||=[W(`← 返回首页`,-1)]]),_:1}),L((B(),V(`section`,Fm,[H(`div`,Im,A(n.value.icon),1),H(`div`,null,[H(`h1`,Lm,A(n.value.title),1),H(`div`,Rm,[n.value.tech?(B(),V(`span`,zm,A(n.value.tech),1)):G(``,!0),n.value.role?(B(),V(`span`,Bm,`👤 `+A(n.value.role),1)):G(``,!0)])])])),[[o]]),L((B(),V(`section`,Vm,[H(`div`,{class:`markdown`,innerHTML:r.value},null,8,Hm)])),[[o]]),n.value.id===`weiguan-yifang`?L((B(),V(`section`,Um,[U(F(el),{to:`/play`,class:`btn btn-primary`},{default:I(()=>[...t[1]||=[W(`🏯 在线试玩（无需下载）`,-1)]]),_:1})])),[[o]]):G(``,!0),n.value.link?L((B(),V(`section`,Wm,[H(`a`,{href:n.value.link,target:`_blank`,rel:`noopener noreferrer`,class:`btn btn-primary`},` 🔗 `+A(n.value.linkText||`查看在线演示`),9,Gm)])),[[o]]):G(``,!0),n.value.images&&n.value.images.length?L((B(),V(`section`,Km,[t[2]||=H(`h2`,{class:`section-title`},`项目展示`,-1),t[3]||=H(`p`,{class:`gallery-hint`},`点击图片可查看完整大图`,-1),H(`div`,qm,[(B(!0),V(z,null,R(n.value.images,(e,t)=>(B(),V(`figure`,{key:e.src+t,class:`gallery-item`},[H(`button`,{type:`button`,class:`gallery-btn`,"aria-label":`放大查看：${e.alt}`,onClick:t=>s(e,t)},[H(`img`,ma({src:e.src,alt:e.alt,loading:`lazy`},{ref_for:!0},F(Lu)(e.src)),null,16,Ym)],8,Jm),e.alt?(B(),V(`figcaption`,Xm,A(e.alt),1)):G(``,!0)]))),128))])])),[[o]]):G(``,!0),U(Za,{name:`fade`},{default:I(()=>[i.value?(B(),V(`div`,{key:0,class:`lightbox`,role:`dialog`,"aria-modal":`true`,"aria-label":i.value.alt||`查看大图`,onClick:es(c,[`self`])},[H(`button`,{ref_key:`lightboxClose`,ref:a,class:`lightbox-close`,onClick:c,"aria-label":`关闭大图`},` ✕ `,512),H(`img`,{src:i.value.src,alt:i.value.alt,class:`lightbox-img`},null,8,Qm),i.value.alt?(B(),V(`p`,$m,A(i.value.alt),1)):G(``,!0)],8,Zm)):G(``,!0)]),_:1}),n.value.highlights.length?L((B(),V(`section`,eh,[t[4]||=H(`h2`,{class:`section-title`},`亮点`,-1),H(`div`,th,[(B(!0),V(z,null,R(n.value.highlights,e=>(B(),V(`span`,{key:e,class:`skill-tag`},A(e),1))),128))])])),[[o]]):G(``,!0),U(Ju,{page:`项目详情`,item:n.value.id},null,8,[`item`])],64)):(B(),na(Nm,{key:1}))])}}},[[`__scopeId`,`data-v-2b49e1bf`]]),rh=Object.assign({"../content/notes/avoid-stuck-protocol.md":`---
+Please report this to https://github.com/markedjs/marked.`,e){let e=`<p>An error occurred:</p><pre>`+dm(n.message+``,!0)+`</pre>`;return t?Promise.resolve(e):e}if(t)return Promise.reject(n);throw n}}};function $(e,t){return Em.parse(e,t)}$.options=$.setOptions=function(e){return Em.setOptions(e),$.defaults=Em.defaults,Jf($.defaults),$},$.getDefaults=Kf,$.defaults=qf;function Dm(...e){return Em.use(...e),$.defaults=Em.defaults,Jf($.defaults),$}$.use=Dm,$.walkTokens=function(e,t){return Em.walkTokens(e,t)},$.parseInline=Em.parseInline,$.Parser=wm,$.parser=wm.parse,$.Renderer=Sm,$.TextRenderer=Cm,$.Lexer=xm,$.lexer=xm.lex,$.Tokenizer=bm,$.Hooks=Tm,$.parse=$,$.options,$.setOptions,$.walkTokens,$.parseInline,wm.parse,xm.lex;var Om={class:`container page nf-page`},km={class:`fireflies nf-flies`,"aria-hidden":`true`},Am={class:`page-subtitle`},jm={class:`nf-path`},Mm={class:`nf-links`},Nm=dl({__name:`NotFoundView`,setup(e){let t=ul(),n=[{left:`12%`,top:`28%`,size:7,dur:11,delay:0,dx:-30,dy:-52,peak:.7},{left:`82%`,top:`22%`,size:5,dur:13,delay:2.5,dx:26,dy:-40,peak:.6},{left:`70%`,top:`66%`,size:6,dur:9,delay:1.2,dx:-22,dy:-60,peak:.75},{left:`25%`,top:`74%`,size:5,dur:12,delay:4,dx:30,dy:-30,peak:.55}];return(e,r)=>(B(),V(`div`,Om,[H(`div`,km,[(B(),V(z,null,R(n,(e,t)=>H(`span`,{key:t,style:ue({left:e.left,top:e.top,width:e.size+`px`,height:e.size+`px`,"--dur":e.dur+`s`,"--delay":e.delay+`s`,"--dx":e.dx+`px`,"--dy":e.dy+`px`,"--peak":e.peak})},null,4)),64))]),r[5]||=H(`p`,{class:`nf-code`,"aria-hidden":`true`},`404`,-1),r[6]||=H(`h1`,{class:`page-title`},`这个页面不存在`,-1),H(`p`,Am,[r[0]||=W(` 地址 `,-1),H(`code`,jm,A(F(t).fullPath),1),r[1]||=W(` 没有对应内容，可能打错了字，或者内容已经改名。 `,-1)]),H(`ul`,Mm,[H(`li`,null,[U(F(el),{to:`/`},{default:I(()=>[...r[2]||=[W(`← 回到首页`,-1)]]),_:1})]),H(`li`,null,[U(F(el),{to:`/knowledge`},{default:I(()=>[...r[3]||=[W(`去看看知识库`,-1)]]),_:1})]),H(`li`,null,[U(F(el),{to:`/about`},{default:I(()=>[...r[4]||=[W(`了解一下我`,-1)]]),_:1})])])]))}},[[`__scopeId`,`data-v-3f115b1e`]]),Pm={class:`container page`},Fm={class:`detail-hero`},Im={class:`detail-icon`},Lm={class:`page-title`},Rm={class:`detail-tags`},zm={key:0,class:`meta-tag`},Bm={key:1,class:`meta-tag meta-role`},Vm={class:`detail-body`},Hm=[`innerHTML`],Um={key:0,class:`detail-action`},Wm={key:1,class:`detail-action`},Gm=[`href`],Km={key:2,class:`detail-gallery`},qm={class:`gallery-grid`},Jm=[`aria-label`,`onClick`],Ym=[`src`,`alt`],Xm={key:0},Zm=[`aria-label`],Qm=[`src`,`alt`],$m={key:0,class:`lightbox-caption`},eh={key:3,class:`detail-highlights`},th={class:`skill-tags`},nh=dl({__name:`ProjectDetailView`,setup(e){let t=ul(),n=K(()=>Mu.find(e=>e.id===t.params.id)),r=K(()=>n.value?$.parse(n.value.long||``):``);Fn(n,e=>{if(!e){Tu({title:`页面不存在`,desc:`这个地址没有对应内容。`,path:t.path});return}Tu({title:e.title,desc:`${e.title}：${e.role||``}${e.tech?` · `+e.tech:``}`.trim(),path:`/project/${e.id}`})},{immediate:!0,flush:`post`});let i=P(null),a=P(null),o=null;function s(e,t){o=t?.currentTarget??null,i.value=e,vn(()=>a.value?.focus())}function c(){i.value=null,o?.focus?.(),o=null}function l(e){e.key===`Escape`&&i.value&&c()}return Fn(i,e=>{typeof document>`u`||(e?document.addEventListener(`keydown`,l):document.removeEventListener(`keydown`,l))}),br(()=>{typeof document<`u`&&document.removeEventListener(`keydown`,l)}),(e,t)=>{let o=jr(`reveal`);return B(),V(`div`,Pm,[n.value?(B(),V(z,{key:0},[U(F(el),{to:`/`,class:`back-link`},{default:I(()=>[...t[0]||=[W(`← 返回首页`,-1)]]),_:1}),L((B(),V(`section`,Fm,[H(`div`,Im,A(n.value.icon),1),H(`div`,null,[H(`h1`,Lm,A(n.value.title),1),H(`div`,Rm,[n.value.tech?(B(),V(`span`,zm,A(n.value.tech),1)):G(``,!0),n.value.role?(B(),V(`span`,Bm,`👤 `+A(n.value.role),1)):G(``,!0)])])])),[[o]]),L((B(),V(`section`,Vm,[H(`div`,{class:`markdown`,innerHTML:r.value},null,8,Hm)])),[[o]]),n.value.id===`weiguan-yifang`?L((B(),V(`section`,Um,[U(F(el),{to:`/play`,class:`btn btn-primary`},{default:I(()=>[...t[1]||=[W(`🏯 在线试玩（无需下载）`,-1)]]),_:1})])),[[o]]):G(``,!0),n.value.link?L((B(),V(`section`,Wm,[H(`a`,{href:n.value.link,target:`_blank`,rel:`noopener noreferrer`,class:`btn btn-primary`},` 🔗 `+A(n.value.linkText||`查看在线演示`),9,Gm)])),[[o]]):G(``,!0),n.value.images&&n.value.images.length?L((B(),V(`section`,Km,[t[2]||=H(`h2`,{class:`section-title`},`项目展示`,-1),t[3]||=H(`p`,{class:`gallery-hint`},`点击图片可查看完整大图`,-1),H(`div`,qm,[(B(!0),V(z,null,R(n.value.images,(e,t)=>(B(),V(`figure`,{key:e.src+t,class:`gallery-item`},[H(`button`,{type:`button`,class:`gallery-btn`,"aria-label":`放大查看：${e.alt}`,onClick:t=>s(e,t)},[H(`img`,ma({src:e.src,alt:e.alt,loading:`lazy`},{ref_for:!0},F(Lu)(e.src)),null,16,Ym)],8,Jm),e.alt?(B(),V(`figcaption`,Xm,A(e.alt),1)):G(``,!0)]))),128))])])),[[o]]):G(``,!0),U(Za,{name:`fade`},{default:I(()=>[i.value?(B(),V(`div`,{key:0,class:`lightbox`,role:`dialog`,"aria-modal":`true`,"aria-label":i.value.alt||`查看大图`,onClick:es(c,[`self`])},[H(`button`,{ref_key:`lightboxClose`,ref:a,class:`lightbox-close`,onClick:c,"aria-label":`关闭大图`},` ✕ `,512),H(`img`,{src:i.value.src,alt:i.value.alt,class:`lightbox-img`},null,8,Qm),i.value.alt?(B(),V(`p`,$m,A(i.value.alt),1)):G(``,!0)],8,Zm)):G(``,!0)]),_:1}),n.value.highlights.length?L((B(),V(`section`,eh,[t[4]||=H(`h2`,{class:`section-title`},`亮点`,-1),H(`div`,th,[(B(!0),V(z,null,R(n.value.highlights,e=>(B(),V(`span`,{key:e,class:`skill-tag`},A(e),1))),128))])])),[[o]]):G(``,!0),U(Ju,{page:`项目详情`,item:n.value.id},null,8,[`item`])],64)):(B(),na(Nm,{key:1}))])}}},[[`__scopeId`,`data-v-2b49e1bf`]]),rh=Object.assign({"../content/notes/agent-memory-system.md":`---
+title: Agent 记忆系统：自动注入与双写落地
+date: 2026-10-02
+tags: [AI, 工程]
+summary: carrot 的记忆系统踩过「注入失效」的坑之后才定型：每轮 systemPrompt 自动注入、模型打标签自动提取、MEMORY.md 与 sqlite 双写。关键是 resume 有盲区，验证注入必须开新会话。
+---
+
+# 记忆系统要解决两件事
+
+agent 的记忆不是「存起来」就完了，要解决两个方向：
+
+1. **注入**：每轮对话开始前，把该记得的东西自动塞进上下文
+2. **提取**：每轮结束（或中途）把新产生的事实自动写回记忆库
+
+两件事听起来对称，坑完全不对称。
+
+## 注入：每轮都要走一遍
+
+我的做法是在 systemPrompt 层面拼装：人格（怎么说话、什么风格）+ 技能清单 + MEMORY/GOALS 摘要。每轮都拼，不依赖模型的「记性」——因为模型根本没有记性，它只看得到这轮上下文里有的东西。
+
+## 提取：让模型自己打标签
+
+让模型在回复里输出记忆标签（比如 \`mem: 用户的股票项目回测区间是 2025-01 至 2026-08\`），应用层解析标签后入库。好处是**模型自己判断什么值得记**，不用应用层猜。
+
+## 双写：人类可读 + 机器可查
+
+记忆存两份：
+
+| 存储 | 给谁看 | 特点 |
+| --- | --- | --- |
+| MEMORY.md | 人 | 打开就能读，能手改，git 能追踪 |
+| sqlite | 程序 | 结构化、能按标签/时间查询、去重方便 |
+
+两份由同一次提取写入，MD 是真相源（手改 MD 会被下次启动时同步回 sqlite），sqlite 是索引。
+
+## 最大的坑：resume 盲区
+
+我调试注入逻辑时遇到一次「以为记忆系统坏了」：恢复一个旧会话，人格和记忆都没注入，像是整段逻辑失效。查了半天发现是**快照语义**：恢复旧会话时复用的是首请求的快照，注入只发生在新请求上。
+
+所以验证注入是否生效，**必须开新会话测**。这个坑不踩一次很难想到——「恢复会话」和「新会话」在语义上看起来都是「继续聊」。
+
+**底层逻辑：记忆系统的一切验证都要问一句——这是新请求还是快照回放？**
+`,"../content/notes/agent-software-three-steps.md":`---
+title: 造一个 Agent 软件：从改装、复现到自研的三步路
+date: 2026-10-02
+tags: [AI, 工程, 方法论]
+summary: 我做 carrot agent 走了三步：先把别人的软件改装到能日用，再对照开源 Codex 验证理解，最后融合出自己的东西。回头看，这个顺序比直接从零写省了太多弯路。
+---
+
+# 为什么不直接从零写
+
+想做一个自己的 agent 软件，最自然的冲动是「从零开始」：搭架子、选模型、写循环。但我很快发现，agent 软件的难点根本不在架子——工具循环、审批、沙箱这些，开源世界到处都是参考。真正的难点是**每一处细节都要扛住真实使用**：会话会爆、模型会卡、更新会把你的改动冲掉、手机端会被网络欺负。
+
+这些坑，不真用是看不见的。所以我换了个顺序：先改装，再复现，最后自研。
+
+## 第一步：改装（在别人的软件里学会走）
+
+我在一款第三方 Claude Code 桌面应用上做了 30 轮本地改造，只打补丁不动上游源码：
+
+- **修真缺陷**：流式输出丢消息块，根因是上游 SDK 复用同一个消息 id，多个消息块键撞车互相覆盖。改法是按消息 id 排队对账，改完用探针数数证明修对了——修前「运行中 9 条 vs 存档 17 条」对不上，修后两边一致
+- **补自愈**：上下文超限自动断开重开；看门狗 30 秒一查，卡 5 分钟弹确认，最多自动重试 2 次
+- **会话回滚分叉**：从任意一轮「回到这里」
+- **更新守门**：一键更新前先跑 SDK 探针，官方升级后接口对不上就自动回滚，防止魔改被冲掉
+
+这一步最大的收获：**学会了在别人的代码里定位问题**。丢块那种 bug，没有源码级理解根本修不了。
+
+## 第二步：复现（换一个样本验证理解）
+
+调研了 OpenAI 开源的 Codex（Apache-2.0，Rust 核心）之后，我得到一个重要判断：
+
+> **框架可以复现，「模型 × 提示词的协同调优」复现不了。**
+
+能抄来 agent 的形状（工具循环、沙箱、审批），抄不来它的手感。基于这个认知，我搭了一个简易 Codex 实验，只验证两件事：会话记忆怎么在 systemPrompt 层面自动注入、轮次结束时记忆怎么自动提取回写。**验证认知，而不是复刻产品**——这一步的产出是「我知道哪些能做、哪些做不到」，不是又一款玩具。
+
+## 第三步：自研（把两边的理解合起来）
+
+carrot agent 才是「自己的软件」：独立人格目录（~/.carrot/）、记忆双写（MEMORY.md 人类可读 + sqlite 结构化）、Playwright MCP 浏览器能力、上下文余量条 + 自动压缩、GOALS.md 界面化、双端同步 + 手机公网入口。现在每天在用。
+
+## 这个顺序的价值
+
+| 直接从零写 | 改装 → 复现 → 自研 |
+| --- | --- |
+| 一开始就面对所有细节 | 每一步只面对一类问题 |
+| 坑全要自己踩一遍 | 在别人的代码里先看一遍坑 |
+| 容易做出「能跑的玩具」 | 每一步都被真实使用逼着做完 |
+
+**底层逻辑：造软件的捷径不是少走弯路，而是先在别人的弯路上练手。**
+`,"../content/notes/avoid-stuck-protocol.md":`---
 title: 卡死自查协议：跟 AI 协作时，怎么避免「无声地耗死」
 date: 2026-09-22
 tags: [AI, 工程, 方法论]
@@ -286,6 +373,50 @@ summary: 一个回测收益数字，如果不说清楚区间、模型和口径�
 ## 一句话总结
 
 **回测收益必须和它的反面一起出现：同期基准多少、最大回撤多少、有没有实盘。只说收益不说口径，等于什么都没说。**
+`,"../content/notes/canvas-pixel-wave.md":`---
+title: Canvas 像素波：一个点击反馈的诞生
+date: 2026-10-02
+tags: [前端, 交互]
+summary: 个人主页的点击涟漪效果：Canvas 2D 网格像素波，18px 格 14px 块、三条高斯衰减带、桌面手机分档参数、pointer + passive touch 双通道。从 Three.js 简化到 2D，反而更对味。
+---
+
+# 需求：点击要「看得见」
+
+个人主页想要一个点击反馈：点哪儿哪儿起一圈「像素波」。要求是**像素风**（配胡萝卜园主题），颜色不深、传播不快、大小适中，手机上「存在但不凸显」。
+
+## 为什么不是 Three.js
+
+第一版想用 Three.js 做粒子波，写下去发现：一个 2D 平面上的涟漪，用 3D 引擎是大炮打蚊子。换成 **Canvas 2D + 网格对齐的方块**：18px 一个格，格内画 14px 的方块，天然像素感，性能开销小一个量级。
+
+## 波形：三条高斯带
+
+一圈波不是简单描边，是**三条同心衰减带**：
+
+- 半径偏移 \`[0, -30, -60]\`（三条带，内圈最实）
+- 振幅比例 \`[1.0, 0.55, 0.28]\`（外圈渐弱）
+- 每条带按高斯函数衰减（σ=11），离带心越远越透明
+
+透明度峰值（PEAK）桌面 0.4、手机 0.22——手机上波要「存在但不凸显」。
+
+## 参数分档：每波出生时定格
+
+桌面/手机参数不同（波最大半径 220 vs 96、传播速度 280 vs 190），关键是**每圈波在出生那一刻定格自己的参数**——中途旋转屏幕或缩放窗口，已出生的波不变形，新波用新参数。
+
+## 输入双通道：鼠标一套，触摸一套
+
+这是踩过坑之后的结构：
+
+- **鼠标**：pointer 事件，\`pointerdown\` 起、\`pointermove\` 长按连发（每 120ms 一圈，约 8 波/秒）、\`pointerup\` 停
+- **触摸**：**全 passive 的 touch 事件**。一开始也用 pointer，结果移动端一滚动，浏览器 pointercancel 把波掐了——pointer 事件和滚动抢手势。改成 touchstart/touchmove/touchend 全 passive：滚动不受影响，滑动沿途照样出波
+- 双通道防双发：pointer 通道里 \`pointerType === 'touch'\` 的直接忽略
+
+## 兜底：三处「环境不对就休眠」
+
+- \`prefers-reduced-motion\`：直接不启动（无障碍）
+- jsdom 无 canvas 上下文：组件返回 null 休眠（测试环境不炸）
+- 全程 \`pointer-events: none\`：波永远不挡用户点击
+
+**底层逻辑：装饰性效果的第一原则——好看是加分项，不挡事、不打扰才是底线。**
 `,"../content/notes/carbon-brain-dac.md":`---
 title: Carbon Brain：用机器学习预测 DAC 材料的吸附饱和度
 date: 2026-09-12
@@ -361,6 +492,86 @@ summary: 直接空气捕集材料「吸饱了」就要再生；把预测接进�
 ## 一句话总结
 
 **把「预测」接进「控制」才是这个项目的价值，但先要诚实地知道预测到底准不准——一个 R² 为负的模型，最诚实的用法是告诉我们问题在哪，而不是拿来上线。**
+`,"../content/notes/claude-agent-sdk-verify.md":`---
+title: SDK 字段别猜，实测为准：Claude Agent SDK 四个坑
+date: 2026-10-02
+tags: [AI, 工程]
+summary: 用 Claude Agent SDK 搭 carrot 时踩的四个坑：上下文用量只能在消息循环活着时查、三条压缩阈值配置路径全无效、init 返回里根本没有窗口大小字段。结论就一句——别猜字段行为，写最小探针实测。
+---
+
+# 四个坑，一个教训
+
+## 坑一：上下文用量查询有窗口期
+
+查「当前上下文用了多少」，只能在**消息循环活着的时候**查——连接一关再查就抛错。想在会话空闲时轮询用量做余量条，直接炸。
+
+对策：余量数据在每轮消息往来时顺手取走缓存，UI 读缓存，不实时查。
+
+## 坑二：压缩阈值的三条配置路径全无效
+
+想让它在上下文快满时自动压缩，文档里有三条看起来都能配阈值的路——**全都没用**，一条都不生效。最后的行为是它自己决定什么时候压。
+
+对策：接受默认行为，把「手动 /compact」做成一键指令兜底，自动的靠不住就手动的补。
+
+## 坑三：SDK init 返回里没有窗口大小字段
+
+想拿 init 返回值里的窗口大小（历史消息条数之类），**返回对象里根本没有这个字段**。按想象中的字段名写代码，拿到 undefined，还以为是时序问题。
+
+对策：\`console.log\` 整个返回对象看真实结构，有什么用什么。
+
+## 坑四：流式输出的消息 id 会撞车
+
+多个消息块复用同一个 id，按 id 存消息会互相覆盖——这就是改装时期「流式丢块」bug 的根因。修法是按 id 排队对账：同 id 的块按序合并而不是覆盖。
+
+## 教训
+
+这四个坑的共同点：**都是按「应该这样」写代码，而不是按「实际这样」写**。
+
+| 坑 | 想象中 | 实际 |
+| --- | --- | --- |
+| 用量查询 | 随时能查 | 只在循环活着时 |
+| 压缩阈值 | 三条路可配 | 全无效 |
+| init 字段 | 有窗口大小 | 没有 |
+| 消息 id | 唯一 | 会复用 |
+
+**底层逻辑：用不熟的 SDK，第一步永远是写最小探针把真实行为打出来，而不是读一半文档开始写。**
+`,"../content/notes/electron-always-on-top.md":`---
+title: 置顶窗口与输入法候选条打架：该高的时候高，该让的时候让
+date: 2026-10-02
+tags: [工程, macOS]
+summary: TO-DO Panel 常驻屏幕顶部必须置顶躲开菜单栏，但置顶层会盖住系统输入法候选条——两个正当需求正面冲突。解法不是二选一，是聚焦时临时降层、失焦立即恢复。
+---
+
+# 两个正当需求打架
+
+TO-DO Panel 常驻 macOS 屏幕顶部（嵌在刘海/菜单栏区域），这要求窗口**常驻最高层**——不然会被菜单栏或别的窗口盖住，面板就废了。
+
+但用户要在面板的输入框里打中文。macOS 的输入法候选条是系统窗口，层级比普通窗口高，可**没有普通置顶层高**——面板常驻 \`always-on-top\`，候选条就被自己盖住。打「jiu xiang」，候选条看不见，只能盲选拼音。
+
+一边是「必须置顶」（躲菜单栏），一边是「必须让位」（露出候选条）。**两个都对，冲突是真的。**
+
+## 解法：动态层级
+
+- 输入框**聚焦**时：窗口临时取消置顶 → 候选条浮上来
+- **失焦**时：立即恢复置顶 → 面板继续躲菜单栏
+
+「该高的时候高，该让的时候让。」窗口层级不是一个配置项，是一个**状态**。
+
+## 顺手修的另一个层级 bug
+
+同一批还修了日期弹层被圆角规则误裁的 bug——一条 \`border-radius\` 全局规则把弹层的可滚动区域裁到滚不动。这类「全局样式误伤局部组件」的问题，解法是给弹层显式豁免，而不是删全局规则（删了别处就崩）。
+
+## 为什么这个坑值得记
+
+因为它打破了「层级是静态配置」的直觉。桌面应用里凡是和**系统级东西**（菜单栏、输入法、通知、Dock）抢地盘的需求，都要按状态动态让位：
+
+| 场景 | 系统 UI | 应用该做的 |
+| --- | --- | --- |
+| 全屏面板 | 菜单栏 hover 下拉 | 临时降层或移位 |
+| 输入法候选条 | 候选窗 | 聚焦时让位 |
+| 通知横幅 | 通知中心 | 不占屏幕右上角 |
+
+**底层逻辑：你的窗口不是世界里唯一的窗口，和系统 UI 共存的正确姿势是动态让位，不是抢占。**
 `,"../content/notes/homepage-iteration-log.md":`---
 title: 个人主页迭代复盘：V1 → V2 → V3 我改了什么
 date: 2026-09-20
@@ -431,6 +642,90 @@ export const experiences = [ /* ... */ ]
 ## 一句话总结
 
 **迭代不是推倒重来，而是每一版只对准当前最痛的那一个问题。**
+`,"../content/notes/lighthouse-reflow.md":`---
+title: Lighthouse 95 分之路：消掉滚动里的强制回流
+date: 2026-10-02
+tags: [前端, 性能]
+summary: 个人主页 Lighthouse 移动端从 92 提到 95，只做了一件事：把时间线描线动画里每帧都触发的强制回流，改成挂载时缓存一次基准、resize 才重算。
+---
+
+# 92 分卡在哪
+
+Lighthouse 移动端跑分：性能 92，无障碍 100，SEO 100。性能项的扣分里有一条很扎眼——**滚动时反复 forced reflow（强制回流）**。
+
+## 定位：描线动画在读布局
+
+主页时间线有一段「描线」动画（路径随滚动逐渐显现），实现是每帧读一次元素位置再更新路径。问题在**读的那一行**：
+
+\`\`\`js
+// 每帧都在读布局 → 浏览器被迫立即重排（强制回流）
+const top = el.getBoundingClientRect().top
+\`\`\`
+
+浏览器本来可以把一帧里的布局读写攒着批量处理，你在两帧之间插进一次「读」，它只能先把之前的写全部重排了再答你。**每帧一次强制回流，滚动全程都在烧性能。**
+
+## 解法：基准缓存
+
+元素位置在滚动中其实**不变**（变的是视口，不是文档坐标）。所以要做的很简单：
+
+1. **挂载时**读一次各元素基准位置，存进 \`timelineBases\`
+2. 滚动动画里只读缓存 + \`window.scrollY\` 做运算，不再碰 \`getBoundingClientRect\`
+3. 监听 \`resize\`（含移动端地址栏伸缩），重算一次基准
+
+\`\`\`js
+// 改后：动画里零布局读取
+const progress = (scrollY - base.top) / base.height
+\`\`\`
+
+## 结果
+
+- 性能 92 → **95**
+- LCP 71 → **80**
+- 滚动全程不再出现 forced reflow 记录
+
+## 怎么自己发现这类问题
+
+Chrome DevTools → Performance → 录一段滚动 → 看主线程火焰图里的紫色 **Layout** 条：如果它们成串出现在紫色 Rendering 之间，且都由你的 JS 触发，就是强制回流。修复口诀一句话：
+
+> **读布局的结果能缓存就缓存；一帧之内，读要放在写的前面，或者干脆别读。**
+`,"../content/notes/playwright-mcp-pitfalls.md":`---
+title: Playwright MCP 三连坑：静默失效、版本错位、socket 路径上限
+date: 2026-10-02
+tags: [AI, 工程]
+summary: 给 carrot 接浏览器能力时，Playwright MCP 的三个坑一个不响全靠日志挖：headless-shell 参数静默回落、chromium 版本错位起不来、macOS unix socket 路径超过 104 字节必挂。
+---
+
+# 三个坑，三种失败方式
+
+给 agent 接浏览器（Playwright MCP，22 个工具：导航/点击/截图/快照），本以为是一条命令的事，结果踩了三个坑——而且**失败方式各不相同**，这才是最难排查的原因。
+
+## 坑一：参数静默失效
+
+\`--browser\` 参数写 \`headless-shell\`，不报错、不警告，浏览器照常启动——**但不是你要的那个**。它静默回落到了默认浏览器。你以为在测 headless-shell，实际测的是 chromium。
+
+对策：启动后主动查版本/类型，确认跑的真的是你指定的东西。**「没报错」不等于「生效了」。**
+
+## 坑二：版本错位起不来
+
+\`--browser chromium\` 要的是完整版 1247，机器上没装就是**起不来**。这个至少有报错，但报错信息不会直接告诉你「装 1247 就行」——要对着报错里的版本号去翻它到底要哪个。
+
+对策：装之前先查清楚 MCP 期望的版本号，版本对齐再启动。
+
+## 坑三：macOS unix socket 路径上限 104 字节
+
+最隐蔽的一个。macOS 的 unix socket 路径有 **104 字节硬上限**，而 Playwright 默认的临时目录路径是 115 字节——**必挂**，且报错完全看不出和路径长度有关。
+
+对策：显式指定一个短的 socket 目录（比如 \`~/.pw-mcp/\`），别用默认深路径。
+
+## 为什么三个坑要一起记
+
+| 坑 | 失败方式 | 排查手段 |
+| --- | --- | --- |
+| headless-shell | 静默回落，无报错 | 启动后主动验证 |
+| chromium 版本 | 启动失败，报错绕弯 | 查报错里的版本号 |
+| socket 路径 | 挂，报错与根因无关 | 缩短显式路径 |
+
+单看每一个都是小坑，连着踩的时候会严重怀疑人生。**这类「环境三连坑」的通用解法只有一个：一条一条看日志，别相信「应该没问题」。**
 `,"../content/notes/project-based-learning-mvp.md":`---
 title: 项目制学习：先跑起来，再打磨
 date: 2026-09-10
@@ -709,6 +1004,21 @@ git subtree push --prefix dist origin gh-pages
 ## 一句话总结
 
 **构建 = 把上百个源文件压成两个带指纹的文件；部署 = 把 \`dist/\` 搬到服务器的子目录里，所以路径前缀必须提前声明。**
+
+## 一句话总结
+
+**构建 = 把上百个源文件压成两个带指纹的文件；部署 = 把 \`dist/\` 搬到服务器的子目录里，所以路径前缀必须提前声明。**
+
+## 补：给静态站配分享卡（og:image）
+
+链接发到微信/Twitter/Telegram，卡片图来自 \`og:image\`。实操三件事：
+
+1. **尺寸 1200x630**——各平台通吃的安全比例，写进 meta 的 \`og:image\` 和 \`twitter:image\`
+2. **图从真实页面截**：用 headless 浏览器打开线上首屏，隐藏悬浮 UI（机器人按钮、回到顶部）后截图，比设计稿更真实；压成 webp 控制在 100K 内
+3. **缓存更新坑**：社交平台抓过的卡片图会缓存很久，图更新后要么换文件名（\`card-v2.webp\`），要么用各平台的缓存刷新工具，否则你以为换了图，用户看到的还是旧的
+
+顺带发现 robots.txt 和 sitemap.xml 也在 public/ 直接托管——静态站的「基建」其实都在这一个目录里。
+
 `,"../content/notes/vue-composition-api.md":`---
 title: Vue 3 组合式 API：为什么逻辑要按「关注点」组织
 date: 2026-09-18
