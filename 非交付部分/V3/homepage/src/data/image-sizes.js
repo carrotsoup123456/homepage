@@ -338,17 +338,21 @@ export const imageSizes = {
     "w": 1200,
     "h": 1171
   },
+  "projects/todo-panel/calendar.webp": {
+    "w": 1200,
+    "h": 596
+  },
   "projects/todo-panel/card.webp": {
     "w": 1100,
     "h": 687
   },
   "projects/todo-panel/home.webp": {
     "w": 1200,
-    "h": 772
+    "h": 596
   },
   "projects/todo-panel/todo.webp": {
     "w": 1200,
-    "h": 775
+    "h": 596
   },
   "projects/weiguan-yifang/bg.webp": {
     "w": 1200,
