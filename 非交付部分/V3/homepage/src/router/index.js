@@ -4,6 +4,7 @@ import PlayView from '../views/PlayView.vue'
 import AboutView from '../views/AboutView.vue'
 import ProjectDetailView from '../views/ProjectDetailView.vue'
 import KnowledgeView from '../views/KnowledgeView.vue'
+import MusicView from '../views/MusicView.vue'
 import ContactView from '../views/ContactView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
 
@@ -38,6 +39,12 @@ const routes = [
     name: 'knowledge',
     component: KnowledgeView,
     meta: { title: '知识库', desc: '我的学习笔记与技术复盘，支持关键词搜索与标签筛选。' },
+  },
+  {
+    path: '/music',
+    name: 'music',
+    component: MusicView,
+    meta: { title: '歌单', desc: '我喜欢的歌（歌单展示）与演示 BGM 播放器。' },
   },
   {
     path: '/contact',

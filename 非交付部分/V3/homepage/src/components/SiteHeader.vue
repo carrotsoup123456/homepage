@@ -24,6 +24,8 @@ const icons = {
   book: [
     'M12 6.4 C10.2 4.9 7.4 4.3 4.2 4.3 V19 C7.4 19 10.2 19.6 12 21 C13.8 19.6 16.6 19 19.8 19 V4.3 C16.6 4.3 13.8 4.9 12 6.4 V21',
   ],
+  // 歌单 = 八分音符（符干 + 两个符头）
+  note: ['M9.5 17.5 V4.5 L19 3 V15.5', 'M9.5 17.5 A2.8 2.8 0 1 1 6.7 14.7 A2.8 2.8 0 1 1 9.5 17.5', 'M19 15.5 A2.8 2.8 0 1 1 16.2 12.7 A2.8 2.8 0 1 1 19 15.5'],
   game: ['M7.5 8 H16.5 C19 8 21 10 21 12.5 C21 15 19 17 16.5 17 H7.5 C5 17 3 15 3 12.5 C3 10 5 8 7.5 8 Z', 'M8 10.5 V14.5 M6 12.5 H10'],
   mail: ['M4 6.5 H20 V17.5 H4 Z', 'M4.5 8 L12 13.5 L19.5 8'],
   sun: ['M12 8 A4 4 0 1 0 12 16 A4 4 0 1 0 12 8', 'M12 3 V5 M12 19 V21 M3 12 H5 M19 12 H21 M5.6 5.6 L7 7 M17 17 L18.4 18.4 M18.4 5.6 L17 7 M7 17 L5.6 18.4'],
@@ -35,6 +37,7 @@ const navItems = [
   { label: '首页', to: '/', exact: true, icon: icons.home },
   { label: '关于', to: '/about', icon: icons.card },
   { label: '知识库', to: '/knowledge', icon: icons.book },
+  { label: '歌单', to: '/music', icon: icons.note },
   { label: '试玩', to: '/play', icon: icons.game },
   { label: '联系', to: '/contact', icon: icons.mail },
 ]
