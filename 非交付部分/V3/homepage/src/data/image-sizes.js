@@ -54,6 +54,50 @@ export const imageSizes = {
     "w": 16,
     "h": 17
   },
+  "music/covers/diqiu.webp": {
+    "w": 640,
+    "h": 640
+  },
+  "music/covers/drum.webp": {
+    "w": 720,
+    "h": 406
+  },
+  "music/covers/gulou.webp": {
+    "w": 640,
+    "h": 640
+  },
+  "music/covers/jiu.webp": {
+    "w": 640,
+    "h": 640
+  },
+  "music/covers/kezhan.webp": {
+    "w": 640,
+    "h": 640
+  },
+  "music/covers/libai.webp": {
+    "w": 640,
+    "h": 640
+  },
+  "music/covers/pipa.webp": {
+    "w": 640,
+    "h": 640
+  },
+  "music/covers/qingchun.webp": {
+    "w": 640,
+    "h": 640
+  },
+  "music/covers/rainforest.webp": {
+    "w": 640,
+    "h": 640
+  },
+  "music/covers/sunyou.webp": {
+    "w": 640,
+    "h": 640
+  },
+  "music/covers/wangfei.webp": {
+    "w": 640,
+    "h": 640
+  },
   "play/assets-g/img-03b9d15827d6.webp": {
     "w": 828,
     "h": 552

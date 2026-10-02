@@ -44,7 +44,7 @@ const routes = [
     path: '/music',
     name: 'music',
     component: MusicView,
-    meta: { title: '歌单', desc: '我喜欢的歌（歌单展示）与演示 BGM 播放器。' },
+    meta: { title: '音乐', desc: '我喜欢的歌、雨中森林 BGM 与我的架子鼓演奏。' },
   },
   {
     path: '/contact',

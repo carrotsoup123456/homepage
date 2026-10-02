@@ -1,50 +1,43 @@
-// 歌单数据。
-// 「我喜欢的歌」只做文字展示（歌名/歌手/标签），不上传音频文件——
-// 流行音乐录音的公开传播需要唱片公司授权，课程公开主页放不了。
-// BGM 播放器用「演示音轨」跑通全部交互；日后拿到可授权音频
-// （自己翻唱 / CC 授权曲 / 已购买授权），把文件放进 public/music/
-// 并在下方 demoTracks / wishlist 对应条目里补上 src 即可生效。
+// 音乐页数据。
+// 「我喜欢的歌」只做文字+原创封面展示（不上传音频，也不使用真实专辑封面——
+// 唱片封面是唱片公司的美术作品，公开网页展示同样需要授权）。
+// 封面图由 AI 按每首歌的私人标签意象生成，是本站原创插画。
+// BGM 是程序合成的「雨中森林」环境音（雨幕/远雷/风，零版权负担）。
+// 鼓演奏视频为本人录制，音频做过现场感处理。
 
 const asset = (p) => `${import.meta.env.BASE_URL}${p.replace(/^\//, '')}`
 
-// ---- 演示音轨（程序合成，无版权负担，可直接播放）----
-export const demoTracks = [
-  {
-    id: 'demo-ambient',
-    title: '林间雾气（演示音轨）',
-    artist: '程序合成',
-    tag: '氛围',
-    src: asset('music/demo-ambient.mp3'),
-    note: 'ffmpeg 合成的三和弦垫底，用来演示播放器交互',
-  },
-  {
-    id: 'demo-pluck',
-    title: '胡萝卜拨弦（演示音轨）',
-    artist: '程序合成',
-    tag: '轻快',
-    src: asset('music/demo-pluck.mp3'),
-    note: '衰减正弦模拟拨弦，胡萝卜园主题小样',
-  },
-  {
-    id: 'demo-groove',
-    title: '菜垄节奏（演示音轨）',
-    artist: '程序合成',
-    tag: '律动',
-    src: asset('music/demo-groove.mp3'),
-    note: '低音节奏型，测试循环播放与自动切歌',
-  },
-]
+// ---- 背景音乐（程序合成，可播放）----
+export const bgm = {
+  id: 'bgm-rainforest',
+  title: '雨中森林（环境音 BGM）',
+  artist: '程序合成',
+  tag: '雨幕 · 远雷 · 风',
+  src: asset('music/bgm-rainforest.mp3'),
+  cover: asset('music/covers/rainforest.webp'),
+  note: '雨幕（粉噪声滤波）+ 远雷（棕噪声脉冲）+ 风（低频慢波动）三层合成，三分钟循环',
+}
 
-// ---- 我喜欢的歌（歌单墙，仅文字展示）----
-// 每首的 accent 用 HSL 色相区分卡片封面色块；tag 是我给它的私人标签。
+// ---- 我的鼓演奏（本人录制）----
+export const drumVideo = {
+  id: 'drum-cover',
+  title: '架子鼓练习',
+  desc: '在家练鼓的一段记录（Roland 电鼓）。原视频是手机直录，声音又闷又平；这一版把音频重新处理过：提亮鼓棒的 attack 和镲片的高频、收紧低频、加了房间早反射和立体声展宽——更接近站在旁边听的感觉。',
+  src: asset('music/drum-video.mp4'),
+  poster: asset('music/covers/drum.webp'),
+  alt: '架子鼓演奏视频：条纹衫鼓手在 Roland 电鼓前练习',
+}
+
+// ---- 我喜欢的歌（歌单墙，原创意象封面，仅展示）----
+// cover 是按每首歌的私人标签意象生成的原创插画，不指向任何真实专辑。
 export const wishlist = [
-  { id: 'libai', title: '李白', artist: '李荣浩', tag: '要是能重来', hue: 12 },
-  { id: 'zuijia-sunyou', title: '最佳损友', artist: '陈奕迅', tag: '朋友，我当你一秒朋友', hue: 210 },
-  { id: 'xin-diqiu', title: '新地球', artist: '林俊杰', tag: '赛博乡愁', hue: 160 },
-  { id: 'hongchen-kezhan-dj', title: '红尘客栈（DJ 版）', artist: '周杰伦', tag: '武侠舞池', hue: 340 },
-  { id: 'pengyou-de-jiu', title: '朋友的酒', artist: '李晓杰', tag: '饭局 BGM', hue: 36 },
-  { id: 'wangfei', title: '王妃', artist: '萧敬腾', tag: '夜店摇滚', hue: 275 },
-  { id: 'qingchun-buda-yang', title: '青春不打烊', artist: '王梓钰', tag: '热血夜间档', hue: 190 },
-  { id: 'pipa-xing-dj', title: '琵琶行（DJ 版）', artist: '传统曲目改编', tag: '国风电音', hue: 25 },
-  { id: 'gulou', title: '鼓楼', artist: '赵雷', tag: '民谣散步', hue: 100 },
+  { id: 'libai', title: '李白', artist: '李荣浩', tag: '要是能重来', hue: 12, cover: asset('music/covers/libai.webp') },
+  { id: 'zuijia-sunyou', title: '最佳损友', artist: '陈奕迅', tag: '朋友，我当你一秒朋友', hue: 210, cover: asset('music/covers/sunyou.webp') },
+  { id: 'xin-diqiu', title: '新地球', artist: '林俊杰', tag: '赛博乡愁', hue: 160, cover: asset('music/covers/diqiu.webp') },
+  { id: 'hongchen-kezhan-dj', title: '红尘客栈（DJ 版）', artist: '周杰伦', tag: '武侠舞池', hue: 340, cover: asset('music/covers/kezhan.webp') },
+  { id: 'pengyou-de-jiu', title: '朋友的酒', artist: '李晓杰', tag: '饭局 BGM', hue: 36, cover: asset('music/covers/jiu.webp') },
+  { id: 'wangfei', title: '王妃', artist: '萧敬腾', tag: '夜店摇滚', hue: 275, cover: asset('music/covers/wangfei.webp') },
+  { id: 'qingchun-buda-yang', title: '青春不打烊', artist: '王梓钰', tag: '热血夜间档', hue: 190, cover: asset('music/covers/qingchun.webp') },
+  { id: 'pipa-xing-dj', title: '琵琶行（DJ 版）', artist: '传统曲目改编', tag: '国风电音', hue: 25, cover: asset('music/covers/pipa.webp') },
+  { id: 'gulou', title: '鼓楼', artist: '赵雷', tag: '民谣散步', hue: 100, cover: asset('music/covers/gulou.webp') },
 ]

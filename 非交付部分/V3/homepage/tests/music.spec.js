@@ -1,26 +1,29 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { demoTracks, wishlist } from '../src/data/music.js'
+import { bgm, drumVideo, wishlist } from '../src/data/music.js'
 import MusicView from '../src/views/MusicView.vue'
 
-describe('歌单数据', () => {
-  it('演示音轨 3 段且都带音频地址', () => {
-    expect(demoTracks).toHaveLength(3)
-    for (const t of demoTracks) {
-      expect(t.src).toMatch(/music\/demo-.*\.mp3$/)
-      expect(t.title.length).toBeGreaterThan(0)
-    }
+describe('音乐页数据', () => {
+  it('BGM 是雨中森林且带音频与封面', () => {
+    expect(bgm.src).toMatch(/music\/bgm-rainforest\.mp3$/)
+    expect(bgm.cover).toMatch(/covers\/rainforest\.webp$/)
+    expect(bgm.title).toContain('雨中森林')
   })
 
-  it('愿望歌单 9 首且只做展示（不带 src，不会误传音频）', () => {
+  it('鼓视频带源、封面与说明', () => {
+    expect(drumVideo.src).toMatch(/music\/drum-video\.mp4$/)
+    expect(drumVideo.poster).toMatch(/covers\/drum\.webp$/)
+    expect(drumVideo.desc.length).toBeGreaterThan(20)
+  })
+
+  it('愿望歌单 9 首、每首带原创封面且不带音频（不会误传）', () => {
     expect(wishlist).toHaveLength(9)
     for (const w of wishlist) {
+      expect(w.cover).toMatch(/music\/covers\/.+\.webp$/)
       expect(w.src).toBeUndefined()
       expect(w.title).toBeTruthy()
       expect(w.artist).toBeTruthy()
       expect(w.tag).toBeTruthy()
-      expect(w.hue).toBeGreaterThanOrEqual(0)
-      expect(w.hue).toBeLessThan(360)
     }
   })
 
@@ -28,35 +31,39 @@ describe('歌单数据', () => {
     const keys = wishlist.map((w) => `${w.title}|${w.artist}`)
     expect(new Set(keys).size).toBe(keys.length)
   })
+
+  it('封面两两不同', () => {
+    const covers = wishlist.map((w) => w.cover)
+    expect(new Set(covers).size).toBe(covers.length)
+  })
 })
 
 describe('MusicView 渲染与交互', () => {
-  it('歌单墙渲染全部 9 首 + 演示列表 3 段', () => {
+  it('渲染 9 张封面卡 + 鼓视频 + BGM 播放器', () => {
     const w = mount(MusicView)
     expect(w.findAll('.wish-card')).toHaveLength(9)
-    expect(w.findAll('.demo-row')).toHaveLength(3)
-    // 版权说明在页面上（对课程评分者是明确信号）
+    expect(w.find('video.drum-video').exists()).toBe(true)
+    expect(w.find('audio').exists()).toBe(true)
     expect(w.text()).toContain('公开传播权')
   })
 
-  it('点演示曲切换当前曲目', async () => {
+  it('封面图片全部带 alt（无障碍）', () => {
     const w = mount(MusicView)
-    await w.findAll('.demo-row')[2].trigger('click')
-    expect(w.text()).toContain('菜垄节奏')
+    const imgs = w.findAll('.wish-cover img')
+    for (const i of imgs) {
+      expect(i.attributes('alt')).toBeTruthy()
+    }
   })
 
-  it('随机开关可切换并写入存储', async () => {
+  it('BGM audio 默认 preload=none（不偷偷下载）', () => {
     const w = mount(MusicView)
-    await w.find('[aria-label="随机播放"]').trigger('click')
-    expect(localStorage.getItem('homepage-music-shuffle')).toBe('1')
-    await w.find('[aria-label="随机播放"]').trigger('click')
-    expect(localStorage.getItem('homepage-music-shuffle')).toBe('0')
+    expect(w.find('audio').attributes('preload')).toBe('none')
   })
 
-  it('audio 元素存在且默认 preload=none（不偷偷下载）', () => {
+  it('鼓视频 preload=metadata 且带 poster', () => {
     const w = mount(MusicView)
-    const a = w.find('audio')
-    expect(a.exists()).toBe(true)
-    expect(a.attributes('preload')).toBe('none')
+    const v = w.find('video.drum-video')
+    expect(v.attributes('preload')).toBe('metadata')
+    expect(v.attributes('poster')).toBeTruthy()
   })
 })

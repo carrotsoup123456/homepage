@@ -1,64 +1,27 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { demoTracks, wishlist } from '../data/music.js'
+import { bgm, drumVideo, wishlist } from '../data/music.js'
 import SectionBand from '../components/SectionBand.vue'
 
-// ---- 播放器状态 ----
-const audio = ref(null) // <audio> 元素
-const currentId = ref(demoTracks[0].id)
+// ---- BGM 播放器状态 ----
+const audio = ref(null)
 const playing = ref(false)
-const shuffle = ref(false)
-const volume = ref(0.6)
+const volume = ref(0.55)
 const progress = ref(0) // 0~100
-const LOOP_KEY = 'homepage-music-shuffle'
+const timeCur = ref(0)
+const timeDur = ref(0)
 const VOL_KEY = 'homepage-music-volume'
 
-const current = computed(() => demoTracks.find((t) => t.id === currentId.value) || demoTracks[0])
-
-// 随机/顺序切歌。随机时避开当前曲（只有一首时除外）
-function nextTrack(auto = false) {
-  const idx = demoTracks.findIndex((t) => t.id === currentId.value)
-  let n
-  if (shuffle.value && demoTracks.length > 1) {
-    do {
-      n = Math.floor(Math.random() * demoTracks.length)
-    } while (n === idx)
-  } else {
-    n = (idx + 1) % demoTracks.length
-  }
-  currentId.value = demoTracks[n].id
-  // 手动切歌立即播；自动切歌（ended）保持播放状态
-  if (!auto || playing.value) play()
-}
-
-function prevTrack() {
-  const idx = demoTracks.findIndex((t) => t.id === currentId.value)
-  const p = (idx - 1 + demoTracks.length) % demoTracks.length
-  currentId.value = demoTracks[p].id
-  play()
-}
+// 环境音循环：结束后 loop（audio 上的 loop 属性也行，但手动控时间显示更稳）
+const ok = (b) => b
 
 function togglePlay() {
   if (playing.value) {
     audio.value?.pause()
   } else {
-    play()
-  }
-}
-
-function play() {
-  audio.value?.play().catch(() => {
-    // 浏览器自动播放策略或文件加载失败：安静回到暂停态，不打断页面
-    playing.value = false
-  })
-}
-
-function selectTrack(id) {
-  if (id === currentId.value) {
-    togglePlay()
-  } else {
-    currentId.value = id
-    play()
+    audio.value?.play().catch(() => {
+      playing.value = false
+    })
   }
 }
 
@@ -69,9 +32,13 @@ function onTimeUpdate() {
   timeDur.value = a?.duration || 0
 }
 
-function toggleShuffle() {
-  shuffle.value = !shuffle.value
-  localStorage.setItem(LOOP_KEY, shuffle.value ? '1' : '0')
+function onEnded() {
+  // 环境音到头从头再放（只有手动暂停才会真的停）
+  const a = audio.value
+  if (a) {
+    a.currentTime = 0
+    a.play().catch(() => (playing.value = false))
+  }
 }
 
 function setVolume(e) {
@@ -80,32 +47,25 @@ function setVolume(e) {
   localStorage.setItem(VOL_KEY, String(volume.value))
 }
 
-// 秒 → m:ss
-const fmt = (s) => {
+function fmt(s) {
   if (!Number.isFinite(s)) return '0:00'
   const m = Math.floor(s / 60)
   const r = Math.floor(s % 60)
   return `${m}:${String(r).padStart(2, '0')}`
 }
-// 秒 → m:ss（时间存 ref：currentTime 属性变化不触发 computed 重算）
-const timeCur = ref(0)
-const timeDur = ref(0)
 const cur = computed(() => fmt(timeCur.value))
 const dur = computed(() => fmt(timeDur.value))
 
-// 播放中给当前条目加呼吸点动画的开关
 onMounted(() => {
   const a = audio.value
   if (!a) return
-  a.volume = volume.value
-  const sv = localStorage.getItem(LOOP_KEY)
-  if (sv === '1') shuffle.value = true
   const vv = parseFloat(localStorage.getItem(VOL_KEY) || '')
   if (!Number.isNaN(vv)) {
     volume.value = vv
     a.volume = vv
+  } else {
+    a.volume = volume.value
   }
-  // 播放/暂停状态以事件为准（play() 被策略拒绝时不会触发 playing）
   a.addEventListener('playing', () => (playing.value = true))
   a.addEventListener('pause', () => (playing.value = false))
 })
@@ -118,88 +78,82 @@ onBeforeUnmount(() => {
 <template>
   <div class="music-page">
     <SectionBand seed="playlist" class="music-hero-band">
-      <template #label>歌单</template>
+      <template #label>音乐</template>
       <template #title>我喜欢的歌</template>
       <template #desc>
-        写代码时的循环列表。左边三段是程序合成的演示音轨（先听个响，交互全开着）；
-        右边这九首是我的真实歌单——歌能上榜，音频不能上站，原因写在页脚。
+        写代码时的循环列表，还有一段我自己的鼓。背景音是程序合成的雨中森林；
+        下面这九首是我的真实歌单——歌能上榜，音频和真实专辑封面不能上站，原因写在页脚。
       </template>
     </SectionBand>
 
-    <!-- 播放器 + 演示音轨 -->
-    <section class="music-demos" aria-label="演示音轨播放器">
-      <div class="player-bar" role="group" aria-label="BGM 播放控制">
-        <button
-          class="p-btn p-main"
-          :aria-label="playing ? '暂停' : '播放'"
-          @click="togglePlay"
-        >
-          {{ playing ? '❚❚' : '▶' }}
-        </button>
-        <button class="p-btn" aria-label="上一首" @click="prevTrack">⏮</button>
-        <button class="p-btn" aria-label="下一首" @click="nextTrack(false)">⏭</button>
-        <button
-          class="p-btn"
-          :class="{ on: shuffle }"
-          :aria-pressed="shuffle"
-          aria-label="随机播放"
-          title="随机播放"
-          @click="toggleShuffle"
-        >
-          🔀
-        </button>
-        <div class="p-info">
-          <span class="p-title">{{ current.title }}</span>
-          <span class="p-artist">{{ current.artist }}</span>
+    <!-- 背景音乐 -->
+    <section class="bgm-card" aria-label="背景音乐播放器">
+      <img class="bgm-cover" :src="bgm.cover" width="120" height="120" alt="雨中森林插画封面：深绿雨林与溪流" loading="lazy">
+      <div class="bgm-body">
+        <div class="bgm-head">
+          <span class="bgm-kicker">背景音乐</span>
+          <h2 class="bgm-title">{{ bgm.title }}</h2>
+          <p class="bgm-note">{{ bgm.note }}</p>
         </div>
-        <div class="p-progress" aria-hidden="true">
-          <div class="p-progress-fill" :style="{ width: progress + '%' }"></div>
-        </div>
-        <span class="p-time">{{ cur }} / {{ dur }}</span>
-        <label class="p-vol">
-          <span aria-hidden="true">🔊</span>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            :value="volume"
-            :aria-valuetext="`音量 ${Math.round(volume * 100)}%`"
-            aria-label="音量"
-            @input="setVolume"
-          />
-        </label>
-      </div>
-
-      <ol class="demo-list">
-        <li
-          v-for="t in demoTracks"
-          :key="t.id"
-          :class="{ active: t.id === currentId, playing: t.id === currentId && playing }"
-        >
-          <button class="demo-row" @click="selectTrack(t.id)">
-            <span class="demo-idx">{{ t.id === currentId && playing ? '♪' : '·' }}</span>
-            <span class="demo-name">{{ t.title }}</span>
-            <span class="demo-note">{{ t.note }}</span>
-            <span class="demo-tag">{{ t.tag }}</span>
+        <div class="bgm-controls" role="group" aria-label="BGM 播放控制">
+          <button
+            class="p-btn p-main"
+            :aria-label="playing ? '暂停背景音乐' : '播放背景音乐'"
+            @click="togglePlay"
+          >
+            {{ playing ? '❚❚' : '▶' }}
           </button>
-        </li>
-      </ol>
-
+          <div class="p-progress" aria-hidden="true">
+            <div class="p-progress-fill" :style="{ width: progress + '%' }"></div>
+          </div>
+          <span class="p-time">{{ cur }} / {{ dur }}</span>
+          <label class="p-vol">
+            <span aria-hidden="true">🔊</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              :value="volume"
+              :aria-valuetext="`音量 ${Math.round(volume * 100)}%`"
+              aria-label="音量"
+              @input="setVolume"
+            />
+          </label>
+        </div>
+      </div>
       <audio
         ref="audio"
-        :src="current.src"
+        :src="bgm.src"
         preload="none"
-        @ended="nextTrack(true)"
         @timeupdate="onTimeUpdate"
+        @ended="onEnded"
       ></audio>
     </section>
 
+    <!-- 我的鼓 -->
+    <section class="drum-section" aria-label="我的架子鼓演奏">
+      <h2 class="sec-title">我打架子鼓</h2>
+      <figure class="drum-fig">
+        <video
+          class="drum-video"
+          :src="drumVideo.src"
+          :poster="drumVideo.poster"
+          controls
+          playsinline
+          preload="metadata"
+        ></video>
+        <figcaption class="drum-caption">
+          {{ drumVideo.desc }}
+        </figcaption>
+      </figure>
+    </section>
+
     <!-- 歌单墙 -->
-    <section class="wish-grid" aria-label="我喜欢的歌，仅文字展示">
+    <section class="wish-grid" aria-label="我喜欢的歌，仅文字与原创封面展示">
       <article v-for="w in wishlist" :key="w.id" class="wish-card">
-        <div class="wish-cover" :style="{ background: `hsl(${w.hue} 32% 26%)` }" aria-hidden="true">
-          <span class="wish-glyph">♪</span>
+        <div class="wish-cover">
+          <img :src="w.cover" :alt="`「${w.title}」的原创意象封面插画`" width="640" height="640" loading="lazy">
         </div>
         <div class="wish-meta">
           <h3 class="wish-title">{{ w.title }}</h3>
@@ -211,10 +165,10 @@ onBeforeUnmount(() => {
     </section>
 
     <p class="music-legal">
-      关于音频：流行音乐录音的公开传播权在唱片公司手里，个人主页（尤其是课程公开链接）放不了。
-      歌单墙只展示歌名与歌手——喜欢请去正版平台听。演示音轨由 ffmpeg
-      程序合成（正弦波叠加，无版权负担），日后的正式 BGM 只会上自创作、CC
-      授权或已购授权的音频。浏览器也不允许页面自动出声，所以永远是你点了才播。
+      关于音频与封面：流行音乐录音和官方专辑封面的公开传播权都在唱片公司手里，个人主页（尤其是课程公开链接）放不了；
+      歌单墙的封面是按我对每首歌的私人意象生成的原创插画，不指向任何真实专辑——喜欢歌本身请去正版平台。
+      背景音乐「雨中森林」由 ffmpeg 程序合成（雨幕/远雷/风三层，无版权负担）；鼓视频是本人录制、音频经现场感处理。
+      浏览器不允许页面自动出声，所有声音都是你点了才播。
     </p>
   </div>
 </template>
@@ -226,22 +180,55 @@ onBeforeUnmount(() => {
   padding: 0 24px 80px;
 }
 
-/* ---- 播放器条 ---- */
-.player-bar {
+/* ---- BGM 卡片 ---- */
+.bgm-card {
+  display: flex;
+  gap: 20px;
+  padding: 18px;
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 6px 22px rgb(20 40 24 / 7%);
+  align-items: center;
+}
+.bgm-cover {
+  width: 120px;
+  height: 120px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+.bgm-body {
+  flex: 1;
+  min-width: 0;
+}
+.bgm-kicker {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  font-weight: 700;
+}
+.bgm-title {
+  margin: 2px 0 0;
+  font-size: 19px;
+  color: var(--ink);
+}
+.bgm-note {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+.bgm-controls {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  margin-top: 14px;
   flex-wrap: wrap;
-  padding: 14px 16px;
-  border: 1.5px solid var(--line);
-  border-radius: 14px;
-  background: var(--panel);
-  box-shadow: 0 4px 18px rgb(20 40 24 / 6%);
 }
 .p-btn {
-  min-width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  min-width: 40px;
+  height: 40px;
+  border-radius: 11px;
   border: 1.5px solid var(--line);
   background: var(--bg);
   color: var(--ink);
@@ -253,33 +240,15 @@ onBeforeUnmount(() => {
   transform: translateY(-1px);
   border-color: var(--accent);
 }
-.p-btn.on {
-  border-color: var(--accent);
-  color: var(--accent);
-}
 .p-main {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
   font-size: 14px;
 }
-.p-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 130px;
-}
-.p-title {
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--ink);
-}
-.p-artist {
-  font-size: 12px;
-  color: var(--ink-soft);
-}
 .p-progress {
   flex: 1;
-  min-width: 90px;
+  min-width: 100px;
   height: 6px;
   border-radius: 3px;
   background: var(--line);
@@ -306,73 +275,35 @@ onBeforeUnmount(() => {
   accent-color: var(--accent);
 }
 
-/* ---- 演示列表 ---- */
-.demo-list {
-  list-style: none;
-  margin: 14px 0 0;
-  padding: 0;
-}
-.demo-list li {
-  border-bottom: 1px dashed var(--line);
-}
-.demo-list li:last-child {
-  border-bottom: 0;
-}
-.demo-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 11px 8px;
-  background: none;
-  border: 0;
-  cursor: pointer;
-  text-align: left;
+/* ---- 鼓视频 ---- */
+.sec-title {
+  margin: 46px 0 16px;
+  font-size: 22px;
   color: var(--ink);
 }
-.demo-row:hover .demo-name {
-  color: var(--accent);
+.drum-fig {
+  margin: 0;
 }
-.demo-idx {
-  width: 18px;
-  text-align: center;
+.drum-video {
+  width: 100%;
+  max-width: 760px;
+  border-radius: 14px;
+  border: 1.5px solid var(--line);
+  background: #000;
+  display: block;
+  aspect-ratio: 16 / 9;
+}
+.drum-caption {
+  margin: 12px 2px 0;
+  font-size: 13px;
+  line-height: 1.8;
   color: var(--ink-soft);
-}
-li.active .demo-idx {
-  color: var(--accent);
-  animation: beat 1s ease-in-out infinite;
-}
-li.playing .demo-idx {
-  font-weight: 700;
-}
-@keyframes beat {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.35); }
-}
-.demo-name {
-  font-size: 14px;
-  font-weight: 600;
-  flex: 0 0 auto;
-}
-.demo-note {
-  flex: 1;
-  font-size: 12px;
-  color: var(--ink-soft);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.demo-tag {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  color: var(--ink-soft);
+  max-width: 760px;
 }
 
 /* ---- 歌单墙 ---- */
 .wish-grid {
-  margin-top: 46px;
+  margin-top: 40px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 18px;
@@ -389,14 +320,18 @@ li.playing .demo-idx {
   box-shadow: 0 10px 24px rgb(20 40 24 / 10%);
 }
 .wish-cover {
-  height: 96px;
-  display: grid;
-  place-items: center;
+  height: 130px;
+  overflow: hidden;
 }
-.wish-glyph {
-  font-size: 30px;
-  color: rgb(255 255 255 / 82%);
-  text-shadow: 0 2px 8px rgb(0 0 0 / 25%);
+.wish-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+.wish-card:hover .wish-cover img {
+  transform: scale(1.05);
 }
 .wish-meta {
   padding: 12px 14px 14px;
@@ -437,8 +372,13 @@ li.playing .demo-idx {
 }
 
 @media (max-width: 640px) {
-  .demo-note {
-    display: none;
+  .bgm-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .bgm-cover {
+    width: 100%;
+    height: 150px;
   }
   .p-progress {
     order: 9;

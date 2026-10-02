@@ -37,7 +37,7 @@ const navItems = [
   { label: '首页', to: '/', exact: true, icon: icons.home },
   { label: '关于', to: '/about', icon: icons.card },
   { label: '知识库', to: '/knowledge', icon: icons.book },
-  { label: '歌单', to: '/music', icon: icons.note },
+  { label: '音乐', to: '/music', icon: icons.note },
   { label: '试玩', to: '/play', icon: icons.game },
   { label: '联系', to: '/contact', icon: icons.mail },
 ]
