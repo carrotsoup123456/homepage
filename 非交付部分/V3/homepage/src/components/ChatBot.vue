@@ -23,7 +23,7 @@ import {
 const PROJECT_LINKS = [
   { re: /Carbon Brain/i, to: '/project/carbon-brain', icon: '🧠', label: 'Carbon Brain' },
   { re: /股票量化/, to: '/project/stock-quant', icon: '📈', label: '股票量化项目' },
-  { re: /二次开发/, to: '/project/claude-code-custom', icon: '🧩', label: '桌面应用二开' },
+  { re: /\bcarrot\b|agent 软件|二次开发/, to: '/project/carrot-agent', icon: '🥕', label: '自己的 Agent 软件' },
   { re: /为官一方/, to: '/project/weiguan-yifang', icon: '🏯', label: '《为官一方》' },
   { re: /TO-DO Panel/i, to: '/project/todo-panel', icon: '📌', label: 'TO-DO Panel' },
 ]

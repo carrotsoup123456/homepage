@@ -73,16 +73,16 @@ describe('match：did-you-mean 与兜底', () => {
 })
 
 describe('match：序数追问（会接话）', () => {
-  it('项目语境下「第二个」→ 股票量化', () => {
+  it('项目语境下「第二个」→ Carbon Brain', () => {
     const r = match('第二个', botQa, ctxProjects)
     expect(r.kind).toBe('answer')
-    expect(r.entry.id).toBe('proj-stock')
+    expect(r.entry.id).toBe('proj-carbon')
     expect(r.contextUpdate.idx).toBe(1)
   })
   it('「下一个」顺序推进', () => {
     const r = match('下一个', botQa, { ...ctxProjects, idx: 1 })
     expect(r.kind).toBe('answer')
-    expect(r.entry.id).toBe('proj-claude')
+    expect(r.entry.id).toBe('proj-stock')
   })
   it('越界（第五个之后「下一个」）老实说没有', () => {
     const r = match('下一个', botQa, { ...ctxProjects, idx: 4 })

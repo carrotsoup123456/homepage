@@ -12,13 +12,13 @@ const BLOCK = 14 // 方块边长（留 4px 缝隙，点阵感而不是实心圆�
 // 桌面档：参考常见点击涟漪的克制尺度
 const SPEED_DESK = 280 // 扩散速度 px/s：配合 220px 半径，单波寿命约 0.8s
 const R_MAX_DESK = 220 // 最远扩散半径：点击点周围一小圈就散，不惊动页面其他内容
-// 手机档：窄屏上同样的像素半径视觉占比是桌面的 3 倍多，必须再收一档——
-// 更小（150px 约手机屏宽 40%）、更慢（寿命仍 ~0.7s）、更轻（透明度降一档），
-// 涟漪是"指尖的小水花"而不是"整屏水波"，贴着手指才舒服
-const SPEED_MOBILE = 215
-const R_MAX_MOBILE = 150
+// 手机档：窄屏上同样的像素半径视觉占比是桌面的 3 倍多，收两档——
+// 最终定调「存在但不凸显」：96px 半径（约手机屏宽 1/4）、透明度 0.22、
+// 涟漪像指尖轻轻一点的水纹，注意得到、但绝不抢内容
+const SPEED_MOBILE = 190
+const R_MAX_MOBILE = 96
 const PEAK_DESK = 0.4
-const PEAK_MOBILE = 0.32
+const PEAK_MOBILE = 0.22
 
 const isNarrow = () => Math.min(window.innerWidth, window.innerHeight) < 560
 // 三道波带：主波最亮，两条尾波渐弱——有层次而不是一根孤零零的线

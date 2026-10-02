@@ -50,7 +50,7 @@ describe('站点数据', () => {
   })
 
   it('二次开发类项目必须写明上游来源（防止把别人的成品说成自己的）', () => {
-    const thirdParty = ['todo-panel', 'claude-code-custom']
+    const thirdParty = ['todo-panel', 'carrot-agent']
     for (const id of thirdParty) {
       const p = projects.find((x) => x.id === id)
       expect(p, `缺少项目 ${id}`).toBeTruthy()

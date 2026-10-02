@@ -16,9 +16,9 @@ export const botName = '小康分身'
 
 // 项目序数追问的顺序（与首页项目区排序一致）
 export const PROJECT_ORDER = [
+  'proj-carrot',
   'proj-carbon',
   'proj-stock',
-  'proj-claude',
   'proj-weiguan',
   'proj-todo',
 ]
@@ -74,36 +74,36 @@ export const botQa = [
     q: '他做过哪些项目？',
     keys: ['哪些项目', '做过什么', '作品', '几个项目', '项目有哪些', '成果', '项目'],
     also: ['作品集', '做过的项目', '有什么项目'],
-    a: '一共 5 个，按展示顺序：① Carbon Brain（DAC 材料吸附预测，团队项目他任组长）② 股票量化软件（LightGBM，28 因子）③ Claude Code 桌面应用二次开发 ④《为官一方》县令治理游戏（可在线试玩！）⑤ TO-DO Panel 桌面面板定制。想先听哪个？直接说「第二个」就行。',
+    a: '一共 5 个，按展示顺序：① carrot agent（设计并做出自己的 Agent 软件——从改装 Claude Code 到复现 Codex 再到自研融合）② Carbon Brain（DAC 材料吸附预测，团队项目他任组长）③ 股票量化软件（LightGBM，28 因子）④《为官一方》县令治理游戏（可在线试玩！）⑤ TO-DO Panel 桌面面板定制。想先听哪个？直接说「第二个」就行。',
     suggest: ['第一个', '第二个', '第四个'],
     context: 'projects',
   },
   {
+    id: 'proj-carrot',
+    q: '第一个：carrot agent 是什么？',
+    keys: ['carrot', 'agent', '第一个项目', 'agent软件', 'agent 软件'],
+    also: ['二开', 'claudecode', '改装', '简易 codex', 'codex'],
+    a: '他设计并做出了自己的 agent 软件「carrot」：第一步把一款第三方 Claude Code 桌面应用改装到能日用（30 轮改造，修掉流式丢块缺陷）；第二步对照开源 Codex 搭了简易复现，验证记忆注入和自动提取；第三步把两边融合成自己的 carrot agent——带人格记忆系统、浏览器能力、上下文管理、手机公网入口，现在每天在用。边界说得很清楚：底座是第三方开源壳 + 官方 SDK，他的工作是吃透、改装、融合。',
+    links: [{ label: '看项目详情', to: '/project/carrot-agent' }],
+    suggest: ['踩过什么坑？', '下一个'],
+  },
+  {
     id: 'proj-carbon',
-    q: '第一个：Carbon Brain 是什么？',
-    keys: ['carbon', 'dac', '碳', '吸附', '材料预测', '第一个项目'],
-    also: ['碳捕集', '直接空气捕集', 'brain'],
+    q: '第二个：Carbon Brain 是什么？',
+    keys: ['carbon', 'dac', '碳', '吸附', '材料预测', '第二个项目'],
+    also: ['碳捕集', '直接空气捕集', 'brain', 'r2为负'],
     a: 'Carbon Brain 是团队项目（他任组长）：用 XGBoost 估算 DAC 吸附材料的饱和度，让装置按需切换吸附/再生。流程已打通，但他如实标注了局限——按日期切分的测试集上 R² 为负，模型还不能上线。',
     links: [{ label: '看项目详情', to: '/project/carbon-brain' }],
     suggest: ['R² 为负是什么意思？', '他当组长做什么？', '下一个'],
   },
   {
     id: 'proj-stock',
-    q: '第二个：股票量化软件是什么？',
-    keys: ['股票量化', '量化软件', '量化交易', 'lightgbm', '选股', '第二个项目'],
+    q: '第三个：股票量化软件是什么？',
+    keys: ['股票量化', '量化软件', '量化交易', 'lightgbm', '选股', '第三个项目'],
     also: ['炒股', '股票', '量化', 'a股'],
     a: '基于 LightGBM 的 A 股量化流程：28 个因子、分类/回归双线。回测区间（2025-01 至 2026-08）机器学习策略总收益 112.74%、超额 66.17%——但注意口径：这是单次回测、未实盘、有幸存者偏差，不能当未来预期。',
     links: [{ label: '看项目详情', to: '/project/stock-quant' }],
     suggest: ['回测数字该怎么读？', '实盘了吗？', '下一个'],
-  },
-  {
-    id: 'proj-claude',
-    q: '第三个：Claude Code 二次开发是什么？',
-    keys: ['claude', '桌面应用', '二次开发', '汉化', '第三个项目'],
-    also: ['二开', 'claudecode', '桌面版'],
-    a: '他在一款第三方 Claude Code 桌面应用上做本地二次开发：界面汉化、注入技能库与工作区面板、修掉流式输出丢块缺陷（根因是消息 id 撞车）。注意：上游是别人的成品软件，他所有展示都标明了归属。',
-    links: [{ label: '看项目详情', to: '/project/claude-code-custom' }],
-    suggest: ['丢块缺陷怎么修的？', '下一个'],
   },
   {
     id: 'proj-weiguan',
@@ -132,7 +132,7 @@ export const botQa = [
     keys: ['最难', '最有挑战', '印象最深', '最有价值', '最得意'],
     also: ['挑战性', '最难的项目'],
     a: '他自己说印象最深的是给 Claude Code 桌面应用修「流式输出丢块」的缺陷：要看懂别人的代码、定位到消息 id 撞车的根因，还要用探针数据证明修对了（修前 9 条 vs 17 条对不上，修后两边一致）。',
-    links: [{ label: '看这个项目', to: '/project/claude-code-custom' }],
+    links: [{ label: '看这个项目', to: '/project/carrot-agent' }],
   },
 
   // ================= 项目细分：Carbon Brain =================
