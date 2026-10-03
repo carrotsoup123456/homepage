@@ -1987,7 +1987,9 @@ body {
     margin: 0;
     overflow: hidden;
     visibility: hidden;
-    transition: max-height 0.35s var(--ease, ease), padding 0.35s var(--ease, ease), visibility 0.35s;
+    /* padding 不做过渡：打开瞬间两侧留白到位，li 的 offsetLeft 立即稳定，
+       菜单可以在展开的同时直接定位到当前页（不再先吸到别处再跳回来） */
+    transition: max-height 0.35s var(--ease, ease), visibility 0.35s;
     -webkit-overflow-scrolling: touch;
   }
   .nav-wheel.open {

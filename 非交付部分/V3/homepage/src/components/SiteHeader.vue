@@ -31,21 +31,17 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   mq?.removeEventListener?.('change', onMqChange)
-  clearTimeout(openTimer)
   if (wheelRaf) cancelAnimationFrame(wheelRaf)
 })
 
 // 打开菜单时：把当前页对应的项滚到中心（不加动画，直接落位）。
-// 注意：菜单展开的 padding 有 0.35s 过渡，期间 li 的 offsetLeft 还在变，
-// 立即定位会偏左、被 snap 吸到错误项——等过渡结束再落位。
-let openTimer = null
-watch(menuOpen, (open) => {
-  clearTimeout(openTimer)
+// padding 已改为瞬时到位（不参与过渡），nextTick 后 offsetLeft 即稳定，
+// 可以在菜单展开的同时一步定位，不产生「先吸到别的栏再跳回来」的中间态。
+watch(menuOpen, async (open) => {
   if (!open || !isMobile.value) return
-  openTimer = setTimeout(() => {
-    const idx = navItems.findIndex((it) => isActive(it))
-    if (idx >= 0) centerItem(idx, false)
-  }, 380)
+  await nextTick()
+  const idx = navItems.findIndex((it) => isActive(it))
+  if (idx >= 0) centerItem(idx, false)
 })
 
 // 定位：idx 是真身下标，滚动到中份对应项

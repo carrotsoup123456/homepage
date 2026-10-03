@@ -449,6 +449,7 @@ onBeforeUnmount(() => {
   bottom: 92px; /* 回顶按钮在 28px，分身叠在它上方 */
   display: flex;
   align-items: center;
+  justify-content: center; /* 收缩成圆时 emoji 必须在圆心 */
   min-width: 52px;
   width: auto;
   height: 52px;
