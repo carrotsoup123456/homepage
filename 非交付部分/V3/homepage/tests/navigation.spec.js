@@ -123,8 +123,8 @@ describe('v6.27 移动端体验完善', () => {
     const w = mount(SiteHeader, { global: { plugins: [router] } })
     await flushPromises()
     expect(w.find('.nav-wheel').exists()).toBe(true)
-    // 6 个栏目 × 3 份循环列表 = 18 项
-    expect(w.findAll('.wheel-item').length).toBe(18)
+    // 11 个槽位（中心 ±5），六个栏目循环取用
+    expect(w.findAll('.wheel-item').length).toBe(11)
     expect(w.find('.nav-links').exists()).toBe(false) // 桌面版列表不出
     await w.find('.nav-toggle').trigger('click')
     await flushPromises()
@@ -133,7 +133,7 @@ describe('v6.27 移动端体验完善', () => {
     vi.unstubAllGlobals()
   })
 
-  it('v6.29：轮播三档胶囊（center/near/far）与循环点按跳转', async () => {
+  it('v6.32：轮播 11 槽位三档 + 循环取栏 + 点按跳转', async () => {
     vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
     const { default: SiteHeader } = await import('../src/components/SiteHeader.vue')
     const router = makeRouter()
@@ -142,21 +142,31 @@ describe('v6.27 移动端体验完善', () => {
     await w.find('.nav-toggle').trigger('click')
     await flushPromises()
     const items = w.findAll('.wheel-item')
-    const centers = items.filter((it) => it.classes().includes('center'))
-    const nears = items.filter((it) => it.classes().includes('near'))
-    const fars = items.filter((it) => it.classes().includes('far'))
-    // 三档：1 中心 + 2 相邻 + 3 边缘（每份）
-    expect(centers.length).toBe(3)
-    expect(nears.length).toBe(6)
-    expect(fars.length).toBe(9)
-    // 点中份的「音乐」（i=9，真身 3）：非中心 → 滚动选中（不跳转）
-    await items[9].find('.wheel-btn').trigger('click')
+    // 三档：1 中心 + 2 相邻 + 8 边缘
+    expect(items.filter((it) => it.classes().includes('center')).length).toBe(1)
+    expect(items.filter((it) => it.classes().includes('near')).length).toBe(2)
+    expect(items.filter((it) => it.classes().includes('far')).length).toBe(8)
+    // 窗口内容首尾相连：中心是首页(0)，槽 6..10 = 关于/知识库/音乐/试玩/联系
+    const labels = items.map((it) => it.text())
+    expect(labels[5]).toContain('首页')
+    // 右方向：关于 → 知识库 → 音乐 → 试玩 → 联系（槽 10 是队尾）
+    expect(labels[6]).toContain('关于')
+    expect(labels[10]).toContain('联系')
+    // 左方向（首尾相连）：左邻是队尾「联系」，再左「试玩」——越过队首接队尾
+    expect(labels[4]).toContain('联系')
+    expect(labels[3]).toContain('试玩')
+    // 点槽 7（内容=知识库，真身 2）：滚到中心（trackX 动画中）
+    await items[7].find('.wheel-btn').trigger('click')
     await flushPromises()
-    expect(w.vm.$.setupState.activeIdx).toBe(3)
-    // 再点同一项：中心 → 跳转音乐页
-    await items[9].find('.wheel-btn').trigger('click')
+    expect(w.vm.$.setupState.trackX).toBe(-2 * 124)
+    // 330ms 归一化后：activeIdx = 2（知识库），trackX 回 0
+    await new Promise((r) => setTimeout(r, 380))
+    expect(w.vm.$.setupState.activeIdx).toBe(2)
+    expect(w.vm.$.setupState.trackX).toBe(0)
+    // 归一化后中心是知识库，再点中心槽 → 跳转
+    await w.findAll('.wheel-item')[5].find('.wheel-btn').trigger('click')
     await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/music')
+    expect(router.currentRoute.value.path).toBe('/knowledge')
     vi.unstubAllGlobals()
   })
 

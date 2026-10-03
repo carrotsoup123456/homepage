@@ -1,5 +1,5 @@
 <script setup>
-import { ref, inject, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, inject, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 // 移动端导航开关
@@ -8,17 +8,19 @@ const toggleBtn = ref(null)
 const route = useRoute()
 const router = useRouter()
 
-// ---- 移动端横向吸附轮播菜单（仅 <=768px；桌面保持原布局）----
-// 交互：scroll-snap 强制把一个按钮吸附到屏幕水平中心；中心项放大高亮，
-// 两侧缩小变淡；一次滑动只切换一项（scroll-snap-stop: always）。
-// 点非中心项=把它滚到中心选中；点中心项=跳转页面。
+// ---- 移动端横向轮播菜单（仅 <=768px；桌面保持原布局）----
+// 真无限循环：不用原生滚动（没有滚动条、没有物理边界）。11 个固定槽位
+// 绕着当前项旋转，六个栏目首尾相连——拖动跟手、松手吸附，两侧永远有下一格。
+// 中心槽点击=进入页面；点旁边=滚到中心。（windowItems/go/tapSlot 定义在
+// navItems 之后，见下；函数声明提升，此处即可安全调用）
 const isMobile = ref(false)
 let mq = null
-const activeIdx = ref(0) // 当前居中项的「真身」下标（0-5）
-const wheelEl = ref(null)
-const itemEls = ref([])
+const activeIdx = ref(0) // 当前居中栏目的真身下标（0-5）
+const trackX = ref(0) // 槽位整体视觉偏移：拖动中跟手，松手后动画到 -delta*STEP
+const dragging = ref(false) // 拖动态：关掉过渡，跟手
+const STEP = 124 // 槽位间距（视口内 3 整颗 + 2 露边 = 5 颗胶囊）
+const WIN = 11 // 窗口槽位数（中心 ±5）
 
-// 无限循环所需的 N / loopItems / ringDist 定义在 navItems 之后（见下）
 function onMqChange(e) {
   isMobile.value = e.matches
 }
@@ -31,81 +33,63 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   mq?.removeEventListener?.('change', onMqChange)
-  clearTimeout(settleTimer)
-  if (wheelRaf) cancelAnimationFrame(wheelRaf)
+  clearTimeout(normalizeTimer)
 })
 
-// 打开菜单时：把当前页对应的项滚到中心（不加动画，直接落位）。
-// padding 已改为瞬时到位（不参与过渡），nextTick 后 offsetLeft 即稳定，
-// 可以在菜单展开的同时一步定位，不产生「先吸到别的栏再跳回来」的中间态。
-watch(menuOpen, async (open) => {
-  if (!open || !isMobile.value) return
-  await nextTick()
+// 打开菜单：当前页的栏目直接落位到中心槽（transform 方案无过渡等待）
+watch(menuOpen, (open) => {
+  if (!open) return
   const idx = navItems.findIndex((it) => isActive(it))
-  if (idx >= 0) centerItem(idx, false)
+  if (idx >= 0) activeIdx.value = idx
+  trackX.value = 0
+  pendingDelta = 0
+  clearTimeout(normalizeTimer)
 })
 
-// 定位：idx 是真身下标，滚动到中份对应项
-function centerItem(idx, smooth = true) {
-  const el = itemEls.value[idx + N]
-  const box = wheelEl.value
-  if (!el || !box) return
-  const left = el.offsetLeft + el.offsetWidth / 2 - box.clientWidth / 2
-  if (typeof box.scrollTo === 'function') {
-    box.scrollTo({ left, behavior: smooth ? 'smooth' : 'auto' })
-  } else {
-    box.scrollLeft = left // 测试环境（jsdom）没有 scrollTo，直接落位
-  }
-  activeIdx.value = idx
-}
-
-// 滚动中实时找离中心最近的项 = 激活态（rAF 节流）
-let wheelRaf = 0
-let settleTimer = null
-function onWheelScroll() {
-  if (wheelRaf) return
-  wheelRaf = requestAnimationFrame(() => {
-    wheelRaf = 0
-    const box = wheelEl.value
-    if (!box) return
-    const center = box.scrollLeft + box.clientWidth / 2
-    let best = 0
-    let bestD = Infinity
-    itemEls.value.forEach((el, i) => {
-      if (!el) return
-      const d = Math.abs(el.offsetLeft + el.offsetWidth / 2 - center)
-      if (d < bestD) {
-        bestD = d
-        best = i
-      }
-    })
-    // 高亮实时跟手：真身下标 = 绝对下标 % N（副本区与真身同步点亮）
-    activeIdx.value = best % N
-    // 停稳后（160ms 无新滚动）若落在首/尾副本区，无感平移回中份对应位置。
-    // 不能在惯性滚动中改 scrollLeft（会掐断原生惯性），debounce 等停稳再做。
-    clearTimeout(settleTimer)
-    if (best < N || best >= 2 * N) {
-      settleTimer = setTimeout(() => {
-        const twin = itemEls.value[(best % N) + N]
-        const cur = itemEls.value[best]
-        if (twin && cur && wheelEl.value) {
-          wheelEl.value.scrollLeft += twin.offsetLeft - cur.offsetLeft
-        }
-      }, 160)
+// ---- 触摸拖动 ----
+let touchStartX = 0
+let startTrackX = 0
+let lastMoveX = 0
+let lastMoveT = 0
+let velocity = 0
+let suppressClick = false
+function onTouchStart(e) {
+  const t = e.touches[0]
+  // 若上一轮吸附动画还没归一化，先就地完成归一化再开始拖
+  if (normalizeTimer) {
+    clearTimeout(normalizeTimer)
+    normalizeTimer = null
+    if (pendingDelta) {
+      activeIdx.value = mod(activeIdx.value + pendingDelta, N)
+      pendingDelta = 0
     }
-  })
-}
-
-// 点非中心项：滚到中心选中；点中心项：进入该页面
-// loopIdx 是 3 份循环列表中的绝对下标；真身 = loopIdx % N
-function tapItem(loopIdx, item) {
-  const real = loopIdx % N
-  if (activeIdx.value === real) {
-    menuOpen.value = false
-    router.push(item.to)
-  } else {
-    centerItem(real)
+    trackX.value = 0
   }
+  touchStartX = t.clientX
+  startTrackX = trackX.value
+  velocity = 0
+  lastMoveX = t.clientX
+  lastMoveT = performance.now()
+  suppressClick = false
+  dragging.value = true
+}
+function onTouchMove(e) {
+  const t = e.touches[0]
+  trackX.value = startTrackX + (t.clientX - touchStartX)
+  const now = performance.now()
+  if (now > lastMoveT) {
+    velocity = (t.clientX - lastMoveX) / (now - lastMoveT)
+    lastMoveX = t.clientX
+    lastMoveT = now
+  }
+  if (Math.abs(trackX.value - startTrackX) > 8) suppressClick = true
+}
+function onTouchEnd() {
+  dragging.value = false
+  let delta = Math.round(-trackX.value / STEP)
+  if (Math.abs(velocity) > 0.55) delta += velocity > 0 ? -1 : 1 // 甩一下多跨一格
+  delta = Math.max(-(WIN >> 1), Math.min(WIN >> 1, delta))
+  go(delta)
 }
 
 // 主题切换（由 App.vue 注入，见 provide/inject）；
@@ -192,11 +176,45 @@ const navItems = [
 // 副本区时无感跳回中份——左划右划都没有尽头。三档大小：中心最大高亮、
 // 左右相邻第二档、再往外最小（视口内共 5 颗胶囊）。
 const N = navItems.length
-const loopItems = [...navItems, ...navItems, ...navItems]
-// 环形距离：a、b 都是真身下标
-function ringDist(a, b) {
-  const d = Math.abs(a - b) % N
-  return Math.min(d, N - d)
+function mod(a, b) {
+  return ((a % b) + b) % b
+}
+// 窗口内容：槽 5 = 当前项，向两边循环取栏目（下标对 6 取模 → 首尾相连）
+const windowItems = computed(() =>
+  Array.from({ length: WIN }, (_, k) => navItems[mod(activeIdx.value + k - 5, N)])
+)
+
+// 滚动 delta 格：先动画过去，330ms 后内容归一化（重排 + 瞬移回中心，视觉无感）
+let normalizeTimer = null
+let pendingDelta = 0
+function go(delta) {
+  clearTimeout(normalizeTimer)
+  if (!delta) {
+    trackX.value = 0
+    return
+  }
+  trackX.value = -delta * STEP
+  pendingDelta = delta
+  normalizeTimer = setTimeout(() => {
+    activeIdx.value = mod(activeIdx.value + pendingDelta, N)
+    pendingDelta = 0
+    trackX.value = 0
+  }, 330)
+}
+
+// 点槽位：中心=进入页面；旁边=滚到中心（与拖动共用 go）
+function tapSlot(k) {
+  if (suppressClick) {
+    suppressClick = false
+    return
+  }
+  const delta = k - 5
+  if (delta === 0) {
+    menuOpen.value = false
+    router.push(windowItems.value[5].to)
+  } else {
+    go(delta)
+  }
 }
 
 
@@ -239,28 +257,28 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
       >
         ☰
       </button>
-      <!-- 移动端：横向吸附轮播菜单（点非中心项=选中滚到中心；点中心项=进入） -->
+      <!-- 移动端：横向轮播（transform 驱动，无滚动条，六栏目真首尾相连） -->
       <ul
         v-if="isMobile"
         id="primary-nav"
-        ref="wheelEl"
         class="nav-wheel"
         :class="{ open: menuOpen }"
-        @scroll.passive="onWheelScroll"
+        @touchstart.passive="onTouchStart"
+        @touchmove.passive="onTouchMove"
+        @touchend.passive="onTouchEnd"
       >
-        <!-- 3 份循环列表：滚进首尾副本无感跳回中份，实现没有尽头的循环条带 -->
         <li
-          v-for="(item, i) in loopItems"
-          :key="i"
-          :ref="(el) => (itemEls[i] = el)"
+          v-for="(it, k) in windowItems"
+          :key="k"
           class="wheel-item"
-          :class="{ center: ringDist(i % N, activeIdx) === 0, near: ringDist(i % N, activeIdx) === 1, far: ringDist(i % N, activeIdx) >= 2 }"
+          :class="{ center: k === 5, near: Math.abs(k - 5) === 1, far: Math.abs(k - 5) >= 2, 'no-anim': dragging }"
+          :style="{ transform: 'translateX(' + ((k - 5) * STEP + trackX) + 'px)' }"
         >
-          <button type="button" class="wheel-btn" :aria-current="ringDist(i % N, activeIdx) === 0 ? 'true' : undefined" @click="tapItem(i, item)">
+          <button type="button" class="wheel-btn" :aria-current="k === 5 ? 'true' : undefined" @click="tapSlot(k)">
             <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path v-for="(d, j) in item.icon" :key="j" :d="d" />
+              <path v-for="(d, j) in it.icon" :key="j" :d="d" />
             </svg>
-            <span>{{ item.label }}</span>
+            <span>{{ it.label }}</span>
           </button>
         </li>
       </ul>

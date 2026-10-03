@@ -1975,37 +1975,36 @@ body {
     white-space: nowrap;
   }
 
-  /* —— 轮播轨道：scroll-snap 强制居中吸附，一次只切一项 —— */
+  /* —— 轮播窗口：不是滚动容器（overflow hidden，没有滚动条、没有边界），
+     11 个槽位绕中心旋转，六个栏目首尾相连 —— */
   .nav-wheel {
     flex-basis: 100%;
     display: flex;
-    gap: 16px;
+    justify-content: center;
+    align-items: center;
     list-style: none;
-    /* 推挤式收起（与旧菜单同款动画语义） */
     max-height: 0;
     padding: 0 0;
     margin: 0;
     overflow: hidden;
     visibility: hidden;
-    /* padding 不做过渡：打开瞬间两侧留白到位，li 的 offsetLeft 立即稳定，
-       菜单可以在展开的同时直接定位到当前页（不再先吸到别处再跳回来） */
     transition: max-height 0.35s var(--ease, ease), visibility 0.35s;
-    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y; /* 横向手势留给轮播自己处理，竖向照常滚页面 */
   }
   .nav-wheel.open {
     max-height: 150px;
-    /* 两侧留白 = 让第一个/最后一个按钮也能吸附到屏幕中心 */
-    padding: 16px calc(50vw - 62px) 10px;
-    overflow-x: auto;
-    overflow-y: hidden;
+    padding: 18px 0 10px;
     visibility: visible;
-    scroll-snap-type: x mandatory;
   }
   .wheel-item {
-    flex: 0 0 auto;
+    flex: 0 0 124px; /* 槽位宽 = 槽间距，胶囊在槽内居中 */
     display: flex;
-    scroll-snap-align: center;
-    scroll-snap-stop: always; /* 一次滑动只切换一项 */
+    justify-content: center;
+    transition: transform 0.32s var(--ease, ease); /* 松手后的吸附动画 */
+    will-change: transform;
+  }
+  .wheel-item.no-anim {
+    transition: none; /* 拖动跟手 */
   }
   /* 细长胶囊（横排 图标+文字），三档大小：center 最大高亮 / near 第二档 / far 最小 */
   .wheel-btn {
