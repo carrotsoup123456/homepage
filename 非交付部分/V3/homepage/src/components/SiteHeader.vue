@@ -1,10 +1,89 @@
 <script setup>
-import { ref, inject, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { ref, inject, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 // 移动端导航开关
 const menuOpen = ref(false)
 const toggleBtn = ref(null)
+const route = useRoute()
+const router = useRouter()
+
+// ---- 移动端横向吸附轮播菜单（仅 <=768px；桌面保持原布局）----
+// 交互：scroll-snap 强制把一个按钮吸附到屏幕水平中心；中心项放大高亮，
+// 两侧缩小变淡；一次滑动只切换一项（scroll-snap-stop: always）。
+// 点非中心项=把它滚到中心选中；点中心项=跳转页面。
+const isMobile = ref(false)
+let mq = null
+const activeIdx = ref(0)
+const wheelEl = ref(null)
+const itemEls = ref([])
+
+function onMqChange(e) {
+  isMobile.value = e.matches
+}
+onMounted(() => {
+  if (typeof window.matchMedia === 'function') {
+    mq = window.matchMedia('(max-width: 768px)')
+    isMobile.value = mq.matches
+    mq.addEventListener?.('change', onMqChange)
+  }
+})
+onBeforeUnmount(() => {
+  mq?.removeEventListener?.('change', onMqChange)
+  if (wheelRaf) cancelAnimationFrame(wheelRaf)
+})
+
+// 打开菜单时：把当前页对应的项滚到中心（不加动画，直接落位）
+watch(menuOpen, async (open) => {
+  if (!open || !isMobile.value) return
+  await nextTick()
+  const idx = navItems.findIndex((it) => isActive(it))
+  if (idx >= 0) centerItem(idx, false)
+})
+
+function centerItem(idx, smooth = true) {
+  const el = itemEls.value[idx]
+  const box = wheelEl.value
+  if (!el || !box) return
+  box.scrollTo({
+    left: el.offsetLeft + el.offsetWidth / 2 - box.clientWidth / 2,
+    behavior: smooth ? 'smooth' : 'auto',
+  })
+  activeIdx.value = idx
+}
+
+// 滚动中实时找离中心最近的项 = 激活态（rAF 节流）
+let wheelRaf = 0
+function onWheelScroll() {
+  if (wheelRaf) return
+  wheelRaf = requestAnimationFrame(() => {
+    wheelRaf = 0
+    const box = wheelEl.value
+    if (!box) return
+    const center = box.scrollLeft + box.clientWidth / 2
+    let best = 0
+    let bestD = Infinity
+    itemEls.value.forEach((el, i) => {
+      if (!el) return
+      const d = Math.abs(el.offsetLeft + el.offsetWidth / 2 - center)
+      if (d < bestD) {
+        bestD = d
+        best = i
+      }
+    })
+    activeIdx.value = best
+  })
+}
+
+// 点非中心项：滚到中心选中；点中心项：进入该页面
+function tapItem(idx, item) {
+  if (activeIdx.value === idx) {
+    menuOpen.value = false
+    router.push(item.to)
+  } else {
+    centerItem(idx)
+  }
+}
 
 // 主题切换（由 App.vue 注入，见 provide/inject）
 const theme = inject('theme')
@@ -46,7 +125,6 @@ const navItems = [
   { label: '联系', to: '/contact', icon: icons.mail },
 ]
 
-const route = useRoute()
 
 // 当前页高亮：既用于样式（.active），也用于读屏（aria-current）
 function isActive(item) {
@@ -74,6 +152,8 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
   <header class="site-header" @keydown="onKeydown">
     <div class="container nav">
       <RouterLink to="/" class="nav-brand">{{ '刘博康' }}</RouterLink>
+      <!-- 汉堡按钮的小注释：告诉第一次来的访客这里能展开栏目（仅移动端显示） -->
+      <span class="nav-hint" aria-hidden="true">点此处可以了解更多信息 →</span>
       <button
         ref="toggleBtn"
         class="nav-toggle"
@@ -85,7 +165,72 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
       >
         ☰
       </button>
-      <ul id="primary-nav" class="nav-links" :class="{ open: menuOpen }">
+      <!-- 移动端：横向吸附轮播菜单（点非中心项=选中滚到中心；点中心项=进入） -->
+      <ul
+        v-if="isMobile"
+        id="primary-nav"
+        ref="wheelEl"
+        class="nav-wheel"
+        :class="{ open: menuOpen }"
+        @scroll.passive="onWheelScroll"
+      >
+        <li
+          v-for="(item, i) in navItems"
+          :key="item.to"
+          :ref="(el) => (itemEls[i] = el)"
+          class="wheel-item"
+          :class="{ center: activeIdx === i }"
+        >
+          <button type="button" class="wheel-btn" :aria-current="activeIdx === i ? 'true' : undefined" @click="tapItem(i, item)">
+            <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path v-for="(d, j) in item.icon" :key="j" :d="d" />
+            </svg>
+            <span>{{ item.label }}</span>
+          </button>
+        </li>
+      </ul>
+      <!-- 移动端：音乐/主题开关独立一行（不混进轮播序列） -->
+      <div v-if="isMobile" class="wheel-extras" :class="{ open: menuOpen }">
+        <button
+          type="button"
+          class="bgm-toggle"
+          :class="{ 'is-playing': playing }"
+          data-testid="bgm-toggle"
+          @click="togglePlay"
+          :aria-label="playing ? '暂停背景音乐' : '播放背景音乐'"
+          :aria-pressed="playing"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 18V5l12-2v13" />
+            <circle cx="6" cy="18" r="3" />
+            <circle cx="18" cy="16" r="3" />
+          </svg>
+        </button>
+        <button
+          class="theme-toggle"
+          type="button"
+          data-testid="theme-toggle"
+          @click="toggleTheme"
+          :aria-label="theme === 'dark' ? '切换为浅色模式' : '切换为深色模式'"
+          :aria-pressed="theme === 'dark'"
+        >
+          <svg
+            v-if="theme === 'dark'"
+            class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"
+          >
+            <path v-for="(d, i) in icons.sun" :key="i" :d="d" />
+          </svg>
+          <svg
+            v-else
+            class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+          >
+            <path v-for="(d, i) in icons.moon" :key="i" :d="d" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- 桌面端：原有横向链接布局 -->
+      <ul v-else id="primary-nav" class="nav-links" :class="{ open: menuOpen }">
         <li v-for="item in navItems" :key="item.to">
           <RouterLink
             :to="item.to"

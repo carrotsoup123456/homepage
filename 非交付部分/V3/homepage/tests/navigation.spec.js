@@ -104,3 +104,60 @@ describe('微信左滑退出防护 useBackGuard', () => {
     vi.unstubAllGlobals()
   })
 })
+
+describe('v6.27 移动端体验完善', () => {
+  it('汉堡按钮左侧带引导注释（含箭头符号）', async () => {
+    const { default: SiteHeader } = await import('../src/components/SiteHeader.vue')
+    const router = makeRouter()
+    const w = mount(SiteHeader, { global: { plugins: [router] } })
+    const hint = w.find('.nav-hint')
+    expect(hint.exists()).toBe(true)
+    expect(hint.text()).toContain('点此处可以了解更多信息')
+    expect(hint.text()).toContain('→')
+  })
+
+  it('移动端（matchMedia 命中）渲染横向轮播菜单而非竖排列表', async () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
+    const { default: SiteHeader } = await import('../src/components/SiteHeader.vue')
+    const router = makeRouter()
+    const w = mount(SiteHeader, { global: { plugins: [router] } })
+    await flushPromises()
+    expect(w.find('.nav-wheel').exists()).toBe(true)
+    expect(w.findAll('.wheel-item').length).toBe(6)
+    expect(w.find('.nav-links').exists()).toBe(false) // 桌面版列表不出
+    // 打开菜单：当前页（首页）居中高亮
+    await w.find('.nav-toggle').trigger('click')
+    await flushPromises()
+    expect(w.find('.wheel-item.center').exists()).toBe(true)
+    vi.unstubAllGlobals()
+  })
+
+  it('项目图随段落：carrot 各小节图入位，图集区只留未认领的', async () => {
+    const { default: ProjectDetailView } = await import('../src/views/ProjectDetailView.vue')
+    const router = makeRouter()
+    await router.push('/project/carrot-agent')
+    const w = mount(ProjectDetailView, { global: { plugins: [router] } })
+    await flushPromises()
+    // 5 张图全部按锚点入段
+    expect(w.findAll('.chunk-gallery .gallery-item').length).toBe(6)
+    // 兜底图集为空 → 不渲染
+    expect(w.find('.detail-gallery').exists()).toBe(false)
+    // fork 段落带 2 张图（drift + toolbox）
+    const secs = w.findAll('.md-chunk')
+    const forkSec = secs.find((sec) => sec.text().includes('fork 漂移'))
+    expect(forkSec?.element.nextElementSibling?.querySelectorAll('.gallery-item').length).toBe(2)
+  })
+
+  it('项目页「返回首页」走 back 语义（回到来的地方）', async () => {
+    const { default: ProjectDetailView } = await import('../src/views/ProjectDetailView.vue')
+    const router = makeRouter()
+    await router.push('/')
+    await router.push('/project/carrot-agent')
+    const back = vi.spyOn(router, 'back')
+    const w = mount(ProjectDetailView, { global: { plugins: [router] } })
+    await flushPromises()
+    expect(w.find('.back-link').text()).toContain('返回首页')
+    await w.find('.back-link').trigger('click')
+    expect(back).toHaveBeenCalled()
+  })
+})

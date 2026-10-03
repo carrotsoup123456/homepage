@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { goBack } from '../composables/goBack.js'
 import { marked } from 'marked'
 import { projects } from '../data/site.js'
 import { setPageMeta } from '../data/meta.js'
@@ -10,14 +11,40 @@ import BackBar from '../components/BackBar.vue'
 import NotFoundView from './NotFoundView.vue'
 
 const route = useRoute()
+const router = useRouter()
+
+// 返回首页 = 回到访客来的地方（首页滚动位置也由 savedPosition 恢复）
+function backHome() {
+  goBack(router, '/')
+}
 
 // 根据路由 id 查找项目
 const project = computed(() => projects.find((p) => p.id === route.params.id))
 
-// 渲染 Markdown 为 HTML（含化学式 sup 保留）
-const rendered = computed(() => {
-  if (!project.value) return ''
-  return marked.parse(project.value.long || '')
+// 渲染 Markdown 为 HTML，并按 <h3> 小节拆开：
+// 带 anchor 的图插到对应小节的文字后面（图随段落走，不再全部堆一个图集），
+// 没配 anchor / 匹配不上的图留在页面底部的「项目展示」区兜底。
+const sections = computed(() => {
+  if (!project.value) return []
+  const html = marked.parse(project.value.long || '')
+  const chunks = html.split(/(?=<h3)/).filter((c) => c.trim())
+  return chunks.map((chunk) => {
+    const h3 = (chunk.match(/<h3[^>]*>([\s\S]*?)<\/h3>/) || [])[1] || ''
+    const plain = h3.replace(/<[^>]+>/g, '')
+    const imgs = (project.value.images || []).filter((im) => {
+      if (!im.anchor) return false
+      if (!h3) return im.anchor === 'intro'
+      return plain.includes(im.anchor)
+    })
+    return { html: chunk, imgs }
+  })
+})
+
+// 兜底图集：没被任何小节认领的图
+const galleryImages = computed(() => {
+  if (!project.value) return []
+  const claimed = new Set(sections.value.flatMap((sec) => sec.imgs.map((i) => i.src)))
+  return (project.value.images || []).filter((im) => !claimed.has(im.src))
 })
 
 // 标签页标题跟着项目走。
@@ -76,7 +103,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="container page">
     <template v-if="project">
-      <RouterLink to="/" class="back-link">← 返回首页</RouterLink>
+      <button type="button" class="back-link" @click="backHome">← 返回首页</button>
       <section class="detail-hero" v-reveal>
         <div class="detail-icon">{{ project.icon }}</div>
         <div>
@@ -89,8 +116,24 @@ onBeforeUnmount(() => {
       </section>
 
       <section class="detail-body" v-reveal>
-        <!-- Markdown 渲染：v-html 需信任数据（本项目数据为本地硬编码，安全） -->
-        <div class="markdown" v-html="rendered"></div>
+        <!-- 按小节渲染；每节后紧跟属于它的图（图随段落走） -->
+        <template v-for="(sec, i) in sections" :key="i">
+          <!-- v-html 需信任数据（本项目数据为本地硬编码，安全） -->
+          <div class="markdown md-chunk" v-html="sec.html"></div>
+          <div v-if="sec.imgs.length" class="chunk-gallery" :class="{ wide: sec.imgs.length > 1 }">
+            <figure v-for="(img, j) in sec.imgs" :key="img.src + j" class="gallery-item">
+              <button
+                type="button"
+                class="gallery-btn"
+                :aria-label="`放大查看：${img.alt}`"
+                @click="openImage(img, $event)"
+              >
+                <img :src="img.src" :alt="img.alt" loading="lazy" v-bind="imgSize(img.src)" />
+              </button>
+              <figcaption v-if="img.alt">{{ img.alt }}</figcaption>
+            </figure>
+          </div>
+        </template>
       </section>
 
       <!-- 《为官一方》专属：站内试玩入口 -->
@@ -105,12 +148,12 @@ onBeforeUnmount(() => {
         </a>
       </section>
 
-      <!-- 项目展示图 -->
-      <section class="detail-gallery" v-reveal v-if="project.images && project.images.length">
+      <!-- 项目展示图（兜底：只有没被小节认领的图才落在这里） -->
+      <section class="detail-gallery" v-reveal v-if="galleryImages.length">
         <h2 class="section-title">项目展示</h2>
         <p class="gallery-hint">点击图片可查看完整大图</p>
         <div class="gallery-grid">
-          <figure v-for="(img, i) in project.images" :key="img.src + i" class="gallery-item">
+          <figure v-for="(img, i) in galleryImages" :key="img.src + i" class="gallery-item">
             <!-- 图片本身用 <button> 包起来：这样键盘用户 Tab 得到、也能按回车打开，
                  单纯给 <figure> 加 @click 只有鼠标能用 -->
             <button

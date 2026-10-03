@@ -8,6 +8,7 @@
 // 就真的回上一页；直接打开分享链接（无来路）则回指定列表页。
 // ======================================================
 import { useRouter } from 'vue-router'
+import { goBack } from '../composables/goBack.js'
 
 const props = defineProps({
   to: { type: String, default: '/' }, // 无来路时的兜底去向
@@ -17,11 +18,7 @@ const props = defineProps({
 const router = useRouter()
 
 function go() {
-  if (window.history.state?.back) {
-    router.back()
-  } else {
-    router.push(props.to)
-  }
+  goBack(router, props.to)
 }
 </script>
 

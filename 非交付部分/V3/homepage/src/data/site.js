@@ -98,12 +98,12 @@ export const projects = [
     tech: 'Node.js / Claude Agent SDK / Electron / Playwright MCP / sqlite',
     role: '独立设计与开发（起点基于第三方开源壳，详见正文）',
     images: [
-      { src: asset('projects/carrot/ui.webp'), alt: 'carrot 最终形态：对话区 + 快捷指令栏 + 技能库面板 + 上下文余量条' },
-      { src: asset('projects/carrot/phone.webp'), alt: '手机远程操控实拍：手里的 iPhone 经公网隧道连着电脑上的同一个 carrot 会话——电脑干活，手机接力' },
-      { src: asset('projects/claude-code/card.webp'), alt: '第一步改装 Claude Code：注入的技能库面板（全中文名 + 分类）' },
-      { src: asset('projects/carrot/toolbox.webp'), alt: 'carrot 工具箱面板：内置工具与浏览器模组一览（MCP 可视化）' },
-      { src: asset('projects/carrot/goals.webp'), alt: 'carrot 目标面板：GOALS.md 界面化，勾选即回写文件' },
-      { src: asset('projects/carrot/drift.webp'), alt: 'carrot 更新防护链：实时官方日志 + fork 漂移预检' },
+      { src: asset('projects/carrot/ui.webp'), alt: 'carrot 最终形态：对话区 + 快捷指令栏 + 技能库面板 + 上下文余量条', anchor: '第三步' },
+      { src: asset('projects/carrot/phone.webp'), alt: '手机远程操控实拍：手里的 iPhone 经公网隧道连着电脑上的同一个 carrot 会话——电脑干活，手机接力', anchor: '第三步' },
+      { src: asset('projects/claude-code/card.webp'), alt: '第一步改装 Claude Code：注入的技能库面板（全中文名 + 分类）', anchor: '第一步' },
+      { src: asset('projects/carrot/toolbox.webp'), alt: 'carrot 工具箱面板：内置工具与浏览器模组一览（MCP 可视化）', anchor: 'fork 漂移与 MCP' },
+      { src: asset('projects/carrot/goals.webp'), alt: 'carrot 目标面板：GOALS.md 界面化，勾选即回写文件', anchor: '第二步' },
+      { src: asset('projects/carrot/drift.webp'), alt: 'carrot 更新防护链：实时官方日志 + fork 漂移预检', anchor: 'fork 漂移与 MCP' },
     ],
     long: `> **先把边界说清楚**：这不是从零手写的软件。起点是一款别人开源的 claude-code-web 壳（Electron + Web UI）和 Anthropic 官方开源的 Claude Agent SDK——**底座非原创**，我从不主张它是。我做的是：把底座彻底吃透、一路改装、再对照开源的 Codex 补全认知，最后融合出自己的 carrot agent。三步的每一步都留了可查证的记录。
 

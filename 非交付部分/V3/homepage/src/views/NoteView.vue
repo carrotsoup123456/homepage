@@ -10,6 +10,7 @@
 // ======================================================
 import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { goBack } from '../composables/goBack.js'
 import { marked } from 'marked'
 import { notes } from '../data/notes.js'
 import { setPageMeta } from '../data/meta.js'
@@ -20,6 +21,11 @@ import BackBar from '../components/BackBar.vue'
 const props = defineProps({ id: String })
 const route = useRoute()
 const router = useRouter()
+
+// 面包屑「知识库」= 回到列表原来的地方，而不是回列表顶部
+function backToList() {
+  goBack(router, '/knowledge')
+}
 
 const note = computed(() => notes.find((n) => n.id === props.id))
 const qa = computed(() => (note.value ? notesQa[note.value.id] || [] : []))
@@ -57,7 +63,7 @@ watch(
   <div v-if="note" class="page note-page" v-reveal>
     <!-- 面包屑：回知识库列表 -->
     <p class="note-crumb">
-      <RouterLink to="/knowledge">‹ 知识库</RouterLink>
+      <a href="#/knowledge" class="note-crumb-link" @click.prevent="backToList">‹ 知识库</a>
       <span class="note-crumb-sep" aria-hidden="true">/</span>
       <span class="note-crumb-cat">{{ note.category === 'reading' ? '读书笔记' : '项目知识' }}</span>
     </p>
@@ -106,7 +112,7 @@ watch(
   align-items: center;
   gap: 8px;
 }
-.note-crumb a {
+.note-crumb-link {
   color: var(--color-green);
   text-decoration: none;
   font-weight: 600;

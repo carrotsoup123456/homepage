@@ -1950,3 +1950,154 @@ body {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+
+/* ==================== 移动端菜单：横向吸附轮播 ==================== */
+/* 汉堡按钮的小注释（桌面隐藏，仅移动端显示） */
+.nav-hint {
+  display: none;
+}
+
+/* BGM/主题开关在移动端独立成行（不混进轮播） */
+.wheel-extras {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .nav-hint {
+    display: inline;
+    margin-left: auto;
+    margin-right: 10px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted, #8a9080);
+    opacity: 0.85;
+    white-space: nowrap;
+  }
+
+  /* —— 轮播轨道：scroll-snap 强制居中吸附，一次只切一项 —— */
+  .nav-wheel {
+    flex-basis: 100%;
+    display: flex;
+    gap: 16px;
+    list-style: none;
+    /* 推挤式收起（与旧菜单同款动画语义） */
+    max-height: 0;
+    padding: 0 0;
+    margin: 0;
+    overflow: hidden;
+    visibility: hidden;
+    transition: max-height 0.35s var(--ease, ease), padding 0.35s var(--ease, ease), visibility 0.35s;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav-wheel.open {
+    max-height: 168px;
+    /* 两侧留白 = 让第一个/最后一个按钮也能吸附到屏幕中心 */
+    padding: 16px calc(50vw - 62px) 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    visibility: visible;
+    scroll-snap-type: x mandatory;
+  }
+  .wheel-item {
+    flex: 0 0 auto;
+    display: flex;
+    scroll-snap-align: center;
+    scroll-snap-stop: always; /* 一次滑动只切换一项 */
+  }
+  .wheel-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    min-width: 124px;
+    padding: 15px 18px 12px;
+    border-radius: 18px;
+    border: 1.5px solid var(--color-green, #4a7c59);
+    background: var(--color-surface, #fff);
+    color: var(--color-green, #4a7c59);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    /* 中心项放大高亮、两侧缩小变淡的环绕视觉 */
+    transform: scale(0.82);
+    opacity: 0.55;
+    transition: transform 0.25s var(--ease, ease), opacity 0.25s var(--ease, ease), background 0.25s, color 0.25s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .wheel-item.center .wheel-btn {
+    transform: scale(1.12);
+    opacity: 1;
+    background: var(--color-green, #4a7c59);
+    color: #fff;
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--color-green, #4a7c59) 35%, transparent);
+  }
+  .wheel-item.center .nav-ico {
+    transform: none;
+  }
+  .wheel-btn .nav-ico {
+    width: 26px;
+    height: 26px;
+  }
+
+  /* 音乐/主题开关行：随菜单一起展开 */
+  .wheel-extras {
+    display: flex;
+    flex-basis: 100%;
+    justify-content: center;
+    gap: 26px;
+    max-height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    transition: max-height 0.35s var(--ease, ease), visibility 0.35s;
+  }
+  .wheel-extras.open {
+    max-height: 64px;
+    padding-bottom: 14px;
+    visibility: visible;
+  }
+  .wheel-extras .bgm-toggle,
+  .wheel-extras .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1.5px solid var(--color-green, #4a7c59);
+    background: var(--color-surface, #fff);
+    color: var(--color-green, #4a7c59);
+    cursor: pointer;
+  }
+}
+
+/* 桌面端：汉堡注释与轮播都不出现（布局保持原样） */
+@media (min-width: 769px) {
+  .nav-hint,
+  .wheel-extras {
+    display: none !important;
+  }
+}
+
+/* ==================== 项目详情：图随段落走 ==================== */
+.md-chunk + .chunk-gallery {
+  margin: 6px 0 26px;
+}
+.chunk-gallery {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(280px, 1fr);
+}
+.chunk-gallery.wide {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.chunk-gallery .gallery-item {
+  margin: 0;
+}
+.chunk-gallery figcaption {
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #8a9080);
+  line-height: 1.6;
+  margin-top: 6px;
+}
