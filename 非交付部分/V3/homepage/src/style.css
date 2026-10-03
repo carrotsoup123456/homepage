@@ -1857,21 +1857,21 @@ mark {
   font-weight: 600;
 }
 
-/* ---- 首页：阅读小段 ---- */
-.reading-strip {
-  padding: 10px 0 0;
+/* ---- 首页：阅读独立板块（前后交界带隔开，自成空间） ---- */
+.reading-block {
+  padding: 96px 0 84px;
 }
-.reading-strip-inner {
+.reading-block-inner {
   text-align: center;
 }
-.reading-strip-text {
+.reading-block-text {
   max-width: 720px;
-  margin: 14px auto 0;
+  margin: 18px auto 0;
   line-height: 2.05;
   font-size: 15.5px;
   color: var(--ink-soft, #5c6650);
 }
-.reading-strip-text a {
+.reading-block-text a {
   color: var(--carrot, #e8842c);
   font-weight: 600;
   white-space: nowrap;
