@@ -66,6 +66,16 @@
   }
   .vtitle small { font-size:10px; color:var(--sub); letter-spacing:2px; font-weight:normal; }
   .corner { position:absolute; left:10px; top:8px; font-size:13px; color:var(--sub); z-index:3; }
+  /* ===== 背景音乐开关（右上角） ===== */
+  #bgm-toggle {
+    position:absolute; right:12px; top:8px; width:34px; height:34px; z-index:12;
+    display:flex; align-items:center; justify-content:center;
+    font-size:19px; line-height:1; color:var(--gold); cursor:pointer;
+    background:rgba(248,241,221,.72); border:1px solid var(--edge);
+    border-radius:50%; box-shadow:0 1px 4px rgba(60,40,10,.25);
+    user-select:none;
+  }
+  #bgm-toggle.off { opacity:.45; }
   /* ===== 开局主界面：府衙门楼位图背景 + 中央上任卡片 ===== */
   #startPanel {
     position:absolute; inset:0; z-index:5; display:none;
@@ -102,6 +112,58 @@
     position:absolute; left:0; right:0; bottom:22px; text-align:center;
     font-size:11px; color:rgba(247,240,220,.75); letter-spacing:3px;
     text-shadow:0 1px 3px rgba(0,0,0,.8);
+  }
+  /* ===== 水墨开场动画层（随机择地后播放，随后自动进入政令界面） ===== */
+  #intro {
+    position:absolute; inset:0; z-index:7; display:none;
+    background:#f4ecd8;   /* 宣纸底 */
+    transition:opacity .6s ease;   /* 结束时的渐变淡出，缓解海报瞬间消失的生硬切换 */
+  }
+  #intro.on { display:block; }
+  #intro.off { opacity:0; pointer-events:none; }
+  #intro .intro-scene { position:absolute; inset:0; }
+  #intro .intro-scene .scene-svg { width:100%; height:100%; display:block; }
+  /* 开场海报位图：铺满全屏、裁边覆盖、轻微肯伯恩漂移 */
+  #intro .intro-bg {
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; display:block;
+    transform:scale(1.06);
+    animation:introZoom 11s ease-in-out infinite alternate;
+  }
+  @keyframes introZoom { from{transform:scale(1.02) translateY(0);} to{transform:scale(1.10) translateY(-6px);} }
+  /* 水墨开场：四层按序浮现（与 #scene 同款 opacity 淡入，WebKit 下 SVG g 的 transform 不可靠） */
+  #intro.on .sc-layer { opacity:0; animation:scIn 1.15s ease forwards; }
+  #intro.on .sc-l0 { animation-delay:.05s; }   /* 远山晕染 */
+  #intro.on .sc-l1 { animation-delay:.35s; }   /* 主体（城郭/断壁/树） */
+  #intro.on .sc-l2 { animation-delay:.8s; }    /* 舟船/人物/前景 */
+  #intro.on .sc-l3 { animation-delay:1.1s; }   /* 朱砂点睛/飞鸟 */
+  /* 人物前景微微漂移，增加水墨活气（仅 translate，安全） */
+  #intro.on .sc-l2 { animation:scIn 1.15s ease .8s forwards, introDrift 9s ease-in-out 2s infinite alternate; }
+  @keyframes introDrift { from{transform:translateX(-6px);} to{transform:translateX(6px);} }
+  #intro .intro-mask {
+    position:absolute; inset:0;
+    background:radial-gradient(ellipse at 50% 42%, rgba(244,236,216,0) 34%, rgba(244,236,216,.42) 78%, rgba(244,236,216,.82) 100%);
+  }
+  #intro .intro-caption {
+    position:absolute; left:0; right:0; top:15%; text-align:center;
+    color:var(--ink); font-size:19px; letter-spacing:7px;
+    opacity:0; animation:scIn .8s ease .9s both;
+  }
+  #intro .intro-name {
+    position:absolute; left:0; right:0; bottom:17%; text-align:center;
+    color:var(--ink); font-size:30px; font-weight:bold; letter-spacing:10px;
+    text-shadow:0 1px 0 rgba(255,255,255,.6);
+    opacity:0; animation:scIn .9s ease 1.25s both;
+  }
+  #intro .intro-sub {
+    position:absolute; left:0; right:0; bottom:12%; text-align:center;
+    color:var(--sub); font-size:13px; letter-spacing:3px;
+    opacity:0; animation:scIn .8s ease 1.5s both;
+  }
+  #intro .intro-skip {
+    position:absolute; right:14px; bottom:18px;
+    font-size:12px; color:var(--sub); letter-spacing:2px;
+    opacity:0; animation:scIn .6s ease 1.8s both;
   }
   /* ===== 政令界面：全屏场景 + 中央政令卡片（与开局页同风格，不再挤窄条） ===== */
   #actionPanel {
@@ -182,7 +244,7 @@
     overflow:hidden; box-shadow:inset 0 0 6px rgba(0,0,0,.35);
   }
   .rank-btn .buzi svg { width:27px; height:27px; }
-  .rank-btn .buzi-text { flex:1 1 auto; min-width:0; }
+  .rank-btn .buzi-text { flex:1 1 auto; min-width:0; overflow-wrap:anywhere; word-break:break-all; }
   .rank-btn .buzi-text .t1 { display:block; font-size:13.5px; font-weight:bold; line-height:18px; letter-spacing:.5px; }
   .rank-btn .buzi-text .t2 { display:block; font-size:10px; color:rgba(247,240,220,.78); line-height:14px; }
   .rank-btn .buzi-eff { flex:0 0 auto; font-size:10.5px; color:#f0dfa8; text-align:right; line-height:15px; white-space:nowrap; }
@@ -200,6 +262,9 @@
   /* 继续按钮：点选项后激活 */
   #choices .btn:disabled { opacity:.45; cursor:default; transform:none; box-shadow:none; }
   #choices .btn:disabled:hover { background:var(--panel); }
+  /* 断案选项置灰：人力/财力不足的选项不可选，但不遮挡提示 */
+  #choices .rank-btn.blocked { opacity:.5; filter:saturate(.5); }
+  #choices .rank-btn.blocked:hover { transform:none; box-shadow:none; }
   /* 中间大块：仅事件选择时出现的选项场景预览；顶部跟随事件文本高度(--evh)，
      底边下移(bottom:385px)把预览区与选项区之间的空白挤给事件文本铺开 */
   #preview {
@@ -220,6 +285,10 @@
     background:rgba(58,42,26,.72); color:#f6ecd4; font-size:10px; letter-spacing:2px;
     padding:3px 8px; border-radius:999px;
   }
+  /* 未选择时插画区占位：大「？」+ 提示句，替代空白框 */
+  #preview .pv-holder { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; pointer-events:none; }
+  #preview .pv-q { font-size:64px; line-height:1; color:var(--frame); opacity:0.45; font-family:serif; }
+  #preview .pv-hint { font-size:13px; color:#8a6a30; letter-spacing:2px; }
   .status-panel, .event-panel {
     position:absolute; left:50%; transform:translateX(-50%);
     background-color:var(--panel); border:2px solid var(--frame-deep); border-radius:12px;
@@ -243,6 +312,24 @@
   .vals span { white-space:nowrap; }
   .vals b { color:var(--gold); font-size:12.5px; font-weight:bold; }
   .meta-line { margin-top:4px; font-size:12px; line-height:17px; color:var(--sub); }
+  /* 决策状态栏：事件选择时置顶显示八维雷达图 + 全数值，一眼看清强弱（扩到原两个数值栏大小） */
+  #decisionBar {
+    position:absolute; left:8px; right:8px; top:6px; z-index:4; display:none;
+    align-items:center; gap:12px;
+    background-color:var(--panel); border:2px solid var(--frame-deep); border-radius:12px;
+    padding:8px 14px; box-shadow:inset 0 0 0 1px var(--frame-line), 0 2px 8px rgba(60,40,10,.3);
+  }
+  #decisionBar.on { display:flex; }
+  #decisionBar .oct-radar { width:112px; height:112px; flex:0 0 auto; }
+  #decisionBar .vals { grid-template-columns:repeat(2,1fr); margin-top:0; flex:1 1 auto; row-gap:4px; }
+  /* 事件选择时决策栏接管全部数值展示，隐藏常驻状态栏避免重复 */
+  .status-panel.off { display:none; }
+  /* 断案事件选项区顶部提示条：查案需人力财力，不查恐误判 */
+  #choices .case-hint {
+    font-size:12px; line-height:18px; color:#7a5a2a; letter-spacing:1px;
+    background:rgba(240,223,168,.4); border:1px dashed #a8842e; border-radius:8px;
+    padding:5px 10px; flex:0 0 auto;
+  }
   /* 事件面板：高度随文本铺开（不滚动），预览区顶部由 --evh 变量跟随事件卡底部 */
   .event-panel { top:172px; width:calc(100% - 20px); padding:8px 12px; }
   #eventText { font-size:13.5px; line-height:21px; white-space:pre-wrap; overflow:visible; }
@@ -343,6 +430,15 @@
   @keyframes sway { from{transform:translateX(-2.5px);} to{transform:translateX(2.5px);} }
   #scene.on .fx-bob, #preview .fx-bob { animation:bob 3s ease-in-out infinite; }
   @keyframes bob { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-2px);} }
+  /* 第三批·麻雀飞掠：从右侧画外飞到左侧画外，1.5s 一段，负 delay 错开，飞完淡出再等 */
+  #scene.on .fx-bird, #preview .fx-bird { animation:birdFly 13s ease-in-out infinite; transform-box:fill-box; }
+  @keyframes birdFly {
+    0%   { transform:translate(0,0); opacity:0; }
+    2%   { transform:translate(-40px,-6px); opacity:0.9; }
+    10%  { transform:translate(-320px,-14px); opacity:0.9; }
+    13%  { transform:translate(-380px,-8px); opacity:0; }
+    100% { transform:translate(-380px,-8px); opacity:0; }
+  }
 </style>
 </head>
 <body>
@@ -363,14 +459,19 @@
   <div class="vtitle">为官一方<small>青阳志·卷一</small></div>
   <!-- 开局主界面：全屏场景 + 上任卡片（隐藏时不影响游戏界面） -->
   <div id="startPanel"></div>
+  <!-- 水墨开场动画层：随机择地后播放，播完自动进入政令界面 -->
+  <div id="intro"></div>
   <!-- 政令界面：全屏场景 + 中央政令卡片 -->
   <div id="actionPanel"></div>
   <div class="status-panel" id="statusBox"></div>
+  <div id="decisionBar"></div>
   <div class="event-panel"><div id="eventText">正在整理案牍…</div></div>
   <!-- 中间大块：仅事件选择时显示选项对应的场景预览（平时隐藏，保持原有排版） -->
   <div id="preview"></div>
   <div id="choices"></div>
   <div id="tip">青阳县衙 · 早堂未开</div>
+  <audio id="bgm" loop="false" preload="auto" style="display:none"></audio>
+<div id="bgm-toggle" title="背景音乐" onclick="toggleBgm()">♪</div>
 </div>
 <script>
 // ===================== 动态场景渲染器（SceneRenderer） =====================
@@ -405,8 +506,9 @@
     return 'winter';
   }
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-  function rnd(seed) { // 简易确定性伪随机（按位置 seed 稳定，避免每次重绘跳动）
-    let x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  var SCENE_SEED = 0;   // 每局刷新时由 ctx.seed 注入：同局内重绘稳定、跨局摇种则每局画面不同
+  function rnd(seed) { // 确定性伪随机 + SCENE_SEED 偏移：同 seed 结果可复现，注入不同 SCENE_SEED 则整体随机
+    let x = Math.sin(seed * 127.1 + 311.7 + SCENE_SEED * 97.3) * 43758.5453;
     return x - Math.floor(x);
   }
 
@@ -870,6 +972,7 @@
   const TILE = '#5c6b73';  // 青灰瓦（新增）
   const MIST = '#b9c6c4';  // 淡青灰：远山/远景（新增）
   const TILE_D = '#46545c'; // 青灰瓦暗面
+  const WATER = '#9fb6b4';  // 运河青灰水色
 
   const SEASONS2 = {
     spring: { skyTop: '#e2ece8', skyBot: '#f6f3e6', tree: '#7d9b6a', ground: '#d8c9a4' },
@@ -881,6 +984,19 @@
 
   function proj(wx, d) { return { x: X0 + wx + d * KX, y: NEAR_Y - d * KY }; }
   function scaleOf(d) { return 1 - (d / DEPTH0) * 0.45; }  // 1.00 → 0.55
+
+  // 十六进制色微调亮度：hex '#aabbcc' + amt（-1..1，负=变深，正=变浅）→ '#aabbcc'
+  function shadeOf(hex, amt) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return hex || TILE;
+    const n = parseInt(m[1], 16);
+    const ch = (v) => {
+      let c = Math.round(v + amt * 255);
+      c = clamp(c, 0, 255);
+      return c.toString(16).padStart(2, '0');
+    };
+    return '#' + ch((n >> 16) & 255) + ch((n >> 8) & 255) + ch(n & 255);
+  }
 
   // ==================== 界画图元 ====================
 
@@ -897,8 +1013,8 @@
     const h0 = wallH + baseH;                  // 檐口高
     const hR = h0 + ridgeH;                    // 正脊高
     const wall = opts.wall || PAPER;
-    const roofL = opts.roofLight || TILE;
-    const roofD = opts.roofDark || TILE_D;
+    const roofL = opts.roofLight || (opts.roofWall ? shadeOf(opts.roofWall, -0.06) : TILE);
+    const roofD = opts.roofDark || (opts.roofWall ? shadeOf(opts.roofWall, -0.16) : TILE_D);
     const L = [];
     const p = (n) => n.toFixed(1);
 
@@ -932,6 +1048,9 @@
     // 屋顶顶面：后坡（斜轴测平行四边形）
     const Ax = -ridgeW, Ay = -hR, Bx = ridgeW, By = -hR;
     L.push(`<path d="M${p(Ax)},${p(Ay)} L${p(Bx)},${p(By)} L${p(Bx + bx)},${p(By - by)} L${p(Ax + bx)},${p(Ay - by)} Z" fill="${roofD}" stroke="${INK}" stroke-width="0.9"/>`);
+    // 右侧山花（屋顶右立面）：正脊右端 → 后脊右端 → 后檐右端 → 前檐右端，补齐屋顶右侧收边，
+    // 避免只画前后坡、右侧在檐口处「缺一块」
+    L.push(`<path d="M${p(Bx)},${p(By)} L${p(Bx + bx)},${p(By - by)} L${p(eaveW + bx)},${p(-h0 - by)} L${p(eaveW)},${p(-h0)} Z" fill="${shadeOf(roofD, -0.05)}" stroke="${INK}" stroke-width="0.9"/>`);
     // 前坡
     L.push(`<path d="M${p(Ax)},${p(Ay)} L${p(Bx)},${p(By)} L${p(eaveW)},${p(-h0)} L${p(-eaveW)},${p(-h0)} Z" fill="${roofL}" stroke="${INK}" stroke-width="1.1"/>`);
     // 瓦垄：两条垂脊之间的平行线（真正的界画瓦垄，收敛于正脊两端）
@@ -962,6 +1081,15 @@
     // 搏风板 + 悬鱼（山墙侧装饰）
     L.push(`<path d="M${p(-eaveW)},${p(-h0)} L${p(Ax)},${p(Ay)}" stroke="#8a4a3a" stroke-width="2.4" fill="none" opacity="0.85"/>`);
     L.push(`<path d="M${p((Ax - eaveW) / 2)},${p((Ay - h0) / 2 - 1)} l3,5 l3,-5 Z" fill="#a03020" opacity="0.9"/>`);
+    // 右山墙（斜轴测进深面）：补上"少了一面"的右侧墙体，让房屋有完整体量
+    L.push(`<path d="M${p(hw)},${p(-h0)} L${p(hw + bx)},${p(-h0 - by)} L${p(hw + bx)},${p(-baseH - by)} L${p(hw)},${p(-baseH)} Z" fill="${shadeOf(wall, -0.08)}" stroke="${INK}" stroke-width="1"/>`);
+    // 右侧搏风板 + 悬鱼（与左侧对称，右山墙收边）
+    L.push(`<path d="M${p(eaveW)},${p(-h0)} L${p(Bx)},${p(By)}" stroke="#8a4a3a" stroke-width="2.4" fill="none" opacity="0.85"/>`);
+    L.push(`<path d="M${p((eaveW + Bx) / 2)},${p((-h0 + By) / 2 - 1)} l3,5 l3,-5 Z" fill="#a03020" opacity="0.9"/>`);
+    // 右坡檐口封边（博风板厚度面）：沿右坡前缘（正脊右端→前檐右端）向右偏移一条细长四边形，
+    // 补出屋顶右坡的厚度，让瓦面与深色山花、浅色右山墙正确闭合，不再在檐口处悬空断口
+    const tEave = w * 0.045;
+    L.push(`<path d="M${p(Bx)},${p(By)} L${p(Bx + tEave)},${p(By)} L${p(eaveW + tEave)},${p(-h0)} L${p(eaveW)},${p(-h0)} Z" fill="${shadeOf(roofD, -0.12)}" stroke="${INK}" stroke-width="0.8"/>`);
     // 破损：裂缝
     if (st === 'broken') {
       L.push(`<path d="M${p(hw * 0.5)},${p(-h0)} l${p(w * 0.06)},${p(wallH * 0.35)} l${p(-w * 0.04)},${p(wallH * 0.3)}" fill="none" stroke="${INK}" stroke-width="1.1"/>`);
@@ -970,6 +1098,154 @@
     if (st === 'burning') {
       L.push(`<g class="fx-flicker"><path d="M${p(-w * 0.12)},${p(-h0 - 6)} q${p(w * 0.08)},${p(-w * 0.3)} ${p(w * 0.16)},${p(-w * 0.04)} q${p(w * 0.06)},${p(-w * 0.22)} ${p(w * 0.14)},${p(w * 0.02)} l${p(-w * 0.02)},${p(w * 0.12)} Z" fill="#e06020" opacity="0.85"/></g>`);
     }
+    return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})">${L.join('')}</g>`;
+  }
+
+  // 茅草房（界画）：低矮土墙 + 麦草顶 + 简单门，早期最简陋的民居
+  function thatchJie(x, y, w, opts) {
+    opts = opts || {};
+    const st = opts.state || 'ok';
+    const hw = w / 2;
+    const wallH = w * 0.34, baseH = w * 0.06, eaveW = w * 0.62;
+    const L = [];
+    const p = (v) => v.toFixed(1);
+    const wall = st === 'broken' ? '#9a8a70' : '#cbbd9a';
+    // 土墙台基
+    L.push(`<rect x="${p(-hw)}" y="${p(-wallH - baseH)}" width="${p(w)}" height="${p(wallH + baseH)}" fill="${wall}" stroke="${INK}" stroke-width="1"/>`);
+    if (st === 'broken') {
+      L.push(`<path d="M${p(hw * 0.4)},${p(-wallH - baseH)} l${p(w * 0.1)},${p(wallH * 0.4)} l${p(-w * 0.08)},${p(wallH * 0.3)}" fill="none" stroke="${INK}" stroke-width="1"/>`);
+      L.push(`<rect x="${p(-hw + 2)}" y="${p(-wallH * 0.4)}" width="${p(w * 0.28)}" height="${p(wallH * 0.9)}" fill="#6a5a40" opacity="0.55"/>`);
+    }
+    // 门 + 小窗
+    L.push(`<rect x="${p(-w * 0.13)}" y="${p(-wallH * 0.62 - baseH)}" width="${p(w * 0.26)}" height="${p(wallH * 0.62)}" fill="#8a6a3a" stroke="${INK}" stroke-width="0.8"/>`);
+    L.push(`<rect x="${p(hw * 0.16)}" y="${p(-wallH * 0.68 - baseH)}" width="${p(w * 0.2)}" height="${p(wallH * 0.3)}" fill="#6a5a40" stroke="${INK}" stroke-width="0.7"/>`);
+    // 茅草顶（两侧微张 + 草穗纹理）
+    L.push(`<path d="M${p(-eaveW)},${p(-wallH - baseH)} L0,${p(-wallH - baseH - w * 0.5)} L${p(eaveW)},${p(-wallH - baseH)} Z" fill="${st === 'broken' ? '#8a7a52' : '#c8b060'}" stroke="${INK}" stroke-width="1"/>`);
+    L.push(`<line x1="${p(-eaveW)}" y1="${p(-wallH - baseH)}" x2="${p(eaveW)}" y2="${p(-wallH - baseH)}" stroke="${INK}" stroke-width="1.1"/>`);
+    for (let i = 1; i <= 6; i++) {
+      const t = i / 7;
+      L.push(`<line x1="${p(-eaveW + 2 * eaveW * t)}" y1="${p(-wallH - baseH)}" x2="${p(0)}" y2="${p(-wallH - baseH - w * 0.5)}" stroke="${INK}" stroke-width="0.5" opacity="0.4"/>`);
+    }
+    return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})">${L.join('')}</g>`;
+  }
+
+  // 断壁残垣（界画）：只剩半截土墙 + 塌顶 + 乱石
+  function ruinJie(x, y, w, s) {
+    const hw = w / 2, hh = w * 0.4;
+    const L = [];
+    const p = (v) => v.toFixed(1);
+    L.push(`<path d="M${p(-hw)},0 L${p(-hw)},${p(-hh * 0.7)} L${p(-hw * 0.2)},${p(-hh * 0.85)} L${p(-hw * 0.1)},${p(-hh * 0.5)} L${p(hw * 0.1)},${p(-hh * 0.55)} L${p(hw * 0.3)},${p(-hh * 0.2)} L${p(hw * 0.28)},0 Z" fill="#9a8a70" stroke="${INK}" stroke-width="1"/>`);
+    L.push(`<path d="M${p(-hw * 0.6)},${p(-hh * 0.5)} L${p(-hw * 0.2)},${p(-hh * 0.2)} L${p(hw * 0.5)},${p(-hh * 0.4)} L${p(hw * 0.7)},${p(-hh * 0.15)} L${p(hw * 0.4)},0" fill="none" stroke="${INK}" stroke-width="0.9"/>`);
+    // 乱石
+    L.push(`<ellipse cx="${p(-hw * 0.5)}" cy="${p(-2)}" rx="5" ry="2.4" fill="#b9ae90" stroke="${INK}" stroke-width="0.6"/>`);
+    L.push(`<ellipse cx="${p(hw * 0.45)}" cy="${p(-2.5)}" rx="4" ry="2" fill="#b9ae90" stroke="${INK}" stroke-width="0.6"/>`);
+    L.push(`<path d="M${p(-hw * 0.3)},${p(-hh * 0.9)} l3,3 l-1,3 Z" fill="#8a7a52" stroke="${INK}" stroke-width="0.5"/>`);
+    return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)}) scale(${s.toFixed(2)})">${L.join('')}</g>`;
+  }
+
+  // 酒馆（界画）：双层楼 + 酒旗（"酒"字幌子挑出）+ 楼上栏杆客座 —— 商业繁华的顶点
+  function tavernJie(x, y, w, opts) {
+    opts = opts || {};
+    const st = opts.state || 'ok';
+    const base = twoStoryJie(x, y, w, { state: st, wall: '#efe2c4', roofLight: '#8a5a3a', roofDark: '#6a4028' });
+    const hw = w / 2, wallH = w * 0.40, baseH = w * 0.08, h0 = wallH + baseH;
+    const p = (v) => v.toFixed(1);
+    // 酒旗杆：从二层檐口斜挑出，三节旗面（酒帘）
+    const bx = -hw * 1.12, by = -(h0 + wallH);
+    const tipX = bx - w * 0.34, tipY = by - w * 0.30;
+    const flag = `<line x1="${p(bx)}" y1="${p(by)}" x2="${p(tipX)}" y2="${p(tipY)}" stroke="#5a3a1a" stroke-width="1.4"/>
+      <path d="M${p(tipX)},${p(tipY)} l${p(w * 0.17)},${p(w * 0.055)} l${p(-w * 0.025)},${p(w * 0.19)} l${p(-w * 0.145)},${p(-w * 0.045)} Z" fill="#f0e6cc" stroke="${INK}" stroke-width="0.8"/>
+      <text x="${p(tipX + w * 0.055)}" y="${p(tipY + w * 0.145)}" font-size="${p(w * 0.11)}" fill="#a03020" text-anchor="middle" font-family="serif" font-weight="bold">酒</text>`;
+    // 楼上灯笼一对（客座标识）
+    const lampL = `<g class="fx-sway">${lanternJie(bx + w * 0.18, by + w * 0.12, w * 0.012)}</g>`;
+    return base.replace(/<\/g>$/, '') + flag + lampL + '</g>';
+  }
+
+  // 灯笼（界画小图元，供酒馆等复用）：椭圆红灯 + 上下黑盖 + 穗
+  function lanternJie(x, y, s) {
+    const p = (v) => v.toFixed(1);
+    return `<g transform="translate(${p(x)},${p(y)}) scale(${p(s)})">
+      <line x1="0" y1="-14" x2="0" y2="-9" stroke="${INK}" stroke-width="1.2"/>
+      <rect x="-3" y="-10" width="6" height="2.4" fill="#3a2a1a"/>
+      <ellipse cx="0" cy="-2" rx="7" ry="8" fill="#d03020" stroke="${INK}" stroke-width="0.9"/>
+      <line x1="-7" y1="-2" x2="7" y2="-2" stroke="${INK}" stroke-width="0.5" opacity="0.6"/>
+      <line x1="-6" y1="-5" x2="6" y2="-5" stroke="${INK}" stroke-width="0.5" opacity="0.45"/>
+      <rect x="-2.4" y="6" width="4.8" height="2" fill="#3a2a1a"/>
+      <line x1="0" y1="8" x2="0" y2="13" stroke="#c8a860" stroke-width="1"/>
+    </g>`;
+  }
+
+  // 商铺（界画）：瓦房 + 挑出的幌子旗 + 双开门面
+  function shopJie(x, y, w, opts) {
+    opts = opts || {};
+    const st = opts.state || 'ok';
+    const base = houseJie(x, y, w, { state: st, wall: opts.wall || '#efe0c0', roofWall: '#9a3a30' });
+    const hw = w / 2, wallH = w * 0.52, baseH = w * 0.085, eaveW = w * 0.60, h0 = wallH + baseH;
+    const p = (v) => v.toFixed(1);
+    // 双开门面（开着的两扇门板）
+    const dw = w * 0.4, dh = w * 0.3;
+    const door = `<rect x="${p(-dw / 2)}" y="${p(-baseH - dh)}" width="${p(dw / 2)}" height="${p(dh)}" fill="#8a4a3a" stroke="${INK}" stroke-width="0.9"/>
+      <rect x="0" y="${p(-baseH - dh)}" width="${p(dw / 2)}" height="${p(dh)}" fill="#7a3a2a" stroke="${INK}" stroke-width="0.9"/>`;
+    // 幌子旗（从檐口斜挑出）
+    const banner = `<line x1="${p(-hw)}" y1="${p(-h0)}" x2="${p(-hw - w * 0.42)}" y2="${p(-h0 - w * 0.34)}" stroke="${INK}" stroke-width="1"/>
+      <path d="M${p(-hw - w * 0.42)},${p(-h0 - w * 0.34)} l${p(w * 0.16)},${p(w * 0.05)} l${p(-w * 0.02)},${p(w * 0.16)} Z" fill="#c8b060" stroke="${INK}" stroke-width="0.7"/>
+      <path d="M${p(-hw - w * 0.42)},${p(-h0 - w * 0.34)} l${p(w * 0.3)},${p(w * 0.09)} l${p(-w * 0.02)},${p(w * 0.24)} l${p(-w * 0.28)},${p(-w * 0.15)} Z" fill="none" stroke="${INK}" stroke-width="0.5" opacity="0.5"/>`;
+    return base.replace(/<\/g>$/, '') + door + banner + '</g>';
+  }
+
+  // 双层楼（界画）：上下两开间 + 出挑阳台 + 高瓦顶
+  function twoStoryJie(x, y, w, opts) {
+    opts = opts || {};
+    const st = opts.state || 'ok';
+    const hw = w / 2;
+    const wallH = w * 0.40, baseH = w * 0.08, ridgeH = w * 0.30;
+    const eaveW = w * 0.60, ridgeW = w * 0.44, dd = w * 0.5;
+    const bx = dd * 0.55, by = dd * 0.38;
+    const h0 = wallH + baseH, hR = h0 + ridgeH;
+    const L = [];
+    const p = (v) => v.toFixed(1);
+    const wall = opts.wall || '#e8d8b8';
+    // 台基
+    L.push(`<rect x="${p(-hw - w * 0.05)}" y="${p(-baseH)}" width="${p(w * 1.1)}" height="${p(baseH)}" fill="#c9bda0" stroke="${INK}" stroke-width="0.8"/>`);
+    // 底层立面
+    L.push(`<rect x="${p(-hw)}" y="${p(-h0)}" width="${p(w)}" height="${p(wallH)}" fill="${wall}" stroke="${INK}" stroke-width="1"/>`);
+    L.push(`<line x1="${p(-w * 0.167)}" y1="${p(-h0)}" x2="${p(-w * 0.167)}" y2="${p(-baseH)}" stroke="${INK}" stroke-width="1.1"/>`);
+    L.push(`<line x1="${p(w * 0.167)}" y1="${p(-h0)}" x2="${p(w * 0.167)}" y2="${p(-baseH)}" stroke="${INK}" stroke-width="1.1"/>`);
+    L.push(`<rect x="${p(-w * 0.15)}" y="${p(-h0 + wallH * 0.3)}" width="${p(w * 0.3)}" height="${p(wallH * 0.5)}" fill="#8a4a3a" stroke="${INK}" stroke-width="0.9"/>`);
+    // 二层（出挑，宽一档）
+    const h1 = h0 + wallH;
+    L.push(`<rect x="${p(-hw * 1.12)}" y="${p(-h1 - wallH)}" width="${p(w * 1.12)}" height="${p(wallH)}" fill="${wall}" stroke="${INK}" stroke-width="1"/>`);
+    L.push(`<line x1="${p(-w * 0.2)}" y1="${p(-h1 - wallH)}" x2="${p(-w * 0.2)}" y2="${p(-h1)}" stroke="${INK}" stroke-width="1.1"/>`);
+    L.push(`<line x1="${p(w * 0.2)}" y1="${p(-h1 - wallH)}" x2="${p(w * 0.2)}" y2="${p(-h1)}" stroke="${INK}" stroke-width="1.1"/>`);
+    L.push(`<rect x="${p(-hw * 0.8)}" y="${p(-h1 - wallH * 0.4)}" width="${p(w * 0.3)}" height="${p(wallH * 0.4)}" fill="#f0e8d0" stroke="${INK}" stroke-width="0.7"/>`);
+    L.push(`<rect x="${p(hw * 0.1)}" y="${p(-h1 - wallH * 0.4)}" width="${p(w * 0.3)}" height="${p(wallH * 0.4)}" fill="#f0e8d0" stroke="${INK}" stroke-width="0.7"/>`);
+    // 出挑阳台栏杆
+    L.push(`<line x1="${p(-hw * 1.05)}" y1="${p(-h1 + 2)}" x2="${p(hw * 1.05)}" y2="${p(-h1 + 2)}" stroke="${INK}" stroke-width="1.2"/>`);
+    for (let i = 0; i <= 6; i++) {
+      const lx = -hw * 1.0 + i * (w * 2.0 / 6);
+      L.push(`<line x1="${p(lx)}" y1="${p(-h1 + 2)}" x2="${p(lx)}" y2="${p(-h1 - 4)}" stroke="${INK}" stroke-width="0.7"/>`);
+    }
+    // 右山墙进深面（上下两层都补）：瓦房有右侧墙体，双层楼更不能缺——
+    // 右侧是「右侧立面 + 山花面」合起来才是一栋完整的楼；补上下面两段进深墙面。
+    L.push(`<path d="M${p(hw)},${p(-h0)} L${p(hw + bx)},${p(-h0 - by)} L${p(hw + bx)},${p(-baseH - by)} L${p(hw)},${p(-baseH)} Z" fill="${shadeOf(wall, -0.08)}" stroke="${INK}" stroke-width="1"/>`);
+    L.push(`<path d="M${p(hw * 1.12)},${p(-h1 - wallH)} L${p(hw * 1.12 + bx)},${p(-h1 - wallH - by)} L${p(hw * 1.12 + bx)},${p(-h1 - by)} L${p(hw * 1.12)},${p(-h1)} Z" fill="${shadeOf(wall, -0.08)}" stroke="${INK}" stroke-width="1"/>`);
+    // 屋顶（歇山 + 瓦垄）
+    const Ax = -ridgeW, Ay = -h1 - wallH - ridgeH, Bx = ridgeW, By = Ay;
+    L.push(`<path d="M${p(Ax)},${p(Ay)} L${p(Bx)},${p(By)} L${p(Bx + bx)},${p(By - by)} L${p(Ax + bx)},${p(Ay - by)} Z" fill="${opts.roofDark || TILE_D}" stroke="${INK}" stroke-width="0.9"/>`);
+    L.push(`<path d="M${p(Bx)},${p(By)} L${p(Bx + bx)},${p(By - by)} L${p(eaveW + bx)},${p(-h1 - wallH - by)} L${p(eaveW)},${p(-h1 - wallH)} Z" fill="${shadeOf(opts.roofDark || TILE_D, -0.05)}" stroke="${INK}" stroke-width="0.9"/>`);
+    // 右坡檐口封边（博风板厚度面）：与瓦房同理，补出屋顶右坡厚度，避免右坡檐口悬空断口
+    const tEave2 = w * 0.045;
+    L.push(`<path d="M${p(Bx)},${p(By)} L${p(Bx + tEave2)},${p(By)} L${p(eaveW + tEave2)},${p(-h1 - wallH)} L${p(eaveW)},${p(-h1 - wallH)} Z" fill="${shadeOf(opts.roofDark || TILE_D, -0.12)}" stroke="${INK}" stroke-width="0.8"/>`);
+    L.push(`<path d="M${p(Ax)},${p(Ay)} L${p(Bx)},${p(By)} L${p(eaveW)},${p(-h1 - wallH)} L${p(-eaveW)},${p(-h1 - wallH)} Z" fill="${opts.roofLight || TILE}" stroke="${INK}" stroke-width="1.1"/>`);
+    for (let i = 1; i <= 6; i++) {
+      const t = i / 7;
+      L.push(`<line x1="${p(Ax + (Bx - Ax) * t)},${p(Ay)}" x2="${p(-eaveW + 2 * eaveW * t)},${p(-h1 - wallH)}" stroke="${INK}" stroke-width="0.5" opacity="0.34"/>`);
+    }
+    L.push(`<line x1="${p(-eaveW)},${p(-h1 - wallH)}" x2="${p(eaveW)},${p(-h1 - wallH)}" stroke="${INK}" stroke-width="1.2"/>`);
+    L.push(`<line x1="${p(Ax)}" y1="${p(Ay)}" x2="${p(Bx)}" y2="${p(By)}" stroke="${INK}" stroke-width="2.2"/>`);
+    const tip = w * 0.17;
+    L.push(`<path d="M${p(-eaveW)},${p(-h1 - wallH)} Q${p(-eaveW - w * 0.05)},${p(-h1 - wallH - tip * 0.55)} ${p(-eaveW - w * 0.1)},${p(-h1 - wallH - tip)}" fill="none" stroke="${INK}" stroke-width="1.8" stroke-linecap="round"/>`);
+    L.push(`<path d="M${p(eaveW)},${p(-h1 - wallH)} Q${p(eaveW + w * 0.05)},${p(-h1 - wallH - tip * 0.55)} ${p(eaveW + w * 0.1)},${p(-h1 - wallH - tip)}" fill="none" stroke="${INK}" stroke-width="1.8" stroke-linecap="round"/>`);
     return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})">${L.join('')}</g>`;
   }
 
@@ -1033,6 +1309,8 @@
     // 歇山顶（四条垂脊 → 用一个六边形顶面 + 两条戗脊暗示）
     const Ax = -ridgeW, Ay = -hR, Bx = ridgeW, By = -hR;
     L.push(`<path d="M${p(Ax)},${p(Ay)} L${p(Bx)},${p(By)} L${p(Bx + bx)},${p(By - by)} L${p(Ax + bx)},${p(Ay - by)} Z" fill="${TILE_D}" stroke="${INK}" stroke-width="1"/>`);
+    // 右侧山花面（屋顶右立面）：正脊右端→后脊右端→后檐右端→前檐右端，补齐县衙右侧收边
+    L.push(`<path d="M${p(Bx)},${p(By)} L${p(Bx + bx)},${p(By - by)} L${p(eaveW + bx)},${p(-h0 - by)} L${p(eaveW)},${p(-h0)} Z" fill="${shadeOf(TILE_D, -0.05)}" stroke="${INK}" stroke-width="0.9"/>`);
     L.push(`<path d="M${p(Ax)},${p(Ay)} L${p(Bx)},${p(By)} L${p(eaveW)},${p(-h0)} L${p(-eaveW)},${p(-h0)} Z" fill="${TILE}" stroke="${INK}" stroke-width="1.2"/>`);
     for (let i = 1; i <= 8; i++) {
       const t = i / 9;
@@ -1042,6 +1320,10 @@
     L.push(`<line x1="${p(Ax)}" y1="${p(Ay)}" x2="${p(Bx)}" y2="${p(By)}" stroke="${INK}" stroke-width="2.6"/>`);
     L.push(`<line x1="${p(Ax)}" y1="${p(Ay)}" x2="${p(-eaveW)}" y2="${p(-h0)}" stroke="${INK}" stroke-width="1.6"/>`);
     L.push(`<line x1="${p(Bx)}" y1="${p(By)}" x2="${p(eaveW)}" y2="${p(-h0)}" stroke="${INK}" stroke-width="1.6"/>`);
+    // 右山墙进深面 + 右坡檐口封边：县衙歇山顶右侧也要闭合，避免侧面「缺一块」
+    L.push(`<path d="M${p(hw)},${p(-h0)} L${p(hw + bx)},${p(-h0 - by)} L${p(hw + bx)},${p(-baseH - by)} L${p(hw)},${p(-baseH)} Z" fill="${shadeOf(PAPER, -0.08)}" stroke="${INK}" stroke-width="1"/>`);
+    const tEaveY = w * 0.045;
+    L.push(`<path d="M${p(Bx)},${p(By)} L${p(Bx + tEaveY)},${p(By)} L${p(eaveW + tEaveY)},${p(-h0)} L${p(eaveW)},${p(-h0)} Z" fill="${shadeOf(TILE_D, -0.12)}" stroke="${INK}" stroke-width="0.8"/>`);
     const tip = w * 0.19;
     L.push(`<path d="M${p(-eaveW)},${p(-h0)} Q${p(-eaveW - w * 0.05)},${p(-h0 - tip * 0.55)} ${p(-eaveW - w * 0.11)},${p(-h0 - tip)}" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>`);
     L.push(`<path d="M${p(eaveW)},${p(-h0)} Q${p(eaveW + w * 0.05)},${p(-h0 - tip * 0.55)} ${p(eaveW + w * 0.11)},${p(-h0 - tip)}" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>`);
@@ -1067,10 +1349,11 @@
       const a = rnd(seed + i * 13) * Math.PI * 2, r = 3 + rnd(seed + i * 29) * 9;
       dots += `<circle cx="${(Math.cos(a) * r).toFixed(1)}" cy="${(-26 + Math.sin(a) * r * 0.8).toFixed(1)}" r="${(1.5 + rnd(seed + i * 7) * 1.4).toFixed(1)}" fill="${c}" opacity="0.85"/>`;
     }
+    // 第三批·树摇：叶冠拆成可旋转组 .leaf，SMIL 绕叶冠底部中心 (0,-14) 轻微 rotate（±1.2°）
     return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)}) scale(${s.toFixed(2)})">
       <path d="M0,0 L0,-22" stroke="${INK}" stroke-width="1.4"/>
       <path d="M0,-14 L-5,-20 M0,-17 L5,-22" stroke="${INK}" stroke-width="0.9" fill="none"/>
-      ${dots}
+      <g class="leaf"><animateTransform attributeName="transform" type="rotate" values="-1.2 0 -14;1.2 0 -14;-1.2 0 -14" dur="4.5s" repeatCount="indefinite"/>${dots}</g>
     </g>`;
   }
 
@@ -1099,7 +1382,210 @@
     </g>`;
   }
 
-  // ==================== 火柴人战争式人物 ====================
+  // 运河（界画）：青灰水道 + 波纹 + 两岸堤石，纵向斜切画面，画出纵深
+  function canalJie(x0, y0, x1, y1, wTop, wBot) {
+    // 河岸线：近端(x0,y0) 宽 wTop，远端(x1,y1) 宽 wBot（斜轴测里越远越窄）
+    const dx = x1 - x0, dy = y1 - y0;
+    const L = Math.sqrt(dx * dx + dy * dy);
+    const nx = -dy / L, ny = dx / L;      // 河道法向
+    const p = (v) => v.toFixed(1);
+    const ax = x0 + nx * wTop / 2, ay = y0 + ny * wTop / 2;
+    const bx = x0 - nx * wTop / 2, by = y0 - ny * wTop / 2;
+    const cx = x1 - nx * wBot / 2, cy = y1 - ny * wBot / 2;
+    const dx2 = x1 + nx * wBot / 2, dy2 = y1 + ny * wBot / 2;
+    const s = `<path d="M${p(ax)},${p(ay)} L${p(bx)},${p(by)} L${p(cx)},${p(cy)} L${p(dx2)},${p(dy2)} Z" fill="${WATER}" stroke="${INK}" stroke-width="1"/>`;
+    // 波纹（沿河道的短横线，越往远越密越浅）
+    let ripple = '';
+    for (let i = 0; i < 11; i++) {
+      const t = i / 10;
+      const mx = x0 + (x1 - x0) * t, my = y0 + (y1 - y0) * t;
+      const wHalf = (wTop + (wBot - wTop) * t) / 2 * 0.62;
+      ripple += `<line x1="${p(mx - wHalf)}" y1="${p(my)}" x2="${p(mx + wHalf)}" y2="${p(my)}" stroke="${INK}" stroke-width="0.6" opacity="${(0.5 - t * 0.32).toFixed(2)}"/>`;
+    }
+    // 光斑（水面反光，随水流一起动）
+    const glint = `<ellipse cx="${p(x0 + dx * 0.45)}" cy="${p(y0 + dy * 0.45)}" rx="3.5" ry="1.5" fill="#ffffff" opacity="0.26"/>`;
+    // 第二批·水流动：SMIL 沿河道方向平移一个波纹间距，无缝循环（8 单位/秒）
+    // 相邻波纹间距 = 河道长 / 10；translate 到 (dx/10, dy/10) 后波纹 i 正好落在波纹 i+1 的位置
+    const ripDur = (L / 10) / 8;
+    const ripG = `<g class="water-ripple"><animateTransform attributeName="transform" type="translate" from="0 0" to="${p(dx / 10)} ${p(dy / 10)}" dur="${ripDur.toFixed(2)}s" repeatCount="indefinite"/>${ripple}${glint}</g>`;
+    // 两岸堤石（近端较宽的石砌边）
+    const st1 = `<path d="M${p(x0 + nx * wTop / 2)},${p(y0 + ny * wTop / 2)} L${p(x1 + nx * wBot / 2)},${p(y1 + ny * wBot / 2)} L${p(x1 + nx * (wBot / 2 + 6))},${p(y1 + ny * (wBot / 2 + 6))} L${p(x0 + nx * (wTop / 2 + 7))},${p(y0 + ny * (wTop / 2 + 7))} Z" fill="#b9ae90" stroke="${INK}" stroke-width="0.8"/>`;
+    const st2 = `<path d="M${p(x0 - nx * wTop / 2)},${p(y0 + ny * wTop / 2)} L${p(x1 - nx * wBot / 2)},${p(y1 + ny * wBot / 2)} L${p(x1 - nx * (wBot / 2 + 6))},${p(y1 + ny * (wBot / 2 + 6))} L${p(x0 - nx * (wTop / 2 + 7))},${p(y0 + ny * (wTop / 2 + 7))} Z" fill="#b9ae90" stroke="${INK}" stroke-width="0.8"/>`;
+    return `<g>${st1}${st2}${s}${ripG}</g>`;
+  }
+
+  // 码头（界画）：木板平台 + 系船桩 + 泊船 + 跳板，近景一角
+  function wharfJie(x, y, s, hasBoat) {
+    const p = (v) => v.toFixed(1);
+    const L = [];
+    // 木平台（斜轴测平行四边形）
+    L.push(`<path d="M${p(-40)},${p(-4)} L${p(40)},${p(-4)} L${p(50)},${p(-18)} L${p(-30)},${p(-18)} Z" fill="#c8b890" stroke="${INK}" stroke-width="1"/>`);
+    for (let i = 0; i < 5; i++) {
+      const t = i / 4;
+      L.push(`<line x1="${p(-40 + 80 * t)},${p(-4)}" x2="${p(-30 + 80 * t)},${p(-18)}" stroke="${INK}" stroke-width="0.6" opacity="0.5"/>`);
+    }
+    // 系船桩 ×2
+    L.push(`<rect x="${p(-36)}" y="${p(-9)}" width="4" height="5" fill="#8a6a3a" stroke="${INK}" stroke-width="0.6"/>`);
+    L.push(`<rect x="${p(32)}" y="${p(-9)}" width="4" height="5" fill="#8a6a3a" stroke="${INK}" stroke-width="0.6"/>`);
+    // 泊船（小船 + 篷）
+    if (hasBoat) {
+      L.push(`<path d="M${p(-26)},${p(2)} L${p(30)},${p(2)} L${p(24)},${p(8)} L${p(-18)},${p(8)} Z" fill="#8a6a3a" stroke="${INK}" stroke-width="0.9"/>`);
+      L.push(`<path d="M${p(-6)},${p(-2)} Q${p(4)},${p(-10)} ${p(14)},${p(-2)} Z" fill="#d8c8a0" stroke="${INK}" stroke-width="0.8"/>`);
+    }
+    return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)}) scale(${s.toFixed(2)})">${L.join('')}</g>`;
+  }
+
+  // 行船（界画）：梭形船体 + 拱篷 + 船尾摇橹船夫 —— 第二批动效
+  // 局部坐标：船头朝 +x、水面线 y=0；船体整体由 animator 沿河道 translate + rotate + bob 驱动，
+  // 橹（b-oar）由 animator 独立 rotate 摇橹。
+  function boatJie(bid) {
+    const p = (v) => v.toFixed(1);
+    const limb = '#2f2a22';
+    const hull = `<path d="M${p(18)},0 Q${p(8)},${p(-5)} ${p(-12)},${p(-3)} L${p(-18)},${p(-1)} Q${p(-8)},${p(5)} ${p(18)},0 Z" fill="#8a6a3a" stroke="${INK}" stroke-width="1"/>`;
+    const canopy = `<path d="M${p(-1)},${p(-2)} Q${p(4)},${p(-10)} ${p(10)},${p(-2)} Z" fill="#d8c8a0" stroke="${INK}" stroke-width="0.8"/>`;
+    const man = `<circle cx="${p(-11)}" cy="${p(-9)}" r="2.2" fill="${limb}"/>
+      <path d="M${p(-11)},${p(-7)} L${p(-11)},${p(-2)}" stroke="${limb}" stroke-width="1.8" stroke-linecap="round"/>`;
+    const oar = `<line x1="${p(-16)}" y1="${p(-3)}" x2="${p(-25)}" y2="${p(5)}" stroke="#5a3a1a" stroke-width="1.5" stroke-linecap="round"/>`;
+    return `<g class="boat" data-bid="${bid}"><g class="b-hull">${hull}${canopy}${man}</g><g class="b-oar">${oar}</g></g>`;
+  }
+
+  // 行船数据源：繁荣度 → 船数（0~3），荒年（<0.2）河上没船；返回 { items: 深度排序用, anim: 动画驱动用 }
+  function buildBoats(gs, ctx) {
+    const v = gs.values;
+    const prosperity = clamp((v.population + v.people + v.tresury) / 300, 0, 1);
+    const flags = (gs.flags && gs.flags.has) ? gs.flags : null;
+    const hasWharf = flags ? flags.has('canal_wharf') : false;
+    const items = [], anim = [];
+    if (!hasWharf || prosperity < 0.2) return { items, anim };
+    const nBoats = 1 + Math.round(prosperity * 2);   // 0.2~0.5→2, 0.5+→3（封顶 3）
+    // 河道端点（与 buildFgItems 里 canalJie 的坐标严格一致）
+    const a = proj(-150, 120), b = proj(-52, 470);
+    const L = Math.hypot(b.x - a.x, b.y - a.y);
+    const angDeg = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;   // 船体旋转对准河道
+    const d = 300, scale = scaleOf(d);              // 固定深度（河道中段，避免每帧跨层重排）
+    for (let i = 0; i < nBoats; i++) {
+      const bid = 'boat' + i;
+      const t0 = i * (0.4 / Math.max(1, nBoats - 1)) + rnd(i * 13 + 5) * 0.6;   // 初始相位随机（t∈[0,1] 沿河道，不上岸）
+      const dir = i % 2 === 0 ? 1 : -1;
+      items.push({ d, t: 1, s: boatJie(bid) });
+      anim.push({ bid, x0: a.x, y0: a.y, x1: b.x, y1: b.y, L,
+        t: t0, dir, speed: 16, scale, angDeg, phase: rnd(i * 7 + 1) * Math.PI * 2 });
+    }
+    return { items, anim };
+  }
+
+  // 麻雀（第三批·活气）：一笔画鸟，供天空层 CSS 飞掠（内层 g 承载动画，外层 g 定位）
+  function sparrowJie(x, y, delay) {
+    const p = (v) => v.toFixed(1);
+    return `<g transform="translate(${p(x)},${p(y)})"><g class="fx-bird" style="animation-delay:${delay.toFixed(1)}s">
+      <path d="M0,0 q3,-2.2 6,0 q3,2.2 0,1.2 q-3,1 -6,-1.2 Z" fill="${INK}" stroke="${INK}" stroke-width="0.4"/>
+      <path d="M1.5,-0.8 q-2,-2.2 -4.5,-1.2 M4,-0.6 q3,-3 5.5,-1.8" fill="none" stroke="${INK}" stroke-width="0.5" stroke-linecap="round"/>
+    </g></g>`;
+  }
+
+  // 鸡（第三批）：圆身 + 头冠 + 尾羽 + 两条腿，地面走动啄食；脚底 (0,0)
+  function chickenJie(bid) {
+    const p = (v) => v.toFixed(1);
+    return `<g class="chicken" data-bid="${bid}"><g class="c-body">
+      <path d="M-6,-5 Q-11,-8 -9,-1 Q-11,0 -6,-1" fill="#c8a860" stroke="${INK}" stroke-width="0.6"/>
+      <ellipse cx="0" cy="-5" rx="6" ry="4.6" fill="#e0d0a8" stroke="${INK}" stroke-width="0.8"/>
+      <circle cx="7" cy="-9.5" r="2.5" fill="#e0d0a8" stroke="${INK}" stroke-width="0.6"/>
+      <path d="M6.3,-11.8 l0,-2 l1.5,0 l-0.8,1.5 Z" fill="#a03020"/>
+      <path d="M9,-9 l2.2,-0.3" stroke="#c86030" stroke-width="0.9" stroke-linecap="round"/>
+      <circle cx="9.2" cy="-10" r="0.5" fill="${INK}"/>
+      <g class="c-leg-l"><line x1="-2.5" y1="-1" x2="-3" y2="2.5" stroke="#8a6a3a" stroke-width="1.2"/><line x1="-3" y1="2.5" x2="-4.2" y2="2.5" stroke="#8a6a3a" stroke-width="1"/></g>
+      <g class="c-leg-r"><line x1="2.5" y1="-1" x2="3" y2="2.5" stroke="#8a6a3a" stroke-width="1.2"/><line x1="3" y1="2.5" x2="4.2" y2="2.5" stroke="#8a6a3a" stroke-width="1"/></g>
+    </g></g>`;
+  }
+
+  // 车（第三批）：板车 + 货 + 两个 SMIL 自转车轮 + 车把；车板中心 (0,0)
+  function cartJie(bid) {
+    const p = (v) => v.toFixed(1);
+    const wheel = (cx) => `<g transform="translate(${p(cx)},2)"><g>
+      <circle cx="0" cy="0" r="4" fill="none" stroke="${INK}" stroke-width="1.4"/>
+      <line x1="0" y1="0" x2="0" y2="-4" stroke="${INK}" stroke-width="1"/>
+      <line x1="0" y1="0" x2="4" y2="0" stroke="${INK}" stroke-width="1"/>
+      <line x1="0" y1="0" x2="-3.4" y2="2" stroke="${INK}" stroke-width="0.9"/>
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="1.8s" repeatCount="indefinite"/>
+    </g></g>`;
+    return `<g class="cart" data-bid="${bid}"><g class="c-body">
+      <rect x="-12" y="-8" width="24" height="6" rx="1" fill="#a07040" stroke="${INK}" stroke-width="0.8"/>
+      <path d="M-10,-8 Q-6,-16 2,-14 Q8,-16 12,-8 Z" fill="#c8b060" stroke="${INK}" stroke-width="0.7"/>
+      <line x1="-10" y1="-8" x2="0" y2="-14" stroke="${INK}" stroke-width="0.4" opacity="0.5"/>
+      <line x1="12" y1="-5" x2="22" y2="-10" stroke="#5a3a1a" stroke-width="1.2"/>
+      <line x1="22" y1="-10" x2="24" y2="-12" stroke="#5a3a1a" stroke-width="1"/>
+      ${wheel(-7)}${wheel(7)}
+    </g></g>`;
+  }
+
+  // 马（第三批）：身 + 颈头 + 四腿 + 尾 + 骑者，地面疾行；脚底 (0,0)
+  function horseJie(bid) {
+    const p = (v) => v.toFixed(1);
+    return `<g class="horse" data-bid="${bid}"><g class="c-body">
+      <ellipse cx="0" cy="-16" rx="14" ry="8" fill="#8a5a3a" stroke="${INK}" stroke-width="0.8"/>
+      <path d="M11,-18 Q21,-32 25,-29 Q21,-23 13,-20 Z" fill="#8a5a3a" stroke="${INK}" stroke-width="0.8"/>
+      <circle cx="25" cy="-28" r="3" fill="#8a5a3a" stroke="${INK}" stroke-width="0.6"/>
+      <path d="M-13,-15 Q-19,-11 -21,-8" fill="none" stroke="${INK}" stroke-width="0.8"/>
+      <g class="c-leg-l"><line x1="-7" y1="-9" x2="-9" y2="0" stroke="#6a4a2a" stroke-width="1.6"/></g>
+      <g class="c-leg-r"><line x1="7" y1="-9" x2="9" y2="0" stroke="#6a4a2a" stroke-width="1.6"/></g>
+      <g class="c-leg-l2"><line x1="-3" y1="-9" x2="-4" y2="0" stroke="#6a4a2a" stroke-width="1.6"/></g>
+      <g class="c-leg-r2"><line x1="3" y1="-9" x2="5" y2="0" stroke="#6a4a2a" stroke-width="1.6"/></g>
+      <g class="c-rider"><path d="M-2,-24 L-4,-33" stroke="#2f6a52" stroke-width="5" stroke-linecap="round"/><circle cx="-4" cy="-37" r="3.6" fill="#e0c8a0" stroke="${INK}" stroke-width="0.6"/><circle cx="-6" cy="-39" r="3" fill="#2f2a22"/></g>
+    </g></g>`;
+  }
+
+  // 炊烟（第三批）：从屋脊升起、3s 淡出，负 delay 错开；只给整宅（非破败/着火）
+  function chimneySmokeJie(x, y, delay) {
+    const p = (v) => v.toFixed(1);
+    return `<g class="fx-rise" style="animation-delay:${delay.toFixed(1)}s" opacity="0.45">
+      <g transform="translate(${p(x)},${p(y)})">
+        <ellipse cx="0" cy="0" rx="3" ry="2" fill="#999"/>
+        <ellipse cx="-1.5" cy="-7" rx="4" ry="2.6" fill="#aaa"/>
+        <ellipse cx="1" cy="-14" rx="3.5" ry="2.2" fill="#bbb"/>
+      </g></g>`;
+  }
+
+  // 第三批·地面活物数据源：鸡（2 只，繁荣≥0.3）+ 车（1 辆，繁荣>0.5）+ 马（1 匹，繁荣>0.75）
+  function buildGround(gs, ctx) {
+    const v = gs.values;
+    const prosperity = clamp((v.population + v.people + v.tresury) / 300, 0, 1);
+    const items = [], anim = [];
+    if (prosperity >= 0.3) {
+      // 鸡：分布在近、中、远三段纵深，别都挤在前景
+      const chickD = [24, 120, 260];
+      for (let i = 0; i < 3; i++) {
+        const bid = 'chk' + i;
+        const d = chickD[i] + rnd(i * 3 + 1) * 30;
+        const wx = (i === 0 ? -130 : (i === 1 ? 20 : 90)) + rnd(i * 11 + 5) * 60;
+        const pt = proj(wx, d);
+        items.push({ d, t: 2, s: chickenJie(bid) });
+        anim.push({ kind: 'chicken', bid, x: pt.x, y: pt.y, scale: scaleOf(d),
+          dir: i % 2 ? -1 : 1, phase: rnd(i * 5 + 2) * 6.28, speed: 1.5,
+          xMin: pt.x - 60, xMax: pt.x + 60 });
+      }
+    }
+    if (prosperity > 0.5) {
+      // 车：加深纵深分布（两辆，一近一中远），别只在一处
+      for (let i = 0; i < 2; i++) {
+        const bid = 'cart' + i;
+        const d = (i === 0 ? 40 : 210) + rnd(i * 13 + 1) * 20;
+        const wx = (i === 0 ? -70 : 60) + (rnd(13 + i * 7) - 0.5) * 180;
+        const pt = proj(wx, d);
+        items.push({ d, t: 2, s: cartJie(bid) });
+        anim.push({ kind: 'cart', bid, x: pt.x, y: pt.y, scale: scaleOf(d),
+          dir: (i % 2 ? -1 : 1), phase: 0, speed: 6.3, xMin: pt.x - 120, xMax: pt.x + 120 });
+      }
+    }
+    if (prosperity > 0.75) {
+      const bid = 'horse0';
+      const d = 80, wx = 180 + (rnd(17) - 0.5) * 140;   // 马固定 d=80，wx 在街道域内抖
+      const pt = proj(wx, d);
+      items.push({ d, t: 2, s: horseJie(bid) });
+      anim.push({ kind: 'horse', bid, x: pt.x, y: pt.y, scale: scaleOf(d) * 0.9,
+        dir: -1, phase: 0, speed: 13.5, xMin: pt.x - 260, xMax: pt.x + 60 });
+    }
+    return { items, anim };
+  }
 
   const SK = {            // 骨架关键点（脚底 0,0）
     ankle: -5, knee: -14, hip: -22, waist: -25,
@@ -1112,9 +1598,12 @@
     official: { robe: '#2f6a52', sash: '#e8cf8a', hat: 'wusha', buzi: true, walk: { sp: 7, fq: 1.1, leg: 12, arm: 8, bob: 0.8 } },
     yamen:    { robe: '#8a4a3a', sash: '#d8c8a0', hat: 'zaoli', tool: 'staff', walk: { sp: 9, fq: 1.6, leg: 28, arm: 18, bob: 0.9 } },
     soldier:  { robe: '#8a4a3a', sash: '#d8c8a0', hat: 'doumu', tool: 'spear', armor: true, walk: { sp: 8.5, fq: 1.5, leg: 26, arm: 16, bob: 0.9 } },
+    patrol:   { robe: '#3a5a7a', sash: '#a03020', hat: 'zaoli', tool: 'saber', armor: true, walk: { sp: 7.5, fq: 1.3, leg: 22, arm: 12, bob: 0.7 } },  // 巡逻官兵：步幅稳、摆臂小
     commoner: { robe: '#c8a860', sash: '#8a4a3a', hat: 'ruanjin', walk: { sp: 8, fq: 1.4, leg: 24, arm: 20, bob: 0.9 } },
+    stroller: { robe: '#7a9a7a', sash: '#c8a860', hat: 'ruanjin', tool: 'fan', walk: { sp: 5.5, fq: 1.0, leg: 16, arm: 6, bob: 0.6 } },   // 游玩闲人：慢走、摇扇
     peddler:  { robe: '#c8a860', sash: '#8a4a3a', hat: 'futou', tool: 'carry', walk: { sp: 6, fq: 1.2, leg: 20, arm: 6, bob: 1.6 } },
     farmer:   { robe: '#c8a860', sash: '#8a4a3a', hat: 'douli', tool: 'hoe', rolled: true, walk: { sp: 7.5, fq: 1.3, leg: 22, arm: 16, bob: 1.0 } },
+    vegFarmer:{ robe: '#a8a860', sash: '#5a6a3a', hat: 'douli', tool: 'vegLoad', rolled: true, walk: { sp: 6, fq: 1.1, leg: 20, arm: 5, bob: 1.4 } }, // 挑菜农夫：扁担两筐青菜
     refugee:  { robe: '#9a8a70', sash: '#7a6a52', hat: 'none', tattered: true, tool: 'stick', walk: { sp: 5, fq: 0.9, leg: 16, arm: 6, bob: 1.2 } },
     child:    { robe: '#c8a860', sash: '#8a4a3a', hat: 'ruanjin', small: 0.6, walk: { sp: 5, fq: 2.2, leg: 30, arm: 35, bob: 1.4 } },
     bandit:   { robe: '#5a4020', sash: '#3a2a1a', hat: 'toujin', mask: true, tool: 'knife', walk: { sp: 6.5, fq: 1.8, leg: 26, arm: 14, bob: 1.1 } },
@@ -1220,8 +1709,14 @@
     let tool = '';
     if (R.tool === 'staff') tool = `<line x1="6" y1="-38" x2="6" y2="2" stroke="#8a4a3a" stroke-width="2.2"/><line x1="6" y1="-38" x2="6" y2="-18" stroke="#2a2a30" stroke-width="2.2"/>`;
     if (R.tool === 'spear') tool = `<line x1="7" y1="-46" x2="7" y2="4" stroke="#5a3a1a" stroke-width="1.8"/><path d="M7,-50 l-2,5 l4,0 Z" fill="#a03020"/>`;
+    if (R.tool === 'saber') tool = `<path d="M7,-24 q6,-8 10,-14" fill="none" stroke="#8a9aa8" stroke-width="2.2" stroke-linecap="round"/><line x1="7" y1="-24" x2="6" y2="-20" stroke="#3a2a1a" stroke-width="1.6"/>`;
+    if (R.tool === 'fan') tool = `<path d="M9,-30 q4,-3 7,0 q-3,3 -7,0 Z" fill="#e8d8b0" stroke="${ink}" stroke-width="0.7"/>`;
     if (R.tool === 'stick') tool = `<line x1="6" y1="-30" x2="6" y2="0" stroke="#8a6a3a" stroke-width="1.6"/>`;
     if (R.tool === 'carry') tool = `<line x1="-11" y1="-38" x2="13" y2="-36" stroke="#8a6a3a" stroke-width="1.6"/><path d="M12,-36 q3,4 0,8 l-6,0 q-3,-4 0,-8 Z" fill="#c8a860" stroke="${ink}" stroke-width="0.7"/>`;
+    if (R.tool === 'vegLoad') tool = `<line x1="-11" y1="-38" x2="13" y2="-36" stroke="#8a6a3a" stroke-width="1.6"/>
+      <path d="M13,-36 q4,3 1,8 l-7,0 q-2,-4 1,-8 Z" fill="#7a9a5a" stroke="${ink}" stroke-width="0.7"/>
+      <path d="M15,-33 l2,-2 M16,-31 l2.5,-1 M14.5,-35 l1.5,-2.5" stroke="#5a7a3a" stroke-width="0.8" fill="none"/>
+      <path d="M-11,-36 q-4,3 -1,8 l7,0 q2,-4 -1,-8 Z" fill="#7a9a5a" stroke="${ink}" stroke-width="0.7"/>`;
     if (R.tool === 'hoe') tool = `<line x1="7" y1="-34" x2="7" y2="2" stroke="#8a6a3a" stroke-width="1.6"/><path d="M7,2 l-5,2 l1,2 l5,-2 Z" fill="#6a6a70" stroke="${ink}" stroke-width="0.6"/>`;
     if (R.tool === 'knife') tool = `<path d="M6,-20 l7,-3 l1,2 l-7,3 Z" fill="#b0b0b8" stroke="${ink}" stroke-width="0.6"/>`;
     if (R.tool === 'bowl') tool = `<ellipse cx="8" cy="-2" rx="4" ry="2" fill="none" stroke="${ink}" stroke-width="0.9"/>`;
@@ -1265,6 +1760,12 @@
     const warLike = (ctx.lastEventTitle || '').match(/战|兵|匪|乱|寇|攻/) ? 1 : 0;
     const weatherBad = (ctx.lastEventTitle || '').match(/雨|涝|旱|蝗|疫/) ? 1 : 0;
 
+    // ---- 麻雀（第三批）：天空气层，CSS 飞掠，繁荣度越高越热闹 ----
+    const birdN = prosperity > 0.55 ? 3 : 1;
+    for (let i = 0; i < birdN; i++) {
+      parts(0, sparrowJie(50 + rnd(i * 7 + 1) * 340, 60 + rnd(i * 11 + 2) * 90, i * 1.3 + 2.2));
+    }
+
     // ---- 街市底纹：斜向车辙/横纹 ----
     for (let i = 0; i < 16; i++) {
       const d0 = 20 + i * 32, p0 = proj(-440, d0), p1 = proj(440, d0);
@@ -1299,10 +1800,12 @@
   // ==================== 人物层（含全部前景物，统一按深度排序 = 清明上河图式遮挡） ====================
 
   const TIERS = [
-    { d: 0,   cnt: 2, jit: 0.08 },   // 最近
-    { d: 165, cnt: 4, jit: 0.08 },
-    { d: 330, cnt: 6, jit: 0.06 },
-    { d: 500, cnt: 9, jit: 0.05 },   // 最远（剪影）
+    { d: 30,   cnt: 2, jit: 0.08 },   // 最近（紧贴观者）
+    { d: 150,  cnt: 3, jit: 0.08 },
+    { d: 275,  cnt: 3, jit: 0.07 },
+    { d: 400,  cnt: 4, jit: 0.06 },
+    { d: 525,  cnt: 4, jit: 0.05 },
+    { d: 645,  cnt: 5, jit: 0.05 },   // 最远（剪影，天际线附近）
   ];
   const MOVE_ROLES = ['commoner', 'commoner', 'commoner', 'peddler', 'farmer', 'child'];
 
@@ -1320,23 +1823,130 @@
     // ---- 城墙（最远排之后，d=520）----
     items.push({ d: 520, t: 0, s: `<g transform="translate(0,${proj(0, 520).y.toFixed(1)})">${cityWallJie(proj(-120, 520).x, 190, unrest > 0.6, scaleOf(520))}</g>` });
 
-    // ---- 民居（数量 ∝ 发展度：人口+民心+库银综合，6~14 间，随发展明显增多）----
-    const nHouses = 6 + Math.round(prosperity * 8);
-    for (let i = 0; i < nHouses; i++) {
-      const side = i % 2 === 0 ? 1 : -1;
-      const d = 60 + rnd(i * 5 + 2) * 400;              // 60~460，纵深铺满整条街
-      const wx = side * (170 + rnd(i * 11 + 5) * 170);   // 横向铺开，覆盖更宽街面
-      const pt = proj(wx, d);
-      let hs = 'ok';
-      if (warLike && i % 2 === 0) hs = 'burning';
-      else if (unrest > 0.62 && i % 2 === 1) hs = 'broken';
-      else if (famine > 0.6 && i % 3 === 2) hs = 'broken';
-      items.push({ d, t: 1, s: houseJie(pt.x, pt.y, 52 * scaleOf(d), { state: hs, depth: 30 * scaleOf(d) }) });
-      if (rnd(i * 13 + 3) > 0.45) {
-        const tp = proj(wx + side * 40, d + 6);
-        items.push({ d: d + 6, t: 1, s: treeJie(tp.x, tp.y, 0.62 * scaleOf(d), sc.tree, hs === 'broken') });
+    // ---- 民居（数量 ∝ 发展度；样式随繁荣度升级：茅草房 → 瓦房 → 商铺/双层楼）----
+    const flags = (gs.flags && gs.flags.has) ? gs.flags : null;
+    const hasWharf = flags ? flags.has('canal_wharf') : false;
+    const nHouses = 20 + Math.round(prosperity * 16);   // 20~36 栋，铺满整屏地面（随繁荣度增长）
+    // 界画风格户型表：随繁荣度演进，但每档都混多种样式，开局即见茅草/断壁
+    // 开局三值约 150/300≈0.5 → 落「茅草断壁」档；发展后过渡到瓦房，再出商铺/双层楼
+    // 0.80+ 顶部档加入酒馆（tavern）：商业繁华的标志性建筑
+    const housePool = prosperity < 0.55
+      ? ['thatch', 'thatch', 'ruin', 'thatch', 'ok', 'ok']
+      : prosperity < 0.8
+        ? ['ok', 'ok', 'thatch', 'ok', 'shop', 'ok']
+        : prosperity < 0.92
+          ? ['ok', 'shop', 'ok', 'two', 'shop', 'two']
+          : ['ok', 'shop', 'tavern', 'two', 'shop', 'two'];
+    // 沿横向道路两侧随机铺开：四段纵深均分（前中后都铺），横向铺满整个可视区、错落有致。
+    // 关键修正：wx 直接撒在「可视世界横轴范围」内并夹住，保证房子铺满画面、
+    // 不再贴边挤成一簇或大量跑出屏幕；新增「天际线远景带」填满视平线下的空地，
+    // 让上方、两侧、下方都不再大片留白。
+    const bands = [
+      { lo: 20,  hi: 170, frac: 0.25 },   // 近景：前景大屋（最靠近观者）
+      { lo: 170, hi: 330, frac: 0.25 },   // 中近景
+      { lo: 330, hi: 500, frac: 0.25 },   // 中远景
+      { lo: 505, hi: 720, frac: 0.25 },   // 远景天际线带：贴视平线的远方民居
+    ];
+    const assigned = bands.map(b => Math.max(1, Math.round(nHouses * b.frac)));
+    assigned[assigned.length - 1] += nHouses - assigned.reduce((a, b) => a + b, 0);
+    let hi = 0;
+    const placed = [];   // 已放置房屋的 (d, wx)，用于最小间距防重叠（同帧内确定性去重）
+    bands.forEach(function (band, bi) {
+      for (let j = 0; j < assigned[bi]; j++) {
+        const i = hi++;
+        // 纵深也加确定性抖动（±20 世界单位），避免两栋房落在几乎同一 (d, wx) 上挤成团
+        let d = band.lo + rnd(i * 13 + 2) * (band.hi - band.lo) + (rnd(i * 31 + 7) - 0.5) * 40;
+        d = Math.max(band.lo, Math.min(band.hi, d));
+        const scale = scaleOf(d);
+        const w = 52 * scale;
+        const hw = w / 2;
+        // 可视世界横轴范围（扣除半宽+边距，保证整栋在屏内，不再大量跑出屏幕）
+        const wxMin = -220 + 0.42 * d + hw + 6;
+        const wxMax =  220 + 0.42 * d - hw - 6;
+        // 横向街道空当：屏幕中心街对应世界横轴的斜线 wx=0.42d，两侧各留 lane 宽
+        const streetWx = 0.42 * d;
+        const lane = 34 + d * 0.06;                 // 街半宽随纵深略收窄（透视）
+        const leftW = (streetWx - lane) - wxMin;    // 街左侧可放范围
+        const rightW = wxMax - (streetWx + lane);   // 街右侧可放范围
+        // 防重叠：候选横坐标用「确定性打乱的均匀网格」铺满街道两侧整条可放宽度，
+        // 每个格点同时评估「街左」和「街右」两个位置，取与已放房屋屏幕间距最大的那个；
+        // 第一个 ≥ MIN_SEP 的即用。这样哪一侧空就往哪一侧放，远景多栋也不会挤成一簇。
+        const MIN_SEP = 34;
+        const GRID_N = 40;
+        const gord = [];                       // 确定性打乱后的网格序
+        for (let g = 0; g < GRID_N; g++) gord.push(g);
+        for (let g = GRID_N - 1; g > 0; g--) {
+          const r = Math.floor(rnd(i * 97 + g * 13 + 3) * (g + 1));
+          const t = gord[g]; gord[g] = gord[r]; gord[r] = t;
+        }
+        const cands = [];                      // 每个格点产生左右两个候选（哪侧可放就加哪侧）
+        for (let k = 0; k < GRID_N; k++) {
+          const u = (gord[k] + rnd(i * 17 + k * 7 + 1) * 0.8) / GRID_N;   // 网格点 + 格内抖动
+          if (leftW > 8) cands.push(wxMin + u * leftW);                  // 街左候选
+          if (rightW > 8) cands.push((streetWx + lane) + u * rightW);    // 街右候选
+        }
+        if (!cands.length) cands.push(wxMin + rnd(i * 11 + 5) * (wxMax - wxMin));   // 极端窄兜底
+        let bestWx = null, bestSep = -1, pick = null;
+        for (let k = 0; k < cands.length; k++) {
+          const cpt = proj(cands[k], d);
+          let sep = Infinity;
+          for (let q = 0; q < placed.length; q++) {
+            const s = Math.hypot(cpt.x - placed[q].x, cpt.y - placed[q].y);
+            if (s < sep) sep = s;
+          }
+          if (sep > bestSep) { bestSep = sep; bestWx = cands[k]; }
+          if (sep >= MIN_SEP) { pick = cands[k]; break; }   // 第一个达标即用，够稀疏
+        }
+        const wx = (pick != null) ? pick : bestWx;
+        placed.push({ wx: wx, d: d, x: proj(wx, d).x, y: proj(wx, d).y });
+        const pt = proj(wx, d);
+        let hs = 'ok';
+        if (warLike && i % 2 === 0) hs = 'burning';
+        else if (unrest > 0.62 && i % 2 === 1) hs = 'broken';
+        else if (famine > 0.6 && i % 3 === 2) hs = 'broken';
+        const kind = housePool[i % housePool.length];
+        const depth = 30 * scale;
+        let houseSvg = '';
+        if (kind === 'thatch') {
+          houseSvg = thatchJie(pt.x, pt.y, w, { state: hs === 'ok' ? 'ok' : hs });
+        } else if (kind === 'ruin') {
+          houseSvg = ruinJie(pt.x, pt.y, w, scale);
+        } else if (kind === 'shop') {
+          houseSvg = shopJie(pt.x, pt.y, w, { state: hs });
+        } else if (kind === 'tavern') {
+          houseSvg = tavernJie(pt.x, pt.y, w, { state: hs });
+        } else if (kind === 'two') {
+          houseSvg = twoStoryJie(pt.x, pt.y, w, { state: hs });
+        } else {
+          houseSvg = houseJie(pt.x, pt.y, w, { state: hs, depth });
+        }
+        items.push({ d, t: 1, s: houseSvg, hk: kind });   // hk=户型标记（供数量/种类验证，不参与渲染）
+        // 第三批·炊烟：从屋脊升起，最多 4 条，负 delay 错开；破败/着火/断壁不出烟
+        if (i < 4 && kind !== 'ruin' && hs === 'ok') {
+          items.push({ d, t: 1, s: chimneySmokeJie(pt.x, pt.y - w * 0.9, (i * 2.3) % 3) });
+        }
+        if (rnd(i * 13 + 3) > 0.45) {
+          const ts = wx < streetWx ? 1 : -1;   // 树长在房子朝向街道的那一侧
+          const tp = proj(wx + ts * (30 + rnd(i * 3 + 1) * 40), d + 6);
+          items.push({ d: d + 6, t: 1, s: treeJie(tp.x, tp.y, 0.62 * scale, sc.tree, hs === 'broken') });
+        }
       }
+    });
+
+    // ---- 运河 + 码头（西河修浚后永久出现，繁荣的地标）----
+    if (hasWharf) {
+      const ca0 = proj(-150, 120), ca1 = proj(-52, 470);
+      items.push({ d: 470, t: 0, s: canalJie(ca0.x, ca0.y, ca1.x, ca1.y, 34, 14) });
+      const wp = proj(-152, 132);
+      items.push({ d: 132, t: 1, s: wharfJie(wp.x, wp.y, 0.9, true) });
+      // 第二批·行船：船作为前景物进入深度排序（与人物同层遮挡），驱动数据由 buildBoats 另路提供
+      const boats = buildBoats(gs, ctx);
+      boats.items.forEach(function (b) { items.push(b); });
     }
+
+    // ---- 第三批·地面活物：鸡 + 车（与人物同层，按深度遮挡）----
+    const ground = buildGround(gs, ctx);
+    ground.items.forEach(function (it) { items.push(it); });
 
     // ---- 县衙（气派 ∝ 官声）----
     const yp = proj(200, 90);
@@ -1378,6 +1988,7 @@
         // 不等距 + 每排留一处空档
         let wx = -370 + seg * i + (rnd(n * 19 + 3) - 0.5) * seg * 0.75;
         if (i === Math.floor(nHere / 2)) wx += 26;   // 空档
+        wx = Math.max(-370, Math.min(370, wx));       // 硬约束：人物 wx 只落街面世界域，不越界
         // 朝向：60~75% 朝同一侧（人流主调）
         const goRight = rnd(n * 31 + 7) < 0.68;
         const dir = goRight ? 1 : -1;
@@ -1385,6 +1996,9 @@
         let role = MOVE_ROLES[n % MOVE_ROLES.length];
         if (n === 2) role = 'official';                                  // 知县固定出镜
         else if (v.security > 60 && n % 7 === 4) role = 'soldier';
+        else if (v.security > 55 && n % 11 === 6) role = 'patrol';       // 治安好 → 官兵巡逻（蓝袍佩刀）
+        else if (prosperity > 0.7 && (n % 9 === 2 || n % 9 === 5)) role = 'stroller';  // 繁荣 → 闲人游玩（慢走摇扇）
+        else if (prosperity > 0.45 && n % 8 === 5) role = 'vegFarmer';   // 有产出 → 农夫挑菜进城
         else if (unrest > 0.55 && n % 6 === 3) role = 'bandit';
         else if (famine > 0.35 && n % 5 === 2) role = 'refugee';
         else if (famine > 0.6 && n % 9 === 5) role = 'beggar';
@@ -1393,7 +2007,7 @@
         const state = (role === 'official') ? 'walk' : (walk.sp > 0 ? 'walk' : 'idle');
         // 苏醒时刻（秒，从月结开场算）：近排先醒，同排内从右往左错开 0~0.4s
         // 未到时刻的演员由 scene_animator 冻结在原位（原地解冻，不从画外走入）
-        const wake = (ti <= 1 ? 1.10 : 1.70) + (380 - wx) / 760 * 0.4;
+        const wake = (ti <= 2 ? 1.10 : 1.70) + (380 - wx) / 760 * 0.4;
         out.push({
           aid: 'r' + ti + '-' + i, role: role, tier: ti, d: t.d,
           wx: wx, state: state, dir: dir,
@@ -1403,7 +2017,7 @@
           scale: 1 + (rnd(n * 53 + 13) - 0.5) * t.jit * 2,
           mood: role === 'official' ? 'normal' : mood,
           wxMin: -330, wxMax: 330,
-          silence: ti === 3,            // 最远排：剪影
+          silence: ti >= 5,            // 最远两排：剪影
           wake: wake,                   // 苏醒时刻（秒）
         });
         n++;
@@ -1432,12 +2046,18 @@
 
   // 一次刷新：背景全量重绘 + 人物/前景物 diff + 挂动画
   function refreshScene(gs, ctx) {
+    // 每局摇一次种子（由上层 state.sceneSeed 传入），同局内每月重绘沿用同一种子不跳变
+    SCENE_SEED = (ctx && typeof ctx.seed === 'number') ? ctx.seed : (Math.random() * 100000);
     const bg = document.getElementById('scene-bg');
     const fg = document.getElementById('scene-fg');
     if (bg) bg.innerHTML = renderSceneBG(gs, ctx).replace(/^<svg[^>]*>|<\/svg>$/g, '');
     const list = buildActors(gs, ctx);
     if (fg) fg.innerHTML = renderSceneFG(list, gs, ctx).replace(/^<svg[^>]*>|<\/svg>$/g, '');
-    if (global.SceneAnimator) global.SceneAnimator.mount(list);
+    if (global.SceneAnimator) {
+      global.SceneAnimator.mount(list);
+      global.SceneAnimator.mountBoats(buildBoats(gs, ctx).anim);      // 第二批·行船驱动数据
+      global.SceneAnimator.mountGround(buildGround(gs, ctx).anim);    // 第三批·地面活物驱动数据
+    }
     return true;
   }
 
@@ -1877,10 +2497,279 @@
     return `<svg class="scene-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">${layers}</svg>`;
   }
 
+  // ==================== 水墨古风开场（四种背景各一张 CD 动画场景） ====================
+  // 风格：赭墨勾线 + 淡墨晕染远山/云雾 + 大面积留白；分层浮现（scIn）做开场动画
+  function renderIntroScene(bg) {
+    const INK = '#3a3226';
+    const L = [[], [], [], []];
+    const parts = (i, s) => L[i].push(s);
+    const p = (n) => (Math.round(n * 10) / 10).toFixed(1);
+
+    // —— 淡墨远山（多层高斯模糊晕染） ——
+    function ridge(d, o) { return `<path d="${d}" fill="${INK}" opacity="${o}" filter="url(#inkwash)"/>`; }
+    function mist(y, rx, o) { return `<ellipse cx="220" cy="${y}" rx="${rx}" ry="24" fill="${INK}" opacity="${o}" filter="url(#inkwash)"/>`; }
+    // —— 点叶树 ——
+    function inkTree(x, y, s, o) {
+      o = o == null ? 0.9 : o;
+      let dot = '';
+      for (let i = 0; i < 7; i++) {
+        const a = (i / 7) * Math.PI * 2;
+        const rr = s * (6 + (i % 3) * 2.5);
+        dot += `<circle cx="${(x + Math.cos(a) * rr).toFixed(1)}" cy="${(y - s * 26 + Math.sin(a) * rr).toFixed(1)}" r="${(s * (3 + (i % 2))).toFixed(1)}" fill="${INK}" opacity="${(o * 0.72).toFixed(2)}"/>`;
+      }
+      return `<g opacity="${o}"><line x1="${x}" y1="${y}" x2="${x}" y2="${y - s * 34}" stroke="${INK}" stroke-width="${(s * 1.6).toFixed(1)}"/><line x1="${x}" y1="${y - s * 18}" x2="${x - s * 12}" y2="${y - s * 30}" stroke="${INK}" stroke-width="${(s * 1.1).toFixed(1)}"/><line x1="${x}" y1="${y - s * 22}" x2="${x + s * 11}" y2="${y - s * 32}" stroke="${INK}" stroke-width="${(s * 1).toFixed(1)}"/>${dot}</g>`;
+    }
+    // —— 枯树（枯笔，战后） ——
+    function deadTree(x, y, s, o) {
+      o = o == null ? 0.85 : o;
+      const t = (n) => (n * s).toFixed(1);
+      let twig = '';
+      [[-0.45, -0.5], [-0.1, -0.7], [0.3, -0.55], [0.55, -0.38], [-0.65, -0.3]].forEach(function (d) {
+        twig += `<path d="M${x},${y - s * 30} q${t(d[0] * 30)},${t(d[1] * -16)} ${t(d[0] * 54)},${t(d[1] * -34)}" stroke="${INK}" stroke-width="${t(0.9)}" fill="none"/>`;
+      });
+      return `<g opacity="${o}" stroke-linecap="round" fill="none" stroke="${INK}"><path d="M${x},${y} q${t(-4)},${t(-18)} ${t(-2)},${t(-40)} q${t(1)},${t(-14)} ${t(6)},${t(-20)}" stroke-width="${t(2.4)}"/>${twig}</g>`;
+    }
+    // —— 水墨人影（墨块剪影，不画五官，留白） ——
+    function inkFigure(x, y, s, hunch) {
+      const h = s * 34;
+      const bend = hunch ? ` q${p(-s * 6)},${p(h * 0.5)} ${p(-s * 2)},${p(h)}` : ` q${p(s * 1)},${p(h * 0.5)} ${p(s * 0)},${p(h)}`;
+      return `<g stroke="${INK}" stroke-width="${(s * 1.3).toFixed(1)}" stroke-linecap="round" fill="none">
+        <circle cx="${x}" cy="${y - h - s * 4}" r="${s * 4}" fill="${INK}" stroke="none"/>
+        <path d="M${x},${y - h}${bend}" opacity="0.9"/>
+        <path d="M${x},${y - h * 0.55} l${p(-s * 9)},${p(s * 8)}" opacity="0.7"/>
+        <path d="M${x},${y - h * 0.55} l${p(s * 9)},${p(s * 8)}" opacity="0.7"/>
+      </g>`;
+    }
+    // —— 墨瓦屋顶 / 简笔民居 ——
+    function inkRoof(x, y, w, peakH) {
+      return `<path d="M${p(x - w * 0.62)},${y} L${x},${p(y - peakH)} L${p(x + w * 0.62)},${y}" fill="${INK}" opacity="0.82"/>`;
+    }
+    function inkHouse(x, y, w, h, wallO) {
+      return `<g>${inkRoof(x, y, w, w * 0.34)}<rect x="${p(x - w * 0.5)}" y="${y}" width="${w}" height="${h}" fill="none" stroke="${INK}" stroke-width="1.3" opacity="${wallO == null ? 0.9 : wallO}"/><rect x="${p(x - w * 0.16)}" y="${p(y + h * 0.3)}" width="${p(w * 0.32)}" height="${p(h * 0.7)}" fill="${INK}" opacity="0.5"/></g>`;
+    }
+
+    parts(0, `<defs><filter id="inkwash" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5.5"/></filter></defs>`);
+    parts(0, `<ellipse cx="220" cy="706" rx="180" ry="15" fill="${INK}" opacity="0.05" filter="url(#inkwash)"/>`);
+
+    if (bg === 'wild') {
+      parts(0, ridge('M0,330 L58,196 L108,272 L156,150 L214,266 L266,186 L322,280 L368,224 L440,302 L440,470 L0,470 Z', 0.13));
+      parts(0, ridge('M0,392 L80,300 L150,356 L230,286 L320,360 L440,320 L440,470 L0,470 Z', 0.2));
+      parts(0, mist(246, 150, 0.10)); parts(0, mist(308, 118, 0.07));
+      parts(1, `<path d="M0,470 L0,398 L70,318 L132,398 L192,338 L252,420 L322,372 L392,432 L440,398 L440,470 Z" fill="none" stroke="${INK}" stroke-width="1.1" opacity="0.5"/>`);
+      parts(1, inkTree(66, 472, 1.25, 0.75) + inkTree(110, 464, 1.05, 0.65) + inkTree(360, 470, 1.2, 0.75) + inkTree(396, 462, 0.95, 0.65));
+      parts(1, `<g><path d="M190,470 L220,424 L250,470 Z" fill="${INK}" opacity="0.7"/><path d="M184,470 L220,424 L256,470" fill="none" stroke="${INK}" stroke-width="1.4" opacity="0.9"/><rect x="196" y="470" width="48" height="34" fill="none" stroke="${INK}" stroke-width="1.3" opacity="0.85"/><rect x="214" y="482" width="12" height="22" fill="${INK}" opacity="0.5"/></g>`);
+      parts(2, inkFigure(150, 520, 1.5, true));
+      parts(2, `<path d="M0,560 q110,540 220,556 q110,16 220,4" fill="none" stroke="${INK}" stroke-width="1" opacity="0.3"/>`);
+      parts(3, `<path d="M96,150 q8,-8 16,0 M120,142 q7,-7 14,0" fill="none" stroke="${INK}" stroke-width="1.4" opacity="0.7"/>`);
+    } else if (bg === 'ruin') {
+      parts(0, ridge('M0,400 L90,336 L180,392 L280,340 L380,396 L440,360 L440,470 L0,470 Z', 0.12));
+      parts(0, mist(250, 160, 0.09));
+      parts(1, `<path d="M0,470 L0,412 L96,412 L96,470 Z" fill="none" stroke="${INK}" stroke-width="1.3" opacity="0.7"/><path d="M96,412 l18,10 l16,-6 l14,8 l12,-4 l10,6 l0,44 l-70,0 Z" fill="none" stroke="${INK}" stroke-width="1.2" opacity="0.75"/>`);
+      parts(1, `<path d="M220,470 q40,-34 88,-8" fill="none" stroke="${INK}" stroke-width="1.5" opacity="0.6"/><path d="M300,462 q30,-26 66,-6" fill="none" stroke="${INK}" stroke-width="1.2" opacity="0.4"/>`);
+      parts(1, deadTree(70, 470, 1.5, 0.85) + deadTree(382, 470, 1.3, 0.8));
+      parts(2, `<path d="M0,560 q90,552 180,560 q90,8 180,560 q50,0 80,-6" fill="none" stroke="${INK}" stroke-width="0.9" opacity="0.28"/>`);
+      parts(2, inkFigure(150, 520, 1.4, true) + inkFigure(300, 528, 1.2, true));
+      parts(3, `<path d="M360,430 q0,-26 8,-44" fill="none" stroke="${INK}" stroke-width="1.6" opacity="0.35"/><ellipse cx="368" cy="386" rx="9" ry="6" fill="${INK}" opacity="0.18" filter="url(#inkwash)"/>`);
+    } else if (bg === 'county') {
+      parts(0, ridge('M0,360 L70,290 L160,356 L250,300 L350,362 L440,312 L440,470 L0,470 Z', 0.14));
+      parts(0, mist(268, 140, 0.08));
+      parts(1, `<path d="M0,470 L0,404 L440,404 L440,470 Z" fill="none" stroke="${INK}" stroke-width="1.4" opacity="0.8"/>`);
+      parts(1, `<rect x="190" y="404" width="60" height="66" fill="none" stroke="${INK}" stroke-width="1.4" opacity="0.85"/><path d="M186,404 A30,26 0 0 1 254,404" fill="none" stroke="${INK}" stroke-width="1.3" opacity="0.8"/>`);
+      parts(1, `<rect x="40" y="372" width="36" height="32" fill="none" stroke="${INK}" stroke-width="1.3" opacity="0.8"/><path d="M34,372 L58,352 L82,372 Z" fill="${INK}" opacity="0.7"/>`);
+      parts(1, `<rect x="360" y="372" width="36" height="32" fill="none" stroke="${INK}" stroke-width="1.3" opacity="0.8"/><path d="M354,372 L378,352 L402,372 Z" fill="${INK}" opacity="0.7"/>`);
+      parts(1, inkTree(120, 470, 1.1, 0.7) + inkTree(326, 470, 1.0, 0.65));
+      parts(2, `<path d="M0,560 q110,546 220,556 q110,10 220,556" fill="none" stroke="${INK}" stroke-width="1.2" opacity="0.45"/><path d="M0,566 q110,552 220,562 q110,10 220,562" fill="none" stroke="${INK}" stroke-width="0.9" opacity="0.3"/>`);
+      parts(2, `<path d="M196,556 q24,-20 48,0" fill="none" stroke="${INK}" stroke-width="1.6" opacity="0.7"/>`);
+      parts(2, inkFigure(120, 528, 1.2) + inkFigure(330, 530, 1.15));
+      parts(3, `<path d="M80,150 q8,-8 16,0 M104,142 q7,-7 14,0" fill="none" stroke="${INK}" stroke-width="1.3" opacity="0.6"/>`);
+    } else {   // city 繁华大都市
+      parts(0, ridge('M0,390 L90,330 L200,388 L300,336 L440,392 L440,470 L0,470 Z', 0.1));
+      parts(0, mist(280, 130, 0.07));
+      parts(1, `<rect x="128" y="300" width="72" height="170" fill="none" stroke="${INK}" stroke-width="1.4" opacity="0.85"/>`);
+      parts(1, `<path d="M118,300 L164,272 L210,300 Z" fill="${INK}" opacity="0.72"/><path d="M112,344 L164,318 L216,344 Z" fill="none" stroke="${INK}" stroke-width="1.3" opacity="0.8"/><path d="M112,394 L164,368 L216,394 Z" fill="none" stroke="${INK}" stroke-width="1.3" opacity="0.8"/>`);
+      parts(1, `<rect x="148" y="316" width="10" height="16" fill="${INK}" opacity="0.4"/><rect x="180" y="316" width="10" height="16" fill="${INK}" opacity="0.4"/><rect x="148" y="366" width="10" height="16" fill="${INK}" opacity="0.4"/><rect x="180" y="366" width="10" height="16" fill="${INK}" opacity="0.4"/>`);
+      parts(1, inkHouse(64, 470, 60, 30) + inkHouse(330, 470, 56, 28) + inkHouse(398, 470, 40, 22, 0.7));
+      parts(1, `<path d="M250,470 L250,512 L380,512 L380,470 Z" fill="none" stroke="${INK}" stroke-width="1.3" opacity="0.75"/>`);
+      parts(2, `<path d="M270,512 q50,-16 96,0 L366,512 q-24,14 -48,14 q-24,0 -48,-14 Z" fill="${INK}" opacity="0.7"/>`);
+      parts(2, `<line x1="318" y1="512" x2="318" y2="440" stroke="${INK}" stroke-width="1.5" opacity="0.85"/><path d="M318,440 L318,458 L352,446 Z" fill="${INK}" opacity="0.8"/>`);
+      parts(2, inkFigure(150, 528, 1.2) + inkFigure(236, 532, 1.05));
+      parts(3, `<circle cx="164" cy="336" r="3" fill="#a03020" opacity="0.75"/><circle cx="164" cy="386" r="3" fill="#a03020" opacity="0.75"/><circle cx="318" cy="500" r="2.6" fill="#a03020" opacity="0.7"/>`);
+      parts(3, `<path d="M90,150 q8,-8 16,0 M114,142 q7,-7 14,0 M60,170 q7,-7 14,0" fill="none" stroke="${INK}" stroke-width="1.3" opacity="0.55"/>`);
+    }
+
+    const layers = L.map((items, i) => items.length ? `<g class="sc-layer sc-l${i}">${items.join('')}</g>` : '').join('');
+    return `<svg class="scene-svg intro-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">${layers}</svg>`;
+  }
+
+  // ==================== 政令发布背景（界画场景风，随故事线×发展阶段×月份变化） ====================
+  // 复用主场景同一套界画图元，按「出身故事线(origin) + 繁华度阶段(stage) + 季节(month)」三轴
+  // 生成不同的政令颁布展示背景：故事线换天际线/地标，阶段换建筑密度与样式，月份换天色树色。
+  function renderDecreeBG(gs, ctx) {
+    const v = gs.values;
+    const origin = (gs.origin === 'wild' || gs.origin === 'ruin' || gs.origin === 'county' || gs.origin === 'city')
+      ? gs.origin : 'county';
+    const sc = scN(gs.month);
+    const prosperity = clamp((v.population + v.people + v.tresury) / 300, 0, 1);
+    const famine = clamp((40 - v.granary) / 40, 0, 1);
+    const unrest = clamp((45 - v.security) / 45, 0, 1);
+    const stage = prosperity < 0.55 ? 0 : prosperity < 0.8 ? 1 : 2;   // 草创 / 起色 / 鼎盛
+    const seasonName = season(gs.month);
+    const L = [[], [], [], []];
+    const parts = (i, s) => L[i].push(s);
+    const p = (n) => n.toFixed(1);
+    const warLike = (ctx && ctx.lastEventTitle || '').match(/战|兵|匪|乱|寇|攻/) ? 1 : 0;
+    const weatherBad = (ctx && ctx.lastEventTitle || '').match(/雨|涝|旱|蝗|疫/) ? 1 : 0;
+
+    // ---- 天际线配色（季节 + 故事线一起决定远处山/城剪影的浓淡）----
+    const ridgeTint = {
+      wild: { ridge: '#8aa0a0', fog: 0.16 },
+      ruin: { ridge: '#93877a', fog: 0.20 },
+      county: { ridge: '#7f9690', fog: 0.13 },
+      city: { ridge: '#7a8f9a', fog: 0.11 },
+    }[origin];
+
+    // ---- 天空 ----
+    parts(0, `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${sc.skyTop}"/><stop offset="100%" stop-color="${sc.skyBot}"/></linearGradient></defs>`);
+    parts(0, `<rect x="0" y="0" width="${W}" height="${HORIZON}" fill="url(#sky)"/>`);
+    // 太阳/月：冬季偏白，其余偏暖
+    parts(0, `<circle cx="${p(360)}" cy="${p(88)}" r="24" fill="${seasonName === 'winter' ? '#e8ece8' : '#f2d060'}" opacity="0.85"/>`);
+    parts(0, `<g class="cloud-drift">${cloudJie(70, 84, 1, 0.8)}${cloudJie(230, 150, 0.75, 0.6)}${cloudJie(356, 62, 0.8, 0.65)}</g>`);
+
+    // ---- 故事线远山/天际线（layer 0）----
+    if (origin === 'wild') {
+      // 蛮荒：层叠峻岭 + 几株孤树
+      parts(0, `<path d="M0,${HORIZON - 96} L52,${HORIZON - 180} L104,${HORIZON - 100} L150,${HORIZON - 210} L204,${HORIZON - 110} L258,${HORIZON - 190} L312,${HORIZON - 104} L368,${HORIZON - 196} L440,${HORIZON - 100} L440,${HORIZON} L0,${HORIZON} Z" fill="${ridgeTint.ridge}" opacity="0.30"/>`);
+      parts(0, `<path d="M0,${HORIZON - 56} L90,${HORIZON - 130} L190,${HORIZON - 62} L300,${HORIZON - 140} L440,${HORIZON - 70} L440,${HORIZON} L0,${HORIZON} Z" fill="${ridgeTint.ridge}" opacity="0.22"/>`);
+    } else if (origin === 'ruin') {
+      // 战后：残破低山 + 一缕残烟
+      parts(0, `<path d="M0,${HORIZON - 70} L80,${HORIZON - 128} L170,${HORIZON - 80} L270,${HORIZON - 120} L380,${HORIZON - 76} L440,${HORIZON - 96} L440,${HORIZON} L0,${HORIZON} Z" fill="${ridgeTint.ridge}" opacity="0.26"/>`);
+      parts(3, `<g class="fx-rise">${smoke(300, HORIZON - 120, 0.8)}</g>`);
+    } else if (origin === 'county') {
+      // 县城：平缓远山 + 一道城墙天际线
+      parts(0, `<path d="M0,${HORIZON - 62} Q110,${HORIZON - 128} 220,${HORIZON - 72} Q330,${HORIZON - 132} 440,${HORIZON - 78} L440,${HORIZON} L0,${HORIZON} Z" fill="${ridgeTint.ridge}" opacity="0.24"/>`);
+    } else {
+      // 都市：高楼剪影（城楼/塔尖）
+      parts(0, `<path d="M0,${HORIZON - 56} L40,${HORIZON - 118} L70,${HORIZON - 70} L120,${HORIZON - 150} L150,${HORIZON - 78} L210,${HORIZON - 138} L240,${HORIZON - 74} L300,${HORIZON - 158} L330,${HORIZON - 82} L386,${HORIZON - 126} L440,${HORIZON - 68} L440,${HORIZON} L0,${HORIZON} Z" fill="${ridgeTint.ridge}" opacity="0.22"/>`);
+    }
+
+    // ---- 地面 ----
+    parts(0, `<rect x="0" y="${HORIZON}" width="${W}" height="${H - HORIZON}" fill="${sc.ground}"/>`);
+    for (let i = 0; i < 14; i++) {
+      const d0 = 20 + i * 34, p0 = proj(-440, d0), p1 = proj(440, d0);
+      parts(2, `<line x1="${p(p0.x)}" y1="${p(p0.y)}" x2="${p(p1.x)}" y2="${p(p1.y)}" stroke="${INK}" stroke-width="0.7" opacity="0.16"/>`);
+    }
+    // 街两侧屋基线
+    [0, 1].forEach(function (side) {
+      const a0 = proj(side ? 190 : -190, 10), a1 = proj(side ? 190 : -190, 480);
+      parts(2, `<line x1="${p(a0.x)}" y1="${p(a0.y)}" x2="${p(a1.x)}" y2="${p(a1.y)}" stroke="${INK}" stroke-width="1" opacity="0.24"/>`);
+    });
+
+    // ---- 建筑布局（随故事线换地标、随阶段换密度/样式；中心留给政令卡片）----
+    // 各故事线的「地标」：蛮荒=茅屋群+孤树；战后=断壁+重修瓦房；县城=县衙+米仓；都市=酒楼+双层楼
+    const mk = [];   // { d, t, s }
+    function push(d, t, s) { mk.push({ d: d, t: t, s: s }); }
+    const bld = function (kind, wx, d, scl, opts) {
+      const w = 52 * scl, pt = proj(wx, d);
+      if (kind === 'thatch') push(d, 1, thatchJie(pt.x, pt.y, w, opts || {}));
+      else if (kind === 'ruin') push(d, 1, ruinJie(pt.x, pt.y, w, scl));
+      else if (kind === 'ok') push(d, 1, houseJie(pt.x, pt.y, w, opts || {}));
+      else if (kind === 'shop') push(d, 1, shopJie(pt.x, pt.y, w, opts || {}));
+      else if (kind === 'two') push(d, 1, twoStoryJie(pt.x, pt.y, w, opts || {}));
+      else if (kind === 'tavern') push(d, 1, tavernJie(pt.x, pt.y, w, opts || {}));
+      else if (kind === 'yamen') push(d, 1, yamenJie(pt.x, pt.y, w, opts || 0));
+      else if (kind === 'granary') push(d, 1, granaryJie(pt.x, pt.y, w, opts || 0.6));
+    };
+    const tree = function (wx, d, scl, dead) {
+      const pt = proj(wx, d);
+      push(d + 1, 1, treeJie(pt.x, pt.y, scl, sc.tree, dead));
+    };
+    // 各故事线的远景民居（背影，最远一档）
+    const farRow = {
+      wild: ['thatch', 'thatch', 'ruin', 'thatch', 'thatch', 'ruin', 'thatch'],
+      ruin: ['ruin', 'ruin', 'thatch', 'ruin', 'thatch', 'ruin', 'ok'],
+      county: ['ok', 'ok', 'thatch', 'ok', 'shop', 'ok', 'two'],
+      city: ['two', 'shop', 'two', 'tavern', 'shop', 'two', 'tavern'],
+    }[origin];
+    const farN = 5 + stage * 1;
+    for (let i = 0; i < farN; i++) {
+      const d = 430 - i * 18 + (rnd(i * 17 + 3) - 0.5) * 20;
+      const wx = -230 + rnd(i * 13 + 5) * 460;
+      const kind = farRow[i % farRow.length];
+      // 战后/蛮荒的远景在低阶段多为破败，高阶段才逐渐补上
+      let k = kind;
+      if (origin === 'ruin' && stage < 1 && kind === 'ok') k = 'ruin';
+      if (origin === 'wild' && stage < 1 && kind === 'ok') k = 'thatch';
+      bld(k, wx, d, scaleOf(d), { state: 'ok' });
+      if (rnd(i * 7 + 1) > 0.5) tree(wx + (rnd(i * 3) > 0.5 ? 1 : -1) * 40, d + 2, 0.5 * scaleOf(d), (origin === 'ruin' && stage < 1));
+    }
+    // 近景地标（左右两侧，避开中央卡片区）
+    if (origin === 'wild') {
+      bld('thatch', -190, 150, scaleOf(150), { state: 'ok' });
+      bld('ruin', -110, 130, scaleOf(130));
+      tree(-235, 160, 0.75, false); tree(185, 150, 0.7, false);
+      if (stage >= 1) bld('ok', 180, 140, scaleOf(140), { state: 'ok' });
+      if (stage >= 2) { bld('shop', 150, 120, scaleOf(120), { state: 'ok' }); tree(-160, 125, 0.6, false); }
+    } else if (origin === 'ruin') {
+      bld('ruin', -185, 155, scaleOf(155));
+      bld('ruin', -95, 135, scaleOf(135));
+      tree(-225, 165, 0.7, true); tree(175, 155, 0.68, true);
+      if (stage >= 1) bld('thatch', 185, 150, scaleOf(150), { state: 'ok' });
+      if (stage >= 2) bld('ok', 165, 125, scaleOf(125), { state: 'ok' });
+      if (stage >= 2) tree(210, 130, 0.6, false);   // 重建后才有新绿
+    } else if (origin === 'county') {
+      bld('yamen', 195, 130, scaleOf(130) * 1.1, repOf(v));
+      bld('granary', -200, 128, scaleOf(128) * 0.9, granOf(v));
+      tree(245, 150, 0.7, false); tree(-235, 150, 0.72, false);
+      if (stage >= 1) { bld('shop', 150, 150, scaleOf(150), { state: 'ok' }); bld('ok', -140, 150, scaleOf(150), { state: 'ok' }); }
+      if (stage >= 2) { bld('two', -165, 120, scaleOf(120), { state: 'ok' }); bld('tavern', 170, 118, scaleOf(118), { state: 'ok' }); }
+    } else {  // city
+      bld('tavern', -190, 135, scaleOf(135), { state: 'ok' });
+      bld('two', 190, 130, scaleOf(130), { state: 'ok' });
+      bld('shop', -130, 150, scaleOf(150), { state: 'ok' });
+      bld('shop', 135, 150, scaleOf(150), { state: 'ok' });
+      tree(-225, 155, 0.7, false); tree(225, 155, 0.7, false);
+      if (stage >= 2) { bld('two', -210, 105, scaleOf(105), { state: 'ok' }); bld('tavern', 210, 105, scaleOf(105), { state: 'ok' }); }
+    }
+    // 季节点缀：冬季覆雪点、秋季飘叶点
+    if (seasonName === 'winter') {
+      for (let i = 0; i < 18; i++) {
+        const sx = rnd(i * 7 + 2) * W, sy = HORIZON + rnd(i * 13 + 1) * (H - HORIZON - 20);
+        parts(3, `<circle cx="${p(sx)}" cy="${p(sy)}" r="1.4" fill="#ffffff" opacity="${(0.5 + rnd(i * 5) * 0.4).toFixed(2)}"/>`);
+      }
+    } else if (seasonName === 'autumn') {
+      for (let i = 0; i < 8; i++) {
+        const lx = rnd(i * 11 + 4) * W, ly = HORIZON + rnd(i * 7 + 8) * (H - HORIZON - 40);
+        parts(3, `<path d="M${p(lx)},${p(ly)} q4,6 8,0 q-4,-6 -8,0 Z" fill="${sc.tree}" opacity="0.5"/>`);
+      }
+    }
+    // 麻雀（鼎盛更多）
+    const birdN = stage >= 2 ? 4 : stage >= 1 ? 2 : 1;
+    for (let i = 0; i < birdN; i++) parts(0, sparrowJie(60 + rnd(i * 7 + 1) * 320, 52 + rnd(i * 11 + 2) * 70, i * 1.3 + 2.2));
+    // 灾年阴云 / 战火
+    if (weatherBad) parts(3, `<rect x="0" y="0" width="${W}" height="${HORIZON}" fill="#5c6b73" opacity="0.16"/>`);
+    if (warLike) {
+      const fp = proj(60, 170);
+      parts(3, `<g class="fx-flicker">${fire(fp.x, fp.y - 30, 0.8)}</g><g class="fx-rise">${smoke(fp.x + 10, fp.y - 60, 0.9)}</g>`);
+    }
+
+    // 按深度排序（远先画）
+    mk.sort(function (a, b) { return b.d - a.d; });
+    mk.forEach(function (o) { parts(1, o.s); });
+
+    const layers = L.map((items, i) => items.length ? `<g class="sc-layer sc-l${i}">${items.join('')}</g>` : '').join('');
+    return `<svg class="scene-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">${layers}</svg>`;
+  }
+  function repOf(v) { return clamp(v.reputation / 100, 0, 1); }
+  function granOf(v) { return clamp((v.granary - 10) / 80, 0, 1); }
+
   global.SceneRenderer = {
     // 新（P1 界画场景）
-    renderSceneBG, buildActors, actorSVG, renderSceneFG, refreshScene, buildFgItems,
+    renderIntroScene, renderSceneBG, buildActors, actorSVG, renderSceneFG, refreshScene, buildFgItems,
+    renderDecreeBG,
     proj, scaleOf, houseJie, granaryJie, yamenJie, treeJie, cityWallJie, cloudJie,
+    canalJie, wharfJie, thatchJie, ruinJie, shopJie, twoStoryJie, tavernJie, lanternJie,
+    boatJie, buildBoats, chickenJie, cartJie, horseJie, sparrowJie, buildGround, chimneySmokeJie,
     HORIZON, NEAR_Y, DEPTH0, KX, KY, X0, ROLE, SK, LW, TIERS,
     // 旧的（#preview 选项预观仍在用，P2 再迁移）
     renderScene, season, renderChoiceScene,
@@ -1910,12 +2799,59 @@
   var sigPrev = '';
   var t = 0;          // 苏醒计时（秒），从 mount 起算；settle() 直接推到全部唤醒
   var settled = false;
+  var boats = [];     // 第二批·行船驱动数据（buildBoats().anim）
+  var grounds = [];   // 第三批·地面活物（鸡/车）驱动数据（buildGround().anim）
 
   // 与 scene_renderer.js 的投影系统保持一致
   var DEPTH0 = 500, NEAR_Y = 690, KX = -0.42, KY = 0.32, X0 = 220;
 
   function proj(wx, d) { return { x: X0 + wx + d * KX, y: NEAR_Y - d * KY }; }
   function scaleOf(d) { return 1 - (d / DEPTH0) * 0.45; }
+
+  /**
+   * mountBoats(list) —— 第二批·行船：缓存驱动数据 + 节点引用
+   * @param {Array} list buildBoats().anim 的返回值（船沿河道的起点/终点/速度/相位）
+   */
+  function mountBoats(list) {
+    list = list || [];
+    boats = list.map(function (b) {
+      return {
+        b: b, hull: null, oar: null,
+        el: document.getElementById('scene-fg')
+          ? document.getElementById('scene-fg').querySelector('[data-bid="' + b.bid + '"]')
+          : null
+      };
+    });
+    for (var i = 0; i < boats.length; i++) {
+      if (!boats[i].el) continue;
+      boats[i].hull = boats[i].el.querySelector('.b-hull');
+      boats[i].oar  = boats[i].el.querySelector('.b-oar');
+      stepBoat(boats[i], 0);   // 立刻写一帧初始位，避免船瞬移在左上角 (0,0)
+    }
+  }
+
+  /**
+   * mountGround(list) —— 第三批·地面活物：鸡走动 + 车行进
+   * @param {Array} list buildGround().anim 的返回值（kind: chicken/cart）
+   */
+  function mountGround(list) {
+    list = list || [];
+    grounds = list.map(function (o) {
+      var el = document.getElementById('scene-fg')
+        ? document.getElementById('scene-fg').querySelector('[data-bid="' + o.bid + '"]')
+        : null;
+      return {
+        b: o, el: el,
+        body: el ? el.querySelector('.c-body') : null,
+        legL: el ? el.querySelector('.c-leg-l') : null,
+        legR: el ? el.querySelector('.c-leg-r') : null,
+        legL2: el ? el.querySelector('.c-leg-l2') : null,
+        legR2: el ? el.querySelector('.c-leg-r2') : null,
+        rider: el ? el.querySelector('.c-rider') : null
+      };
+    });
+    for (var i = 0; i < grounds.length; i++) stepGround(grounds[i], 0);
+  }
 
   /**
    * mount(list) —— 人变了才重建 DOM，人没变只更新行为参数
@@ -2005,7 +2941,70 @@
     last = now;
     t += dt;                                   // 苏醒计时
     for (var i = 0; i < actors.length; i++) step(actors[i], dt);
+    for (var j = 0; j < boats.length; j++) stepBoat(boats[j], dt);
+    for (var k = 0; k < grounds.length; k++) stepGround(grounds[k], dt);
     rafId = requestAnimationFrame(tick);
+  }
+
+  /**
+   * stepBoat(o, dt) —— 第二批·行船：
+   *   船体沿河道 A→B 匀速往返（出端点即掉头），附带 ±1.5 正弦浮沉（艏艉起伏），
+   *   船尾橹绕轴 ±18° 摇橹。仅写 2 组 transform，成本远低于人物层。
+   *   b.dir 取 ±1：+1 顺河道方向（A→B），-1 逆向；掉头时船体 rotate 加 180°。
+   */
+  function stepBoat(o, dt) {
+    var b = o.b;
+    if (!o.hull) return;
+    var ang = b.angDeg;                          // 河道朝向（度）
+    // 沿河道归一化参数 s ∈ [0,1]，到端点反弹
+    b.t += (b.dir * b.speed / b.L) * dt;
+    if (b.t > 1) { b.t = 1; b.dir = -1; }
+    if (b.t < 0) { b.t = 0; b.dir = 1; }
+    var sx = b.x0 + (b.x1 - b.x0) * b.t;
+    var sy = b.y0 + (b.y1 - b.y0) * b.t;
+    var bob = Math.sin(b.phase) * 1.5;           // 浮沉 ±1.5
+    b.phase += dt * 1.6;                          // 浮沉频率（慢）
+    var flip = b.dir < 0 ? 180 : 0;               // 逆向时船头翻转
+    o.hull.setAttribute('transform',
+      'translate(' + sx.toFixed(1) + ',' + (sy + bob).toFixed(1) + ') rotate(' + (ang + flip).toFixed(1) + ') scale(' + b.scale.toFixed(3) + ')');
+    // 橹：绕船尾摇 ±18°
+    var oarAng = Math.sin(b.phase * 1.4) * 18;
+    o.oar.setAttribute('transform', 'rotate(' + oarAng.toFixed(1) + ')');
+  }
+
+  /**
+   * stepGround(o, dt) —— 第三批·地面活物：
+   *   chicken：沿地面左右走动（走到端点掉头），头点地啄食 + 两腿交替。
+   *   cart：匀速行进（端点掉头），车轮由 SMIL 自转，这里只推进位移。
+   *   二者共用 c-body 承载位移，鸡额外写两条腿 rotate。
+   */
+  function stepGround(o, dt) {
+    var b = o.b;
+    if (!o.body) return;
+    // 苏醒门：月结开场未到 1.2s 前冻结（跟人物层拉开节奏，避免一拥而上）
+    if (t < 1.2) { b.phase += dt * 0.6; return; }
+    b.x += b.dir * b.speed * dt;
+    if (b.x > b.xMax) { b.x = b.xMax; b.dir = -1; }
+    if (b.x < b.xMin) { b.x = b.xMin; b.dir = 1; }
+    b.phase += dt * (b.kind === 'chicken' ? 3.2 : (b.kind === 'horse' ? 5.5 : 1.0));
+    var bob = 0;
+    if (b.kind === 'chicken') {
+      bob = -Math.abs(Math.sin(b.phase * 0.5)) * 0.8;   // 啄食点头
+      var peck = Math.sin(b.phase) * 14;                // 腿交替
+      if (o.legL) o.legL.setAttribute('transform', 'rotate(' + peck.toFixed(1) + ',0,0)');
+      if (o.legR) o.legR.setAttribute('transform', 'rotate(' + (-peck).toFixed(1) + ',0,0)');
+    } else if (b.kind === 'horse') {
+      // 马：四腿交替 + 骑者起伏（相位差 0.25，"人比马晚半拍"）
+      var gallop = Math.sin(b.phase) * 22;
+      if (o.legL) o.legL.setAttribute('transform', 'rotate(' + gallop.toFixed(1) + ',0,0)');
+      if (o.legR) o.legR.setAttribute('transform', 'rotate(' + (-gallop).toFixed(1) + ',0,0)');
+      if (o.legL2) o.legL2.setAttribute('transform', 'rotate(' + (-gallop).toFixed(1) + ',0,0)');
+      if (o.legR2) o.legR2.setAttribute('transform', 'rotate(' + gallop.toFixed(1) + ',0,0)');
+      bob = Math.sin(b.phase * 2) * 1.1;               // 马身起伏
+      if (o.rider) o.rider.setAttribute('transform', 'translate(0,' + (Math.sin((b.phase - 0.25) * 2) * 1.1 - bob).toFixed(2) + ')');
+    }
+    o.body.setAttribute('transform',
+      'translate(' + b.x.toFixed(1) + ',' + (b.y + bob).toFixed(1) + ') scale(' + (b.scale * b.dir).toFixed(3) + ',' + b.scale.toFixed(3) + ')');
   }
 
   function step(o, dt) {
@@ -2057,7 +3056,7 @@
     o.armR.setAttribute('transform', 'rotate(' + (-swA * a.armAmp * 0.9).toFixed(1) + ',0,-34)');
   }
 
-  g.SceneAnimator = { mount: mount, start: start, stop: stop, rebuildRefs: rebuildRefs, settle: settle };
+  g.SceneAnimator = { mount: mount, mountBoats: mountBoats, mountGround: mountGround, start: start, stop: stop, rebuildRefs: rebuildRefs, settle: settle };
 })(typeof window !== 'undefined' ? window : globalThis);
 
 // ===================== 核心逻辑（由 GameCore.ts 自动转换） =====================
@@ -2071,26 +3070,38 @@
 
                                                                                                    
                                               
-                                                     
+/** 四种随机初始背景：蛮荒/战后/县城/都市（原「出身」改为背景，出身只作剧情影子） */
+                                                             
+/** 旧版出身影子（存档兼容：旧 origin 字段值映射到四种背景） */
+                                                           
 
                                                        // x: 仁政+, 严刑-；y: 清廉+, 钻营-
                                
                           
                                     
                   
+                                                           
  
                          
              
                
-                              
+                                                                                              
                         
                       
+                                                                     
+                                                 
+                                             
+                                             
+    
                    
                    
  
                                
                    
                     
+                                                         
+                                                                
+                                                        
                                                             
                                      
                         
@@ -2106,6 +3117,7 @@
                                                                                
                     
                     
+                                                       
                          
                
                     
@@ -2142,16 +3154,36 @@ const PERSONALITY_MIN = -100;
 const TERM_YEARS = 3;
 const MONTHS_PER_YEAR = 12;
 
-const INITIAL_VALUES                         = {
-  jinshi:   { tresury: 55, granary: 50, people: 50, security: 60, reputation: 60, population: 50 },
-  juren:    { tresury: 45, granary: 60, people: 65, security: 55, reputation: 45, population: 55 },
-  juanguan: { tresury: 70, granary: 40, people: 40, security: 50, reputation: 35, population: 45 },
+/** 出身影子：背景自动带一个出身标签（只用于剧情文案，不再单独选） */
+const BACKGROUND_SHADOW                             = {
+  wild: '捐官', ruin: '捐官', county: '举人', city: '进士',
 };
-const INITIAL_PERSONALITY                              = {
-  jinshi:   { x: 10, y: 15 },
-  juren:    { x: 15, y: 5 },
-  juanguan: { x: -5, y: -20 },
+
+/** 旧出身 → 背景映射（读旧存档 origin 字段时用） */
+const LEGACY_ORIGIN_TO_BACKGROUND                                   = {
+  jinshi: 'city', juren: 'county', juanguan: 'wild',
 };
+
+const INITIAL_VALUES                             = {
+  wild:   { tresury: 35, granary: 40, people: 30, security: 20, reputation: 25, population: 20 },
+  ruin:   { tresury: 25, granary: 35, people: 35, security: 30, reputation: 20, population: 25 },
+  county: { tresury: 50, granary: 55, people: 50, security: 55, reputation: 50, population: 50 },
+  city:   { tresury: 70, granary: 60, people: 55, security: 45, reputation: 70, population: 75 },
+};
+const INITIAL_PERSONALITY                                  = {
+  wild:   { x: -10, y: -15 },
+  ruin:   { x: 15, y: 0 },
+  county: { x: 8, y: 10 },
+  city:   { x: 0, y: 15 },
+};
+
+/** 随机 roll 一个背景：权重 wild 32 / ruin 32 / county 24 / city 12 */
+function rollBackground()             {
+  const W                         = [['wild', 32], ['ruin', 32], ['county', 24], ['city', 12]];
+  let r = Math.random() * 100;
+  for (const [k, w] of W) { r -= w; if (r <= 0) return k; }
+  return 'wild';
+}
 
 // ============ 工具 ============
 function clamp(v        , min        , max        )         {
@@ -2177,7 +3209,7 @@ class GameState {
   personality             ;
   year        ;          // 1~3
   month        ;         // 1~12
-  origin        ;
+  origin            ;    // 四种随机背景（存档字段名保留 origin，兼容旧值）
   taxRate = 1.0;         // 税赋系数
   marketRate = 1.0;      // 市集系数
   flags              = new Set();
@@ -2188,7 +3220,7 @@ class GameState {
   examHistory                                                   = [];
   eventLog           = [];
 
-  constructor(origin         = 'jinshi') {
+  constructor(origin             = 'wild') {
     this.origin = origin;
     this.values = { ...INITIAL_VALUES[origin] };
     this.personality = { ...INITIAL_PERSONALITY[origin] };
@@ -2218,6 +3250,7 @@ class GameState {
     const expense = 25 + 5; // 俸禄 25 + 仓储维护 5（v0 无工程摊销/赈济）
     const surplus = income - expense;
     this.values.tresury = clamp(this.values.tresury + Math.round(surplus * 0.35), VALUE_MIN, VALUE_MAX);
+    if (this.flags.has('canal_wharf')) this.values.tresury = clamp(this.values.tresury + 2, VALUE_MIN, VALUE_MAX); // 运河码头商税
     if (this.values.population >= 55) this.values.granary = clamp(this.values.granary + 1, VALUE_MIN, VALUE_MAX);
     if (this.taxRate >= 1.1) this.values.people = clamp(this.values.people - 2, VALUE_MIN, VALUE_MAX);
     else this.values.people = clamp(this.values.people + 0.5, VALUE_MIN, VALUE_MAX);
@@ -2342,7 +3375,9 @@ class GameState {
 
   static deserialize(raw        )            {
     const s = JSON.parse(raw);
-    const gs = new GameState(s.origin);
+    // 旧存档的 origin 是出身(jinshi/juren/juanguan)，映射到新背景；新存档已是背景直接透传
+    const bg = (s.origin in INITIAL_VALUES) ? s.origin : (LEGACY_ORIGIN_TO_BACKGROUND[s.origin] || 'wild');
+    const gs = new GameState(bg);
     gs.values = s.values; gs.personality = s.personality; gs.year = s.year; gs.month = s.month;
     gs.taxRate = s.taxRate; gs.marketRate = s.marketRate;
     gs.flags = new Set(s.flags); gs.triggered = new Set(s.triggered); gs.pendingChains = s.pendingChains;
@@ -2369,9 +3404,12 @@ class EventSystem {
   /** 判断事件当前是否可触发（连锁事件同样必须满足触发条件，只是抽取时优先） */
   eligible(ev           , state           )          {
     if (ev.once && state.triggered.has(ev.id)) return false;
+    if (ev.background && ev.background !== state.origin) return false;
     const t = ev.trigger ?? {};
     if (t.month && !t.month.includes(state.month)) return false;
     if (t.yearTerm && t.yearTerm !== state.year) return false;
+    if (t.minYear && state.year < t.minYear) return false;
+    if (t.maxYear && state.year > t.maxYear) return false;
     if (ev.phase && ev.phase !== 'any') {
       if (ev.phase === 'fixed_december' && state.month !== 12) return false;
       if (ev.phase !== 'fixed_december' && ev.phase !== state.phase) return false;
@@ -2406,6 +3444,9 @@ class EventSystem {
         return ev;
       }
     }
+    // 必发剧情：满足条件即本局必出（仍受 once 约束，每局一次）
+    const guaranteed = this.events.find(e => (e.trigger?.guaranteed) && this.eligible(e, state));
+    if (guaranteed) return guaranteed;
     const pool = this.events.filter(e => this.eligible(e, state));
     if (pool.length === 0) return null;
     const total = pool.reduce((sum, e) => sum + e.weight, 0);
@@ -2492,7 +3533,7 @@ const EVENTS_DATA = {
       "trigger": { "month": [2] },
       "text": "入春以来滴雨未下，田土龟裂，乡老联名求见。仓廪尚有余粮，但若开仓放粮，秋前粮价恐要失控；若坐视不理，春耕误了，秋税颗粒无收。",
       "choices": [
-        { "id": "A", "text": "开仓放粮，以平价粜与百姓", "effects": { "values": { "granary": -15, "people": 12, "tresury": -5 }, "personality": { "x": 10, "y": 0 } }, "resultText": "粮车出城，百姓排队长龙。师爷低声说：秋前怕是要勒紧裤腰带了。", "expose": true },
+        { "id": "A", "text": "开仓放粮，以平价粜与百姓", "effects": { "values": { "granary": -15, "people": 12, "tresury": -5 }, "personality": { "x": 10, "y": 0 } }, "resultText": "粮车出城，百姓排队长龙。师爷低声说：秋前怕是要勒紧裤腰带了。", "expose": true, "chain": ["E43"] },
         { "id": "B", "text": "按兵不动，赌三月初雨", "effects": { "values": { "people": -8 }, "personality": { "x": -3, "y": 0 } }, "resultText": "三月一场透雨解了围。可这两个月的青黄不接，民心已暗生怨言。", "expose": true },
         { "id": "C", "text": "只放粮给户籍在册农户", "effects": { "values": { "granary": -8, "people": 4, "population": -3 }, "personality": { "x": 0, "y": 0 } }, "resultText": "流民拖家带口出了县境。师爷沉默半晌：倒也省了口粮。", "expose": true }
       ]
@@ -2536,7 +3577,7 @@ const EVENTS_DATA = {
       "trigger": { "month": [3] },
       "text": "米铺三日三价，百姓买不起粮，传言是城中三家粮商联手囤积。限制粮价，粮商扬言停市；放任不管，怕要出乱子。",
       "choices": [
-        { "id": "A", "text": "限价，抓囤积奸商", "effects": { "values": { "people": 10, "security": 2 }, "personality": { "x": 8, "y": 0 } }, "resultText": "粮商被锁拿三家，粮价应声回落。市井拍手称快，商铺却紧了粮袋子。", "expose": true },
+        { "id": "A", "text": "限价，抓囤积奸商", "effects": { "values": { "people": 10, "security": 2, "tresury": -4 }, "personality": { "x": 8, "y": 0 } }, "resultText": "粮商被锁拿三家，粮价应声回落。市井拍手称快，商铺却紧了粮袋子，办案的赏银又从县库划去一笔。", "expose": true },
         { "id": "B", "text": "开常平仓平粜，与粮商竞市", "effects": { "values": { "granary": -10, "people": 8, "tresury": -3 }, "personality": { "x": 5, "y": 0 } }, "resultText": "官仓与粮商打起了价格战。粮价稳住了，仓廪薄了一层。", "expose": true },
         { "id": "C", "text": "放任市场自我调节", "effects": { "values": { "people": -10 }, "personality": { "x": -8, "y": 0 } }, "resultText": "三月末粮价果然回落——『不管之治』倒成了美谈。只是这一个月，饿坏了不少人。", "expose": true }
       ]
@@ -2558,8 +3599,9 @@ const EVENTS_DATA = {
       "trigger": { "yearTerm": 1 },
       "text": "击鼓鸣冤！佃户张三状告乡绅钱有田，倚强夺其耕种十五载的西岗坡水田五亩。一方白纸黑字，一方说是祖产，公堂之上各执一词。",
       "choices": [
-        { "id": "A", "text": "升堂问案（进入断案流程）", "effects": { "values": { "people": 8, "reputation": 5 }, "personality": { "x": 5, "y": 0 }, "flag": ["case_tianqi_done"] }, "resultText": "惊堂木一拍，田契之争有了公断。县民交口称赞，钱家却记下了这笔账。", "expose": false },
-        { "id": "B", "text": "批示移交师爷调停", "effects": { "values": { "people": -3 }, "personality": { "x": 0, "y": -3 } }, "resultText": "师爷居中调停，钱家赔了十两银了事。张家不敢再告，你耳边总像有叹息声。", "expose": false }
+        { "id": "A", "text": "遣三班衙役下乡查访田邻与鱼鳞册", "need": { "values": { "tresury": 25, "security": 20 } }, "effects": { "values": { "tresury": -8, "people": 8, "reputation": 6 }, "personality": { "x": 5, "y": 3 }, "caseSolved": true, "flag": ["case_tianqi_done"] }, "resultText": "鱼鳞册与田邻口供对上了，钱家夺田坐实。升堂结案，田归原主，县民交口称赞，钱家却记下了这笔账。", "expose": false },
+        { "id": "B", "text": "钱有田递来百两纹银，睁只眼闭只眼", "effects": { "values": { "tresury": 12, "people": -8, "reputation": -6, "security": -2 }, "personality": { "x": -4, "y": -10 } }, "resultText": "银票入袖，案子判了个『证据不足，驳回』。张三在衙前磕破了头，那哭声听了半夜。", "expose": false },
+        { "id": "C", "text": "批示移交师爷调停", "effects": { "values": { "people": -3 }, "personality": { "x": 0, "y": -3 } }, "misjudge": { "chance": 0.35, "effects": { "values": { "people": -6, "reputation": -5 }, "personality": { "x": 0, "y": -4 } }, "resultText": "师爷调停本已谈妥钱家赔银十两了事，偏那鱼鳞册被张三寻了出来，县里传开『县太爷和稀泥』——这案子，到底还是判歪了。" }, "resultText": "师爷居中调停，钱家赔了十两银了事。张家不敢再告，你耳边总像有叹息声。", "expose": false }
       ]
     },
     {
@@ -2570,7 +3612,7 @@ const EVENTS_DATA = {
       "choices": [
         { "id": "A", "text": "县库硬挤，自掌山长", "effects": { "values": { "tresury": -10, "population": 5, "reputation": 3 }, "personality": { "x": 0, "y": 5 } }, "resultText": "义学开馆，山长是退隐的老翰林。士绅们在门外看了半天，没说话。", "expose": true },
         { "id": "B", "text": "接受士绅捐助，山长由他们定", "effects": { "values": { "population": 3 }, "personality": { "x": 0, "y": -8 } }, "resultText": "义学开了，山长是卢家举荐的举人。课堂上念的什么书，你心里隐约有数。", "expose": true },
-        { "id": "C", "text": "暂缓义学，先修水利", "effects": { "values": { "granary": 4 }, "personality": { "x": 0, "y": 0 } }, "resultText": "义学的事搁下了。渠道修通那年，田里收成好了两成。", "expose": true }
+        { "id": "C", "text": "暂缓义学，先修水利", "effects": { "values": { "granary": 4, "people": -2 }, "personality": { "x": 0, "y": 0 } }, "resultText": "义学的事搁下了，乡贤颇有些失望。渠道修通那年，田里收成好了两成。", "expose": true }
       ]
     },
     {
@@ -2590,7 +3632,7 @@ const EVENTS_DATA = {
       "trigger": { "personality": { "maxY": -40 } },
       "text": "巡按御史到临县，风闻本县有『卖官鬻爵、私放盐枭』的传言。师爷连夜拟了两封奏本：一封自辩，一封反参知府。",
       "choices": [
-        { "id": "A", "text": "上表自辩，据实陈情", "effects": { "values": { "reputation": 3 }, "personality": { "x": 0, "y": 8 } }, "resultText": "御史查核三日，还了你个『查无实据』。清白一身，走路都轻快。", "expose": true },
+        { "id": "A", "text": "上表自辩，据实陈情", "effects": { "values": { "reputation": 3, "tresury": -2 }, "personality": { "x": 0, "y": 8 } }, "resultText": "御史查核三日，还了你个『查无实据』。清白一身，走路都轻快，只是打点驿报也破费了些。", "expose": true },
         { "id": "B", "text": "走门路，送御史车马费", "effects": { "values": { "reputation": 5, "tresury": -6 }, "personality": { "x": 0, "y": -15 }, "flag": ["bribed_censor"] }, "resultText": "御史收了银子，风头过去。只是那本假账，又多记了一笔。", "expose": true, "chain": ["E20"] },
         { "id": "C", "text": "反参知府，先下手为强", "effects": { "values": { "reputation": 5 }, "personality": { "x": 0, "y": -5 }, "flag": ["enemy_zhifu"] }, "resultText": "知府被申饬了一通。从今往后，你递上去的公文，批复都慢了三日。", "expose": true, "chain": ["E13"] }
       ]
@@ -2612,7 +3654,7 @@ const EVENTS_DATA = {
       "trigger": { "values": { "max": { "security": 50 } } },
       "text": "官道上一支税银镖队被劫，白银三千两，留话『知县若多事，明年今日祭奠你全家』。缉盗要兴师动众，镖行催着限期破案，幕僚劝你报个流匪压下了事。",
       "choices": [
-        { "id": "A", "text": "限期缉盗，亲自督办", "effects": { "values": { "security": 8, "reputation": 8 }, "personality": { "x": 0, "y": 8 } }, "resultText": "三个月后，匪首锁拿归案，赃银追回大半。百姓称你『铁面知县』。", "expose": true },
+        { "id": "A", "text": "限期缉盗，亲自督办", "effects": { "values": { "security": 8, "reputation": 8, "tresury": -6 }, "personality": { "x": 0, "y": 8 } }, "resultText": "三个月后，匪首锁拿归案，赃银追回大半。百姓称你『铁面知县』，缉盗的赏银粮饷却掏空了半库。", "expose": true },
         { "id": "B", "text": "报流匪，赔镖行了事", "effects": { "values": { "security": -5, "reputation": -3, "tresury": -5 }, "personality": { "x": 0, "y": -10 } }, "resultText": "镖行拿了赔银走了。官道上从此不太平，你知道这只是个开始。", "expose": true },
         { "id": "C", "text": "加码悬赏，让镖行与乡勇自查", "effects": { "values": { "security": 3, "tresury": -3 }, "personality": { "x": 0, "y": 0 } }, "resultText": "重赏之下，乡勇拿住了两个毛贼，大头却早跑了。银子花了，脸面保了一半。", "expose": true }
       ]
@@ -2624,7 +3666,7 @@ const EVENTS_DATA = {
       "text": "上季水患，邻县赈灾款被知府截留挪用，如今朝廷追查，知府递来一封『通融』的信——要你把账背下来，事后来日方长。",
       "choices": [
         { "id": "A", "text": "接下背锅，为知府分忧", "effects": { "values": { "reputation": -8 }, "personality": { "x": 0, "y": -12 }, "flag": ["scapegoat"] }, "resultText": "你认了失察之罪，被记过一次。知府派人送来一箱银两，你连看都没看。", "expose": true },
-        { "id": "B", "text": "据理力争，写明公文回绝", "effects": { "values": { "reputation": 6 }, "personality": { "x": 0, "y": 10 } }, "resultText": "你的回文被知府摔在地上。你把它捡起来，吹了吹灰，存档入库。", "expose": true },
+        { "id": "B", "text": "据理力争，写明公文回绝", "effects": { "values": { "reputation": 6, "tresury": -3 }, "personality": { "x": 0, "y": 10 } }, "resultText": "你的回文被知府摔在地上。你把它捡起来，吹了吹灰，存档入库。自此府里的『常例』，你是一文也得不到了。", "expose": true },
         { "id": "C", "text": "阳奉阴违：先应承，私下留证据", "effects": { "values": { "reputation": 0 }, "personality": { "x": 0, "y": 2 }, "flag": ["zhifu_evidence"] }, "resultText": "你应下了，转身却让师爷把知府的信件、批文都誊抄了一份。底牌在手里，心里才踏实。", "expose": true }
       ]
     },
@@ -2635,7 +3677,7 @@ const EVENTS_DATA = {
       "text": "城门口，一个老农牵着小女儿插草标卖身，『换三斗米，救我全家』。你路过，幕僚低声说：县里揭不开锅的多了，管不过来。",
       "choices": [
         { "id": "A", "text": "自掏俸禄，买下安置到善堂", "effects": { "values": { "tresury": -2, "people": 6, "reputation": 3 }, "personality": { "x": 8, "y": 8 } }, "resultText": "老农给你磕了三个响头。你背过身，想起自己家里的女儿。", "expose": true },
-        { "id": "B", "text": "下令善堂收容，不动县库", "effects": { "values": { "people": 3 }, "personality": { "x": 3, "y": 0 } }, "resultText": "善堂挤一挤，倒也住下了。只是这样的孩子，何止这一个。", "expose": true },
+        { "id": "B", "text": "下令善堂收容，不动县库", "effects": { "values": { "people": 3, "tresury": -2 }, "personality": { "x": 3, "y": 0 } }, "resultText": "善堂挤一挤，倒也住下了，只是多添了几张吃饭的嘴，县库到底还是贴补了些。只是这样的孩子，何止这一个。", "expose": true },
         { "id": "C", "text": "视而不见，扬长而去", "effects": { "values": { "people": -5 }, "personality": { "x": -10, "y": 0 } }, "resultText": "那一夜你睡得不好。梦里全是草标和冻红的小脸。", "expose": true }
       ]
     },
@@ -2645,8 +3687,8 @@ const EVENTS_DATA = {
       "trigger": { "flag": ["case_tianqi_done"], "month": [10, 11, 12] },
       "text": "富商赵守业悬梁自尽于书房，其妻哭诉丈夫死前一日还在谋划收购盐引，绝无死志，定是小叔赵文达谋财害命。遗书在案，哭声满堂。",
       "choices": [
-        { "id": "A", "text": "升堂问案（进入断案流程）", "effects": { "values": { "people": 8, "reputation": 10 }, "personality": { "x": 3, "y": 0 }, "flag": ["case_xuanliang_done"] }, "resultText": "结案那日，你让人把『神断』二字挂上了大堂。赵文达押入死牢。", "expose": false },
-        { "id": "B", "text": "以自缢结案，草草了事", "effects": { "values": { "people": -6, "reputation": -8 }, "personality": { "x": 0, "y": -5 } }, "resultText": "案结了，赵钱氏却在府衙门口长跪不起。那哭声，衙役们说听了三年都忘不掉。", "expose": false }
+        { "id": "A", "text": "开棺验尸，三推六问细细查来", "need": { "values": { "tresury": 30, "security": 25 } }, "effects": { "values": { "tresury": -10, "people": 8, "reputation": 10 }, "personality": { "x": 3, "y": 5 }, "caseSolved": true, "flag": ["case_xuanliang_done"] }, "resultText": "仵作一验，颈间两道勒痕，坐实他杀；细审之下，赵文达伏法。结案那日，你让人把『神断』二字挂上了大堂。", "expose": false },
+        { "id": "B", "text": "以自缢结案，草草了事", "effects": { "values": { "people": -6, "reputation": -8 }, "personality": { "x": 0, "y": -5 } }, "misjudge": { "chance": 0.45, "effects": { "values": { "people": -10, "reputation": -12, "security": -4 }, "personality": { "x": -2, "y": -6 } }, "resultText": "自缢结案不出半月，赵文达酒后失言漏了破绽，被苦主家人扭送府衙。上头一查：真凶逍遥，你草菅人命——考课里狠狠记了一笔。", "caseSolved": false }, "resultText": "案结了，赵钱氏却在府衙门口长跪不起。那哭声，衙役们说听了三年都忘不掉。", "expose": false }
       ]
     },
     {
@@ -2678,7 +3720,7 @@ const EVENTS_DATA = {
       "text": "城南石桥年久失修，塌了半边。修桥要八百两。士绅代表提出：他们认捐全款，但桥名要冠他们商号，且日后商货过关免查。",
       "choices": [
         { "id": "A", "text": "接受认捐，冠名免查照办", "effects": { "values": { "people": 4, "security": -3 }, "personality": { "x": 0, "y": -10 }, "flag": ["bridge_tax_free"] }, "resultText": "桥通了，匾上写着士绅的商号。关口哨卡对那几家的商队，从此睁一只眼。", "expose": true },
-        { "id": "B", "text": "接受认捐，但拒绝免查条件", "effects": { "values": { "people": 4 }, "personality": { "x": 0, "y": 3 } }, "resultText": "士绅不情不愿地捐了银子，桥也修了。只是他们的笑脸，明显冷了几分。", "expose": true },
+        { "id": "B", "text": "接受认捐，但拒绝免查条件", "effects": { "values": { "people": 4, "security": -2 }, "personality": { "x": 0, "y": 3 } }, "resultText": "士绅不情不愿地捐了银子，桥也修了。只是他们的笑脸，明显冷了几分，暗地里给哨卡使了绊子。", "expose": true },
         { "id": "C", "text": "县库自筹，慢修半年", "effects": { "values": { "tresury": -12, "people": 2 }, "personality": { "x": 0, "y": 8 } }, "resultText": "半年后桥成，一分人情没欠。县库却薄得能看见底。", "expose": true }
       ]
     },
@@ -2702,6 +3744,275 @@ const EVENTS_DATA = {
         { "id": "A", "text": "据实呈报，哪怕评中下", "effects": { "values": { "reputation": -2 }, "personality": { "x": 0, "y": 15 }, "flag": ["honest_report"] }, "resultText": "考课文书送出，你夜观星象，心里一片坦然。为官以实，天知地知。", "expose": true },
         { "id": "B", "text": "微调数字，粉饰一二", "effects": { "values": { "reputation": 5 }, "personality": { "x": 0, "y": -12 }, "flag": ["cooked_books"] }, "resultText": "账目天衣无缝。考课评了中上，你却在半夜惊醒——那数字，是假的。", "expose": true },
         { "id": "C", "text": "大幅做账，冲击上上", "effects": { "values": { "reputation": 10 }, "personality": { "x": 0, "y": -18 }, "flag": ["cooked_books_big"] }, "resultText": "考课得了上上，府里张灯结彩贺你高升。只有师爷低着头，不敢看你的眼睛。", "expose": true, "chain": ["E10"] }
+      ]
+    },
+    {
+      "id": "E21", "title": "西河溃堤", "type": "disaster", "weight": 100, "once": true,
+      "phase": "any", "priority": "urgent", "deadline": 3,
+      "trigger": { "month": [6, 7, 8], "minYear": 2, "guaranteed": true },
+      "text": "连旬暴雨，西河一夜暴涨，河堤决口，浊浪直扑城郊。下游三个里甲尽成泽国，灾民扶老携幼往高处逃。有人要你斩河神祭天，有人劝你且顾官仓——水势还在涨。",
+      "choices": [
+        { "id": "A", "text": "以工代赈，浚渠引水入运河故道", "effects": { "values": { "tresury": -14, "people": 12, "granary": -5 }, "personality": { "x": 12, "y": 0 }, "flag": ["canal_done"] }, "resultText": "数月奋战，旧河故道被疏通成运河，洪水有了去处，灾民有了工钱。", "expose": true },
+        { "id": "B", "text": "强征民夫，合龙堵口", "effects": { "values": { "tresury": -8, "people": -8, "security": 5 }, "personality": { "x": -6, "y": 0 }, "flag": ["river_repaired"] }, "resultText": "决口合龙了，河堤也保住了。只是夜半的号子声，百姓记了很久。", "expose": true },
+        { "id": "C", "text": "开仓赈灾，暂不治河", "effects": { "values": { "granary": -14, "people": 6 }, "personality": { "x": 8, "y": 0 } }, "resultText": "粥厂支起来，灾民得了一条活路。可西河还决着口，来年水患只会更烈。", "expose": true }
+      ]
+    },
+    {
+      "id": "E22", "title": "运河竣工", "type": "finance", "weight": 100, "once": true,
+      "phase": "any", "priority": "normal", "deadline": 2,
+      "trigger": { "flag": "canal_done", "guaranteed": true },
+      "text": "运河通了，南来北往的货船第一次泊进青阳渡。士绅联名递帖，想包下码头几成货栈；漕帮也来拜码头，说愿意出份子钱换个『只抽不卡』。",
+      "choices": [
+        { "id": "A", "text": "码头官营，收船税充库", "effects": { "values": { "tresury": 6, "reputation": 4 }, "personality": { "x": 0, "y": 8 }, "flag": ["canal_wharf"] }, "resultText": "码头立起税关，货船进出照章纳银。从此县库每月多一笔活水。", "expose": true },
+        { "id": "B", "text": "招商承包，收一次性租银", "effects": { "values": { "tresury": 14, "people": 2 }, "personality": { "x": 0, "y": -8 }, "flag": ["canal_wharf"] }, "resultText": "码头包给了卢家，一笔厚租入了库。往后这渡口的规矩，就由人家说了。", "expose": true },
+        { "id": "C", "text": "官民共管，码头作义渡", "effects": { "values": { "people": 8, "reputation": 8 }, "personality": { "x": 6, "y": 0 }, "flag": ["canal_wharf"] }, "resultText": "码头半是税关半是义渡，来往百姓赞你仁德。只是收的那点税，勉强够养几个役夫。", "expose": true }
+      ]
+    },
+    {
+      "id": "E23", "title": "山匪啸聚", "type": "security", "weight": 65, "once": true, "background": "wild",
+      "phase": "any", "priority": "urgent", "deadline": 3,
+      "trigger": { "minYear": 1 },
+      "text": "蛮荒之地，山高林密，一伙山匪占住要道，劫掠往来客商。剿匪要兵要饷，安抚又恐养虎为患。乡老说：这伙人，早该有县官管一管了。",
+      "choices": [
+        { "id": "A", "text": "招抚上山，编为乡勇", "effects": { "values": { "tresury": -5, "security": 4, "people": -2 }, "personality": { "x": 3, "y": -2 } }, "resultText": "匪首下山受抚，编进了乡勇。百姓半信半疑，夜里门闩还是多加了一道。", "expose": true },
+        { "id": "B", "text": "调兵进剿，扫穴犁庭", "effects": { "values": { "tresury": -10, "security": 8, "people": -4 }, "personality": { "x": -5, "y": 0 } }, "resultText": "山寨化为焦土，匪首枭首示众。山道通了，可烧山时误伤了几个樵户，骂声不小。", "expose": true },
+        { "id": "C", "text": "派人说和，交钱买路", "effects": { "values": { "tresury": -8, "security": -3 }, "personality": { "x": 0, "y": -8 } }, "resultText": "山匪收了『岁银』，消停了些日子。只是这条道，从此有了个不写进账本的规矩。", "expose": true }
+      ]
+    },
+    {
+      "id": "E24", "title": "瘴疠横行", "type": "disaster", "weight": 70, "once": true, "background": "wild",
+      "phase": "summer", "priority": "urgent", "deadline": 2,
+      "trigger": { "minYear": 1 },
+      "text": "暑热蒸腾，山谷瘴气弥漫，村寨里接连有人高热发冷、呕吐不止。采药施诊要耗费药资，封锁寨子又会断了山民活路。",
+      "choices": [
+        { "id": "A", "text": "延医采药，下乡施诊", "effects": { "values": { "tresury": -8, "people": 6, "population": -2 }, "personality": { "x": 8, "y": 0 } }, "resultText": "药汤一碗碗端进寨子，疫病被压了下去。只是药资花了半库，师爷心疼得直抽气。", "expose": true },
+        { "id": "B", "text": "封寨设卡，静待疫消", "effects": { "values": { "people": -6, "population": -5, "security": 2 }, "personality": { "x": -6, "y": 0 } }, "resultText": "寨子被封了两个月，疫病没传出来，可寨里的老人，也走了好几个。", "expose": true }
+      ]
+    },
+    {
+      "id": "E25", "title": "蛮乡无学", "type": "people", "weight": 60, "once": true, "background": "wild",
+      "phase": "any", "priority": "normal", "deadline": 3,
+      "trigger": { "minYear": 2 },
+      "text": "蛮荒之地，十户九不识字，民风剽悍，动辄械斗。有幕僚进言：欲化顽民，先立乡学。可山民连饭都吃不饱，哪有闲心读书。",
+      "choices": [
+        { "id": "A", "text": "设乡学，强令子弟入学", "effects": { "values": { "tresury": -6, "population": 4, "people": -2 }, "personality": { "x": 6, "y": 0 } }, "resultText": "乡学立起来了，夫子敲着戒尺念圣贤书。山民背地里说：吃饱肚子比认字要紧。", "expose": true },
+        { "id": "B", "text": "先赈济，再徐徐教化", "effects": { "values": { "granary": -8, "people": 6, "reputation": 2 }, "personality": { "x": 8, "y": 0 } }, "resultText": "仓里的粮食见了底，山民脸上的戾气倒散了几分。都说这任县官，是个体恤人的。", "expose": true },
+        { "id": "C", "text": "暂缓教化，专治械斗", "effects": { "values": { "security": 6, "people": -3 }, "personality": { "x": -4, "y": 0 } }, "resultText": "几场械斗都被压了下去，街面清净了。只是根子上的愚顽，一点没动。", "expose": true }
+      ]
+    },
+    {
+      "id": "E26", "title": "土司纳贡", "type": "official", "weight": 55, "once": true, "background": "wild",
+      "phase": "autumn", "priority": "normal", "deadline": 2,
+      "trigger": { "minYear": 1 },
+      "text": "附近土司遣使来贺新任县官，抬来一箱兽皮山货，还带话：愿替朝廷管束山中夷民，只求朝廷发一纸委任。收下，土司与你交好；不收，怕他面子上过不去。",
+      "choices": [
+        { "id": "A", "text": "收礼，上奏请委土司", "effects": { "values": { "tresury": 5, "security": 3, "reputation": -3 }, "personality": { "x": 0, "y": -6 } }, "resultText": "土司得了委任，山中夷民归他管束，县里省了心。只是『以夷制夷』，终究是笔说不清的交易。", "expose": true },
+        { "id": "B", "text": "收礼不办事，虚与委蛇", "effects": { "values": { "tresury": 5, "security": -2 }, "personality": { "x": 0, "y": -10 } }, "resultText": "礼收了，委任的事你却一拖再拖。土司那边，笑容渐渐冷了下去。", "expose": true }
+      ]
+    },
+    {
+      "id": "E27", "title": "野狼成患", "type": "security", "weight": 50, "once": true, "background": "wild",
+      "phase": "winter", "priority": "urgent", "deadline": 1,
+      "trigger": { "month": [12, 1, 2] },
+      "text": "入冬以来野狼成群下山，叼走牛羊，还咬伤了夜归的农户。乡勇请命去猎，只求县里补些火铳弓箭的银子。",
+      "choices": [
+        { "id": "A", "text": "拨银购置猎具，组织乡勇围猎", "effects": { "values": { "tresury": -4, "security": 4, "people": 3 }, "personality": { "x": 4, "y": 0 } }, "resultText": "乡勇扛着火铳上了山，半月后抬着几条狼下来。村寨里终于能睡个安稳觉。", "expose": true }
+      ]
+    },
+    {
+      "id": "E28", "title": "流民垦荒", "type": "people", "weight": 70, "once": true, "background": "ruin",
+      "phase": "spring", "priority": "normal", "deadline": 3,
+      "trigger": { "minYear": 1 },
+      "text": "战乱初平，大片良田抛荒。一批流民逃难到此，愿留下来垦荒落户，只求官府发点种子农具。招垦，户口充实；可这些人来路不明，难保没有奸细混入。",
+      "choices": [
+        { "id": "A", "text": "发给种子农具，编户安置", "effects": { "values": { "tresury": -6, "granary": -3, "population": 8, "people": 5 }, "personality": { "x": 6, "y": 0 } }, "resultText": "荒田里重新长出了青苗，逃难的人家落了户。来年，他们便是纳粮的编户了。", "expose": true },
+        { "id": "B", "text": "甄别后择优安置", "effects": { "values": { "tresury": -3, "population": 3, "people": -2 }, "personality": { "x": 0, "y": 0 } }, "resultText": "老弱被遣散，精壮留下垦荒。田是垦出来了，可城门外又多了一片哭声。", "expose": true },
+        { "id": "C", "text": "拒之门内，驱赶出境", "effects": { "values": { "people": -6, "security": 2 }, "personality": { "x": -6, "y": 0 } }, "resultText": "流民拖着步子走了，荒田依旧荒着。你安慰自己：多一事不如少一事。", "expose": true }
+      ]
+    },
+    {
+      "id": "E29", "title": "兵燹余烬", "type": "security", "weight": 65, "once": true, "background": "ruin",
+      "phase": "any", "priority": "urgent", "deadline": 2,
+      "trigger": { "minYear": 1 },
+      "text": "战火虽熄，余烬未灭。城外常有散兵游勇和溃兵落草，昼伏夜出，劫掠村落。缉捕，兵力不足；招抚，他们手上都沾着血。",
+      "choices": [
+        { "id": "A", "text": "收编溃兵，充作守卒", "effects": { "values": { "tresury": -5, "security": 5, "people": -4 }, "personality": { "x": -2, "y": 0 } }, "resultText": "溃兵穿上了号衣，转身成了守卒。乡民看他们的眼神，却像在看狼。", "expose": true },
+        { "id": "B", "text": "设卡清剿，格杀勿论", "effects": { "values": { "tresury": -8, "security": 8, "reputation": -3 }, "personality": { "x": -6, "y": 0 } }, "resultText": "城门外挂起几颗首级，匪患为之一清。只是夜半总有妇人的哭声，顺着风飘进县衙。", "expose": true },
+        { "id": "C", "text": "悬赏告发，离间瓦解", "effects": { "values": { "tresury": -4, "security": 3 }, "personality": { "x": 0, "y": -3 } }, "resultText": "重赏之下，有人告发了自己的袍泽。匪帮散了，人心也散了。", "expose": true }
+      ]
+    },
+    {
+      "id": "E30", "title": "断桥残堤", "type": "finance", "weight": 60, "once": true, "background": "ruin",
+      "phase": "spring", "priority": "urgent", "deadline": 3,
+      "trigger": { "minYear": 1 },
+      "text": "兵燹之后，城西石桥坍塌，河堤千疮百孔。修桥固堤，是重建第一要务，可府库空空如也。士绅们缩着脖子，没人肯先掏钱。",
+      "choices": [
+        { "id": "A", "text": "以工代赈，征发民夫", "effects": { "values": { "tresury": -6, "granary": -4, "people": 4, "reputation": 2 }, "personality": { "x": 5, "y": 0 } }, "resultText": "河堤桥面渐渐成形，做工的灾民吃上了饭。虽是苦役，倒也没人真闹。", "expose": true },
+        { "id": "B", "text": "摊派到户，强征银两", "effects": { "values": { "tresury": 6, "people": -8, "security": -3 }, "personality": { "x": -8, "y": 0 } }, "resultText": "银两凑齐了，桥也修了。只是刚遭了兵灾的百姓，又被剥了一层。", "expose": true }
+      ]
+    },
+    {
+      "id": "E31", "title": "流兵为匪", "type": "security", "weight": 55, "once": true, "background": "ruin",
+      "phase": "autumn", "priority": "urgent", "deadline": 3,
+      "trigger": { "minYear": 2 },
+      "text": "一支败军残部游荡到县界，约三百人，挟刀带枪，为首者自称『将军』，扬言要粮要饷，否则自取。是抚是剿，全在你一念之间。",
+      "choices": [
+        { "id": "A", "text": "招抚为首者，编入县兵", "effects": { "values": { "tresury": -8, "security": 4, "people": -3 }, "personality": { "x": 2, "y": -3 }, "flag": ["fubing_shoubian"] }, "resultText": "『将军』改称了『把总』，兵还是那帮兵。是福是祸，看往后了。", "expose": true },
+        { "id": "B", "text": "密约邻县，夹击围剿", "effects": { "values": { "tresury": -10, "security": 8, "reputation": 3 }, "personality": { "x": -4, "y": 2 } }, "resultText": "三县合兵，把残部围在了山坳里。一场血战，匪患彻底平息。", "expose": true },
+        { "id": "C", "text": "给粮给银，送其出境", "effects": { "values": { "tresury": -12, "granary": -6, "security": -2 }, "personality": { "x": 0, "y": -4 } }, "resultText": "粮银送出，残部果然拔营走了。只是祸水东引，邻县骂你自私。", "expose": true },
+        { "id": "D", "text": "虚与周旋，暗中调兵", "effects": { "values": { "tresury": -6, "security": 5 }, "personality": { "x": 3, "y": -2 } }, "resultText": "你一面与其周旋，一面密调乡勇。等残部察觉，已成合围之势。", "expose": true }
+      ]
+    },
+    {
+      "id": "E32", "title": "重建义学", "type": "people", "weight": 55, "once": true, "background": "ruin",
+      "phase": "any", "priority": "normal", "deadline": 3,
+      "trigger": { "minYear": 2 },
+      "text": "战乱让县学毁于一旦，读书人死的死、散的散。有退隐的老儒愿出山执掌义学，只求县里修缮学舍、供给束脩。",
+      "choices": [
+        { "id": "A", "text": "拨银修缮，请老儒执教", "effects": { "values": { "tresury": -6, "population": 4, "reputation": 5 }, "personality": { "x": 4, "y": 3 } }, "resultText": "学舍修葺一新，书声琅琅又起。老儒抚着胡须：这才是重兴文教之始。", "expose": true },
+        { "id": "B", "text": "先修衙署，义学缓办", "effects": { "values": { "tresury": -5, "reputation": -4, "people": -2 }, "personality": { "x": -3, "y": -4 } }, "resultText": "县衙倒是气派了，义学的事却没了下文。读书人背地里直摇头。", "expose": true },
+        { "id": "C", "text": "劝士绅捐资共办", "effects": { "values": { "population": 3, "reputation": 1 }, "personality": { "x": 2, "y": -3 } }, "resultText": "士绅捐了银子，也顺势塞进来两个自家子侄当助教。义学开了，风气微妙。", "expose": true }
+      ]
+    },
+    {
+      "id": "E33", "title": "豪绅争讼", "type": "justice", "weight": 65, "once": true, "background": "county",
+      "phase": "any", "priority": "urgent", "deadline": 2,
+      "trigger": { "minYear": 2 },
+      "text": "县城虽小，豪绅却多。两家士绅为了一块祖传的地皮对簿公堂，各持地契，各有一帮乡党助威。堂外已经聚了上百看客，等着看你这新官怎么断。",
+      "choices": [
+        { "id": "A", "text": "升堂问案，秉公而断", "need": { "values": { "tresury": 20, "security": 25 } }, "effects": { "values": { "people": 6, "reputation": 6, "security": -3 }, "personality": { "x": 4, "y": 6 }, "caseSolved": true }, "resultText": "惊堂木落，田契真假当堂辨明。赢了的一方千恩万谢，输了的一方，记下了这梁子，连着几日带着家丁在衙外叫嚣。", "expose": true },
+        { "id": "B", "text": "拖字诀，请两造和解", "effects": { "values": { "people": -2, "reputation": -2 }, "personality": { "x": 0, "y": -3 } }, "misjudge": { "chance": 0.3, "effects": { "values": { "people": -5, "reputation": -5 }, "personality": { "x": 0, "y": -4 } }, "resultText": "案子拖了三个月，两家耗不过，最终各让一步——可这一让，让出个『地契另有隐情』的流言，县里都说你敷衍了事。" }, "resultText": "案子拖了三个月，两家耗不过，最终各让一步。可你这知县，也落了个『和稀泥』的名声。", "expose": true },
+        { "id": "C", "text": "看谁势力大，偏向谁", "effects": { "values": { "tresury": 8, "people": -6, "reputation": -5 }, "personality": { "x": -4, "y": -10 } }, "resultText": "势大的一方赢了官司，也悄悄送来了谢礼。堂外百姓看你的眼神，变了。", "expose": true }
+      ]
+    },
+    {
+      "id": "E34", "title": "赋税摊派", "type": "finance", "weight": 60, "once": true, "background": "county",
+      "phase": "autumn", "priority": "urgent", "deadline": 2,
+      "trigger": { "minYear": 2 },
+      "text": "上峰摊派的额征银又加了三分，各里正叫苦不迭。照数摊下去，贫户要揭不开锅；往上陈情减免，又怕落个『办事不力』的考语。",
+      "choices": [
+        { "id": "A", "text": "照数摊派，雷厉风行", "effects": { "values": { "tresury": 8, "people": -8, "security": -2 }, "personality": { "x": -6, "y": 0 } }, "resultText": "额征如期足数，上峰嘉许。只是交不起税的人家，夜里悄悄上了山。", "expose": true },
+        { "id": "B", "text": "陈情减免，为民请命", "effects": { "values": { "tresury": -4, "people": 6, "reputation": 3 }, "personality": { "x": 6, "y": 2 } }, "resultText": "减免文书批了下来，百姓得了实惠。上峰却记了你一笔：此人不好支使。", "expose": true },
+        { "id": "C", "text": "摊富户，免贫户", "effects": { "values": { "tresury": 4, "people": 2, "reputation": -2 }, "personality": { "x": 3, "y": -3 } }, "resultText": "富户多出了血，贫户缓了口气。可富户们的轿子，从此再不登你的门。", "expose": true },
+        { "id": "D", "text": "先收三成，余者拖到年底", "effects": { "values": { "tresury": 2, "people": -2 }, "personality": { "x": 0, "y": -2 } }, "resultText": "先收三成，剩下的年底再说。眼看年关将至，缺口还大得很。", "expose": true }
+      ]
+    },
+    {
+      "id": "E35", "title": "河工贪墨", "type": "official", "weight": 55, "once": true, "background": "county",
+      "phase": "summer", "priority": "urgent", "deadline": 2,
+      "trigger": { "minYear": 2 },
+      "text": "查账时发现，去岁河工银两被工房书吏伙同包工头贪墨了三成，如今河堤偷工减料，隐患重重。彻查，牵连甚广，甚至可能牵出前任县官；轻轻放下，则河堤迟早出事。",
+      "choices": [
+        { "id": "A", "text": "彻查到底，追赃严办", "effects": { "values": { "tresury": 4, "reputation": 5, "security": -2 }, "personality": { "x": 2, "y": 8 }, "flag": ["hegong_yancha"] }, "resultText": "书吏下狱，包工头收押，赃银追回大半。只是衙中上下，人人自危。", "expose": true },
+        { "id": "B", "text": "敲山震虎，只办几个小的", "effects": { "values": { "tresury": 2, "reputation": 1 }, "personality": { "x": 0, "y": -2 } }, "resultText": "几个小角色顶了罪，大头神不知鬼不觉。你告诉自己：水至清则无鱼。", "expose": true },
+        { "id": "C", "text": "密奏上峰，请其定夺", "effects": { "values": { "reputation": 2, "tresury": -2 }, "personality": { "x": 0, "y": 4 } }, "resultText": "密奏递了上去，却如石沉大海，打点递奏的使费也花了不少。后来你才知道，前任县官如今正是你的上峰。", "expose": true }
+      ]
+    },
+    {
+      "id": "E36", "title": "疫病城封", "type": "disaster", "weight": 65, "once": true, "background": "county",
+      "phase": "any", "priority": "urgent", "deadline": 2,
+      "trigger": { "minYear": 3 },
+      "text": "发展起来的县城，人烟稠密，一场时疫悄然流行。封城，商旅断绝；不封，疫情恐一发不可收拾。这是对你这三年治理的终极大考。",
+      "choices": [
+        { "id": "A", "text": "封城设坊，严加隔离", "effects": { "values": { "tresury": -8, "security": -4, "people": 8 }, "personality": { "x": 8, "y": 0 } }, "resultText": "城门紧闭，隔离坊药气氤氲。三个月后疫消，县城保住了，商税却赔进去不少。", "expose": true },
+        { "id": "B", "text": "封锁消息，照常开市", "effects": { "values": { "tresury": 4, "population": -10, "reputation": -8 }, "personality": { "x": -10, "y": 0 } }, "resultText": "市面照旧，银子照赚。可疫情瞒不住，等上面查下来，你的乌纱帽也保不住了。", "expose": true },
+        { "id": "C", "text": "募捐设医，半封半放", "effects": { "values": { "tresury": -4, "people": 4 }, "personality": { "x": 4, "y": 0 } }, "resultText": "医馆设起来了，街面半开半闭。疫情总算没有失控，只是拖得久了些。", "expose": true }
+      ]
+    },
+    {
+      "id": "E37", "title": "商帮挤兑", "type": "finance", "weight": 55, "once": true, "background": "county",
+      "phase": "any", "priority": "urgent", "deadline": 2,
+      "trigger": { "minYear": 3 },
+      "text": "县城钱庄突遭挤兑，谣传东家卷款外逃。商户们堵在门口讨要银两，眼看要闹出人命。查实放话安抚，还是先抓几个造谣的？",
+      "choices": [
+        { "id": "A", "text": "调库银，帮钱庄渡兑", "effects": { "values": { "tresury": -10, "people": 5, "reputation": 3 }, "personality": { "x": 5, "y": 0 } }, "resultText": "官银入柜，兑付如常，一场风波平了。可县库为之一空，师爷的脸都白了。", "expose": true },
+        { "id": "B", "text": "抓造谣者，杀一儆百", "effects": { "values": { "security": 3, "people": -5 }, "personality": { "x": -6, "y": 0 } }, "resultText": "几个传谣的抓了，可恐慌没止住，反而越传越邪乎。", "expose": true }
+      ]
+    },
+    {
+      "id": "E38", "title": "豪强圈地", "type": "justice", "weight": 65, "once": true, "background": "city",
+      "phase": "any", "priority": "urgent", "deadline": 2,
+      "trigger": { "minYear": 1, "maxYear": 1 },
+      "text": "繁华之地，豪强势大。城中豪强借买地之名强占城外良田，苦主告到衙前。你初来乍到，根基未稳，各方关系盘根错节。",
+      "choices": [
+        { "id": "A", "text": "秉公断案，退还田产", "need": { "values": { "tresury": 25, "security": 25 } }, "effects": { "values": { "people": 6, "security": -3, "reputation": 8 }, "personality": { "x": 12, "y": 8 }, "caseSolved": true }, "resultText": "豪强败诉，田产物归原主，满城称快。可豪强临走撂下话：来日方长，夜里真有几块石头砸进了县衙。", "expose": true },
+        { "id": "B", "text": "两边安抚，各退一步", "effects": { "values": { "people": 1, "reputation": -3 }, "personality": { "x": 0, "y": -6 } }, "misjudge": { "chance": 0.3, "effects": { "values": { "people": -4, "reputation": -7 }, "personality": { "x": -2, "y": -6 } }, "resultText": "『各退一步』退成了糊涂账，苦主吞不下这口气，一路告到了知府那里。上头批下来：查核不实，记过。", "caseSolved": false }, "resultText": "案是结了，可谁都不领情。苦主说你不公，豪强嫌你多事。", "expose": true },
+        { "id": "C", "text": "收豪强谢礼，判归豪强", "effects": { "values": { "tresury": 12, "people": -8, "security": -4 }, "personality": { "x": -10, "y": -15 }, "flag": ["taken_bribe"] }, "resultText": "钱袋子鼓了，可你的官声蒙了灰。夜里总梦见那苦主跪在衙前。", "expose": true },
+        { "id": "D", "text": "先拖一拖，看风头再说", "effects": { "values": { "reputation": -2 }, "personality": { "x": -3, "y": -3 } }, "misjudge": { "chance": 0.35, "effects": { "values": { "reputation": -6, "people": -4 }, "personality": { "x": -3, "y": -5 } }, "resultText": "案子悬着，苦主日日来衙前哭诉。看客越聚越多，都在看你几时开堂——拖到最后，这案子的对错，城里早已替你定了。" }, "resultText": "案子悬着，苦主日日来衙前哭诉。看客越聚越多，都在看你几时开堂。", "expose": true }
+      ]
+    },
+    {
+      "id": "E39", "title": "火患连城", "type": "disaster", "weight": 60, "once": true, "background": "city",
+      "phase": "any", "priority": "urgent", "deadline": 2,
+      "trigger": { "minYear": 1 },
+      "text": "大都市房舍鳞次栉比，一场大火从城南烧起，火借风势，直扑闹市。救火要拆房断火道，拆谁家谁骂娘；不拆，整条街都要化为灰烬。",
+      "choices": [
+        { "id": "A", "text": "当机立断，拆房断火", "effects": { "values": { "tresury": -6, "people": -4, "security": 4 }, "personality": { "x": -2, "y": 0 } }, "resultText": "几排房舍被推倒，火势止住了。被拆的人家堵在衙门口要说法。", "expose": true },
+        { "id": "B", "text": "组织救火，挨户扑救", "effects": { "values": { "tresury": -10, "people": 3 }, "personality": { "x": 4, "y": 0 } }, "resultText": "火总算扑灭了，累倒了一地人。算下来，烧毁的房舍比预想的还多。", "expose": true },
+        { "id": "C", "text": "先顾官仓，火势失控", "effects": { "values": { "tresury": -2, "people": -8, "reputation": -6 }, "personality": { "x": -6, "y": 0 } }, "resultText": "官仓保住了，民宅烧掉半条街。百姓骂你：只顾自己的乌纱帽。", "expose": true }
+      ]
+    },
+    {
+      "id": "E40", "title": "盐商争利", "type": "finance", "weight": 55, "once": true, "background": "city",
+      "phase": "any", "priority": "urgent", "deadline": 2,
+      "trigger": { "minYear": 1 },
+      "text": "盐市利润丰厚，几家盐商为争专营权闹到衙前，各怀银票，各递拜帖。大都市里，一场盐引之争，牵动半城商脉。",
+      "choices": [
+        { "id": "A", "text": "只许势大者专营", "effects": { "values": { "tresury": 10, "reputation": -4 }, "personality": { "x": -3, "y": -8 } }, "resultText": "专营权给了最势大的一家，银子流水般进府。被排挤的盐商，转头就参了你一本。", "expose": true },
+        { "id": "B", "text": "诸商共营，划界分利", "effects": { "values": { "tresury": 3, "reputation": 3, "people": 2, "security": -2 }, "personality": { "x": 2, "y": 2 } }, "resultText": "几家盐商各得一块地盘，相安无事。只是划界的空当，免不了有人越界抢货，纠纷不断。", "expose": true },
+        { "id": "C", "text": "借机彻查，整顿盐市", "effects": { "values": { "tresury": -4, "reputation": 6 }, "personality": { "x": 4, "y": 10 } }, "resultText": "盐市账目查了个底朝天，走私夹带无所遁形。盐商恨你，百姓敬你。", "expose": true },
+        { "id": "D", "text": "收重礼，两不得罪", "effects": { "values": { "tresury": 15, "reputation": -8 }, "personality": { "x": -4, "y": -14 }, "flag": ["taken_bribe"] }, "resultText": "银子收了，事却拖成了糊涂账。盐商们背后都说：这官，好糊弄。", "expose": true },
+        { "id": "E", "text": "奏请朝廷，另发盐引", "effects": { "values": { "reputation": 2, "tresury": -2 }, "personality": { "x": 1, "y": 4 } }, "resultText": "一纸奏章递进京，等着朝廷另发盐引。只是这批复，不知何年何月。", "expose": true }
+      ]
+    },
+    {
+      "id": "E41", "title": "权贵索贿", "type": "official", "weight": 55, "once": true, "background": "city",
+      "phase": "any", "priority": "urgent", "deadline": 2,
+      "trigger": { "minYear": 1 },
+      "text": "京城权贵的管家登门，话里有话：贵府三公子想在本地做点『买卖』，还望县尊行个方便。所谓方便，无非是免查、免税、免问。",
+      "choices": [
+        { "id": "A", "text": "虚与委蛇，应承下来", "effects": { "values": { "tresury": 6, "security": -4 }, "personality": { "x": 0, "y": -8 }, "flag": ["bribed_quangui"] }, "resultText": "权贵得了方便，也给你留了几分薄面。可这条暗线，从此拴住了你。", "expose": true },
+        { "id": "B", "text": "婉言谢绝，公事公办", "effects": { "values": { "reputation": 5, "security": 2, "tresury": -3 }, "personality": { "x": 2, "y": 10 } }, "resultText": "你客客气气把管家送走，转身就嘱咐衙役照章办事。权贵那边，记下了你这号人，上峰对你的脸色也难看了几分。", "expose": true }
+      ]
+    },
+    {
+      "id": "E42", "title": "帮派火并", "type": "security", "weight": 55, "once": true, "background": "city",
+      "phase": "any", "priority": "urgent", "deadline": 2,
+      "trigger": { "minYear": 1 },
+      "text": "大都市鱼龙混杂，两大帮派为争码头地盘大打出手，闹市见血，人心惶惶。是铁腕镇压，还是招安收编，或是坐山观虎斗？",
+      "choices": [
+        { "id": "A", "text": "铁腕镇压，两帮并剿", "effects": { "values": { "security": 6, "reputation": 3, "tresury": -5 }, "personality": { "x": -4, "y": 2 } }, "resultText": "两帮头目锁拿归案，街面为之一清。只是码头一时无人打点，货运乱了套。", "expose": true },
+        { "id": "B", "text": "扶弱抑强，令其制衡", "effects": { "values": { "security": 2, "tresury": -2 }, "personality": { "x": 0, "y": -4 } }, "resultText": "弱的一帮得了默许，与强帮势均力敌。码头是稳了，可你心里清楚，这火并迟早再来。", "expose": true },
+        { "id": "C", "text": "坐山观虎斗，两败俱伤后再收", "effects": { "values": { "security": 3, "people": -4 }, "personality": { "x": -3, "y": -2 } }, "resultText": "两帮斗得两败俱伤，你才出手收拾残局。街面是定了，可死伤百姓的账，有人记着。", "expose": true }
+      ]
+    },
+    {
+      "id": "E43", "title": "流民拥城", "type": "people", "weight": 100, "once": true,
+      "phase": "any", "priority": "urgent", "deadline": 2,
+      "trigger": { "requireEvent": "E01" },
+      "text": "春旱之后，邻县流民闻风涌入本县，黑压压挤在城下讨口饭吃。粥棚已经支起来，可这点粮食，撑不了几天。",
+      "choices": [
+        { "id": "A", "text": "开仓扩粥，收容垦荒", "effects": { "values": { "granary": -12, "people": 8, "population": 3 }, "personality": { "x": 8, "y": 2 } }, "resultText": "粥棚添了灶，流民暂得温饱，还分到了城外的荒地。只是仓里的粮食，见了底。", "expose": true, "chain": ["E44"] },
+        { "id": "B", "text": "调兵弹压，驱散流民", "effects": { "values": { "security": 4, "people": -10, "reputation": -3 }, "personality": { "x": -8, "y": 0 } }, "resultText": "兵丁列队，流民四散。城下哭声骂声混成一片，夜里有人往县衙墙上扔了石块。", "expose": true, "chain": ["E45"] }
+      ]
+    },
+    {
+      "id": "E44", "title": "流民感恩", "type": "people", "weight": 100, "once": true,
+      "phase": "any", "priority": "normal", "deadline": 1,
+      "trigger": { "requireEvent": "E43" },
+      "text": "被你收留的流民在城外垦荒落户，秋收时，他们推着独轮车，送来了第一担新粮。",
+      "choices": [
+        { "id": "A", "text": "收下新粮，编入户籍", "effects": { "values": { "people": 6, "population": 4, "granary": 4 }, "personality": { "x": 4, "y": 2 } }, "resultText": "荒地上有了人家，户口册上添了名姓。这一局，你赌对了人心。", "expose": true }
+      ]
+    },
+    {
+      "id": "E45", "title": "流民之怨", "type": "security", "weight": 100, "once": true,
+      "phase": "any", "priority": "urgent", "deadline": 2,
+      "trigger": { "requireEvent": "E43" },
+      "text": "被驱散的流民在县界外落了草，昼伏夜出，时有劫掠。官道上渐渐不太平了。",
+      "choices": [
+        { "id": "A", "text": "派兵进剿，扫平匪巢", "effects": { "values": { "security": 2, "tresury": -6, "people": -2 }, "personality": { "x": -4, "y": 0 } }, "resultText": "匪患暂平，兵饷又花去不少。只是那些本就是逼上山的百姓，谁也记不清了。", "expose": true },
+        { "id": "B", "text": "派员招抚，安置归农", "effects": { "values": { "tresury": -8, "people": 4, "security": -2 }, "personality": { "x": 6, "y": 2 } }, "resultText": "回头是岸，人心渐归。散了伙的人家，又回来垦荒种地了。", "expose": true }
       ]
     }
   ]
@@ -2803,15 +4114,35 @@ const ACTIONS_DATA = {
   ]
 }
 ;
-const PREVIEW_IMGS = {"E01_A":"assets-g/img-1259c20d896b.webp","E01_B":"assets-g/img-756ed932280a.webp","E01_C":"assets-g/img-f860a44e9647.webp","E02_A":"assets-g/img-a53365a1ad5d.webp","E02_B":"assets-g/img-4ca9f3cad4bb.webp","E02_C":"assets-g/img-9a947a7f0ae8.webp","E03_A":"assets-g/img-690f9a8450a7.webp","E03_B":"assets-g/img-e40c5f6029c5.webp","E03_C":"assets-g/img-1e6d70fa1206.webp","E04_A":"assets-g/img-17c7f13154c6.webp","E04_B":"assets-g/img-59eede0b9800.webp","E04_C":"assets-g/img-598f0008af36.webp","E05_A":"assets-g/img-1185d5ac9e82.webp","E05_B":"assets-g/img-1d4f118bac4a.webp","E05_C":"assets-g/img-29d47572fdb3.webp","E06_A":"assets-g/img-7bad9aaea8f6.webp","E06_B":"assets-g/img-77fd24c54776.webp","E06_C":"assets-g/img-37a37f0d34d1.webp","E07_A":"assets-g/img-c4ce0e782acb.webp","E07_B":"assets-g/img-acaaad293e43.webp","E08_A":"assets-g/img-5312724a8cd9.webp","E08_B":"assets-g/img-eaa2858196b3.webp","E08_C":"assets-g/img-f44a0f08d734.webp","E09_A":"assets-g/img-41e04cfc7a5d.webp","E09_B":"assets-g/img-b0eae8f38850.webp","E09_C":"assets-g/img-7921335e9a2e.webp","E10_A":"assets-g/img-620beb600aa6.webp","E10_B":"assets-g/img-b5d0ec52d770.webp","E10_C":"assets-g/img-f9cd14eb0d52.webp","E11_A":"assets-g/img-db3550005b5c.webp","E11_B":"assets-g/img-2929b6c3ecab.webp","E11_C":"assets-g/img-4b41d694a087.webp","E12_A":"assets-g/img-b71ee2d23d1b.webp","E12_B":"assets-g/img-7fd714255c2b.webp","E12_C":"assets-g/img-a8cd73d0586a.webp","E13_A":"assets-g/img-54f34b0a37bf.webp","E13_B":"assets-g/img-da718b38b327.webp","E13_C":"assets-g/img-6aaa2769448d.webp","E14_A":"assets-g/img-4893ed1b6b76.webp","E14_B":"assets-g/img-d9f11b3b5a98.webp","E14_C":"assets-g/img-eeeef78a5753.webp","E15_A":"assets-g/img-03b9d15827d6.webp","E15_B":"assets-g/img-b4f24864b22a.webp","E16_A":"assets-g/img-c8ffe9c30f58.webp","E16_B":"assets-g/img-7586eda3aff5.webp","E16_C":"assets-g/img-a006d2456cf9.webp","E17_A":"assets-g/img-7999b73f0773.webp","E17_B":"assets-g/img-3811a28fee8c.webp","E17_C":"assets-g/img-fef0ffcfc110.webp","E18_A":"assets-g/img-72c14820c72a.webp","E18_B":"assets-g/img-413002bef48b.webp","E18_C":"assets-g/img-76b084524ceb.webp","E19_A":"assets-g/img-a8b36244cb90.webp","E19_B":"assets-g/img-2ff59831412f.webp","E19_C":"assets-g/img-da1e604f0d95.webp","E20_A":"assets-g/img-abbd1b410df8.webp","E20_B":"assets-g/img-b792d24a6110.webp","E20_C":"assets-g/img-e7f50eeb280f.webp"};   // 事件选项场景图：key = "E01_A" → dataURL
+const PREVIEW_IMGS = {"E01_A":"assets-g/img-1259c20d896b.webp","E01_B":"assets-g/img-756ed932280a.webp","E01_C":"assets-g/img-f860a44e9647.webp","E02_A":"assets-g/img-a53365a1ad5d.webp","E02_B":"assets-g/img-4ca9f3cad4bb.webp","E02_C":"assets-g/img-9a947a7f0ae8.webp","E03_A":"assets-g/img-690f9a8450a7.webp","E03_B":"assets-g/img-e40c5f6029c5.webp","E03_C":"assets-g/img-1e6d70fa1206.webp","E04_A":"assets-g/img-17c7f13154c6.webp","E04_B":"assets-g/img-59eede0b9800.webp","E04_C":"assets-g/img-598f0008af36.webp","E05_A":"assets-g/img-1185d5ac9e82.webp","E05_B":"assets-g/img-1d4f118bac4a.webp","E05_C":"assets-g/img-29d47572fdb3.webp","E06_A":"assets-g/img-7bad9aaea8f6.webp","E06_B":"assets-g/img-77fd24c54776.webp","E06_C":"assets-g/img-37a37f0d34d1.webp","E07_A":"assets-g/img-c4ce0e782acb.webp","E07_B":"assets-g/img-acaaad293e43.webp","E07_C":"assets-g/img-de06736cf1f8.webp","E08_A":"assets-g/img-5312724a8cd9.webp","E08_B":"assets-g/img-eaa2858196b3.webp","E08_C":"assets-g/img-f44a0f08d734.webp","E09_A":"assets-g/img-41e04cfc7a5d.webp","E09_B":"assets-g/img-b0eae8f38850.webp","E09_C":"assets-g/img-7921335e9a2e.webp","E10_A":"assets-g/img-620beb600aa6.webp","E10_B":"assets-g/img-b5d0ec52d770.webp","E10_C":"assets-g/img-f9cd14eb0d52.webp","E11_A":"assets-g/img-db3550005b5c.webp","E11_B":"assets-g/img-2929b6c3ecab.webp","E11_C":"assets-g/img-4b41d694a087.webp","E12_A":"assets-g/img-b71ee2d23d1b.webp","E12_B":"assets-g/img-7fd714255c2b.webp","E12_C":"assets-g/img-a8cd73d0586a.webp","E13_A":"assets-g/img-54f34b0a37bf.webp","E13_B":"assets-g/img-da718b38b327.webp","E13_C":"assets-g/img-6aaa2769448d.webp","E14_A":"assets-g/img-4893ed1b6b76.webp","E14_B":"assets-g/img-d9f11b3b5a98.webp","E14_C":"assets-g/img-eeeef78a5753.webp","E15_A":"assets-g/img-03b9d15827d6.webp","E15_B":"assets-g/img-b4f24864b22a.webp","E16_A":"assets-g/img-c8ffe9c30f58.webp","E16_B":"assets-g/img-7586eda3aff5.webp","E16_C":"assets-g/img-a006d2456cf9.webp","E17_A":"assets-g/img-7999b73f0773.webp","E17_B":"assets-g/img-3811a28fee8c.webp","E17_C":"assets-g/img-fef0ffcfc110.webp","E18_A":"assets-g/img-72c14820c72a.webp","E18_B":"assets-g/img-413002bef48b.webp","E18_C":"assets-g/img-76b084524ceb.webp","E19_A":"assets-g/img-a8b36244cb90.webp","E19_B":"assets-g/img-2ff59831412f.webp","E19_C":"assets-g/img-da1e604f0d95.webp","E20_A":"assets-g/img-abbd1b410df8.webp","E20_B":"assets-g/img-b792d24a6110.webp","E20_C":"assets-g/img-e7f50eeb280f.webp","E21_A":"assets-g/img-4c848ede94cd.webp","E21_B":"assets-g/img-14ea64363c32.webp","E21_C":"assets-g/img-5b3fedefa6f8.webp","E22_A":"assets-g/img-3ccc08cd4d52.webp","E22_B":"assets-g/img-6c966b8980f8.webp","E22_C":"assets-g/img-fef9d1882388.webp","E23_A":"assets-g/img-d13fdeafdd7d.webp","E23_B":"assets-g/img-68c6659571c9.webp","E23_C":"assets-g/img-1b0db8b861a0.webp","E24_A":"assets-g/img-738821aef27f.webp","E24_B":"assets-g/img-2c3a03c41e46.webp","E25_A":"assets-g/img-c29c1c68721c.webp","E25_B":"assets-g/img-930c6f4be449.webp","E25_C":"assets-g/img-32200ac3110d.webp","E26_A":"assets-g/img-6c3a4e1cf8f4.webp","E26_B":"assets-g/img-49d0677e5469.webp","E27_A":"assets-g/img-841595700340.webp","E28_A":"assets-g/img-3bcfbd65cf6b.webp","E28_B":"assets-g/img-f69f4c942f3d.webp","E28_C":"assets-g/img-272b455e42d5.webp","E29_A":"assets-g/img-261bf0d1acab.webp","E29_B":"assets-g/img-6b563568fc98.webp","E29_C":"assets-g/img-4a64155c74e4.webp","E30_A":"assets-g/img-ed2e40091970.webp","E30_B":"assets-g/img-ad3d1c266ad8.webp","E31_A":"assets-g/img-953987c7a99a.webp","E31_B":"assets-g/img-e61a089db649.webp","E31_C":"assets-g/img-f00a3064d5a2.webp","E31_D":"assets-g/img-13fbd8fd0b5d.webp","E32_A":"assets-g/img-bb456238ef89.webp","E32_B":"assets-g/img-27ee8153f83c.webp","E32_C":"assets-g/img-f3646bd9b58a.webp","E33_A":"assets-g/img-d30262e7dd49.webp","E33_B":"assets-g/img-66faab806e64.webp","E33_C":"assets-g/img-13926cf44173.webp","E34_A":"assets-g/img-858b4025b895.webp","E34_B":"assets-g/img-7bcc9153818e.webp","E34_C":"assets-g/img-90d29ce3cce3.webp","E34_D":"assets-g/img-876d32993857.webp","E35_A":"assets-g/img-6fad9136a6b7.webp","E35_B":"assets-g/img-e0612c081981.webp","E35_C":"assets-g/img-d3c47176920f.webp","E36_A":"assets-g/img-81bdc6e413e4.webp","E36_B":"assets-g/img-d613ab196121.webp","E36_C":"assets-g/img-b83ef0b0494d.webp","E37_A":"assets-g/img-1dad32958e6f.webp","E37_B":"assets-g/img-1ca5b75d4157.webp","E38_A":"assets-g/img-944f0d925fc9.webp","E38_B":"assets-g/img-a4533e8e981a.webp","E38_C":"assets-g/img-bf436bce8a8b.webp","E38_D":"assets-g/img-0ea16e7d1538.webp","E39_A":"assets-g/img-c3c5758d7dd4.webp","E39_B":"assets-g/img-a42c1b65c021.webp","E39_C":"assets-g/img-7059e2a86914.webp","E40_A":"assets-g/img-94e85721f578.webp","E40_B":"assets-g/img-6e943717b95e.webp","E40_C":"assets-g/img-c8a1488c914a.webp","E40_D":"assets-g/img-9b2084f3257c.webp","E40_E":"assets-g/img-9de85a6acdd3.webp","E41_A":"assets-g/img-933f2cbbf461.webp","E41_B":"assets-g/img-46fb199ad6e3.webp","E42_A":"assets-g/img-1d37a03daab6.webp","E42_B":"assets-g/img-e64368a8ca08.webp","E42_C":"assets-g/img-5a5fbe66b14f.webp","E43_A":"assets-g/img-e8f1b0c2b5ec.webp","E43_B":"assets-g/img-e547c934a3c1.webp","E44_A":"assets-g/img-a541c00599d3.webp","E45_A":"assets-g/img-e3867c0e854c.webp","E45_B":"assets-g/img-80a2f1156c89.webp"};   // 事件选项场景图：key = "E01_A" → dataURL
 const START_BG = "assets-g/img-9b57a7e1d9de.webp";        // 主界面背景（府衙门楼位图）
+const INTRO_BG = {"wild":"assets-g/img-77ed5d7971fe.webp","ruin":"assets-g/img-169d097d63ec.webp","county":"assets-g/img-d815f0082855.webp","city":"assets-g/img-db569e175111.webp"};  // 开场海报位图：key = "wild|ruin|county|city" → dataURL
+const BGM_TRACKS_ = {"0":[{"name":"Ishikari Lore","data":"assets-g/aud-543cd7106ac1.m4a"},{"name":"Ripples","data":"assets-g/aud-35f86a7125f0.m4a"}],"1":[{"name":"Finding Movement","data":"assets-g/aud-329117da21d4.m4a"},{"name":"Guzheng City","data":"assets-g/aud-df913c53e773.m4a"}],"2":[{"name":"Shenyang","data":"assets-g/aud-790e75ded6b5.m4a"},{"name":"That Zen Moment","data":"assets-g/aud-4fff5974f69e.m4a"}],"3":[{"name":"That Zen Moment","data":"assets-g/aud-4fff5974f69e.m4a"}]};  // 四阶段 BGM 池：key=阶段(0~3)，值=[{name,data:dataURL}]
+const BGM_STAGE_COUNT_ = 4;
+const BGM_CREDITS_ = "背景音乐 Kevin MacLeod (incompetech.com) · CC BY 4.0";
 const VALUE_NAMES = { tresury:'银库', granary:'粮仓', people:'民心', security:'治安', reputation:'官声', population:'人口' };
-const ORIGIN_NAMES = { jinshi:'进士', juren:'举人', juanguan:'捐官' };
+// 四种随机初始背景：随机择地后自动带一个出身标签（只作剧情文案影子，不再单独选）
+const BACKGROUNDS = {
+  wild:   { name: '蛮荒未化之地', shadow: '捐官' },
+  ruin:   { name: '战后破败之地', shadow: '捐官' },
+  county: { name: '中规中矩县城', shadow: '举人' },
+  city:   { name: '繁华大都市',   shadow: '进士' },
+};
+function bgInfo(origin){
+  // 兼容旧存档出身字段（jinshi/juren/juanguan）直接映射到背景
+  const legacy = { jinshi:'city', juren:'county', juanguan:'wild' };
+  return BACKGROUNDS[origin] || BACKGROUNDS[legacy[origin]] || BACKGROUNDS.wild;
+}
 const SAVE_KEY = 'weiguan_yifang_save_v1';
 
 const state = {
   gs: null, sys: null, as: null, curEv: null, page: 0, demoDone: false, actPanel: false,
   sceneEvent: null,   // 最近一次影响场景的事件标题（供背景联动）
+  sceneSeed: undefined,   // 每局场景随机种子（newGame/continueGame 摇一次，同局内重绘稳定）
+  introBg: null,      // 开场动画播放中的背景（非 null = 正在播，播完进入游戏）
+  _bgmStage: -1,      // 当前 BGM 所属阶段（-1=尚未起播），变化时切换曲目
+  _bgmNext: {},       // 每阶段的轮播游标（记住该阶段播到第几首，接续而不重复）
+  _bgmMuted: false,   // 静音开关（默认不静音）
 };
 
 // ===================== 官职体系（明清文官官服配色 + 补子绣花） =====================
@@ -2863,12 +4194,12 @@ function rankPill(gs){
   return `<span class="rank-pill" style="--rc:${r.color};--rc-deep:${r.deep}">${r.name} · ${r.bird}</span>`;
 }
 // 官服配色按钮：补子绣花 + 选项文本 + 效果预览；点击→预览场景，点"继续"→才确定选此项
-function rankBtnHTML(i, text, eff, gs, sel){
+function rankBtnHTML(i, text, eff, gs, sel, blocked){
   const r = currentRank(gs);
-  return `<button class="rank-btn${sel?' sel':''}" style="--rc:${r.color};--rc-deep:${r.deep}" onclick="selectChoice(${i})">
+  const dis = blocked ? ' disabled' : '';
+  return `<button class="rank-btn${sel?' sel':''}${blocked?' blocked':''}" style="--rc:${r.color};--rc-deep:${r.deep}" onclick="selectChoice(${i})"${dis}>
     <span class="buzi">${buziSVG(r)}</span>
     <span class="buzi-text"><span class="t1">${esc(text)}</span><span class="t2">${esc(eff||'')}</span></span>
-    <span class="buzi-eff">${esc(eff||'')}</span>
     <span class="buzi-rank">${r.bird}补 · ${r.robe}</span>
   </button>`;
 }
@@ -2878,6 +4209,61 @@ const $ = id => document.getElementById(id);
 function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmtValues(gs){
   return VALUE_KEYS_.map(k => esc(`${VALUE_NAMES[k]||k} ${Math.round(gs.values[k])}`)).join('　');
+}
+// 八维雷达图：六项数值 + 税赋 + 市集，各轴量程不一，统一归一化到 0~100 再画
+function octRadarSVG(gs){
+  const keys = ['tresury','granary','people','security','reputation','population','tax','market'];
+  const n = keys.length, cx = 60, cy = 60, R = 46;
+  const RAW = {
+    tresury: gs.values.tresury, granary: gs.values.granary, people: gs.values.people,
+    security: gs.values.security, reputation: gs.values.reputation, population: gs.values.population,
+  };
+  const MAX = { tresury:100, granary:100, people:100, security:100, reputation:100, population:100, tax:160, market:160 };
+  const t1 = gs.taxRate != null ? gs.taxRate : 1.0;         // 税赋：1.0=常平→50，0.6~1.6 映射 0~100
+  const m1 = gs.marketRate != null ? gs.marketRate : 1.0;    // 市集：同上
+  const tPct = ((t1 - 0.6) / 1.0) * 100;
+  const mPct = ((m1 - 0.6) / 1.0) * 100;
+  const VAL = {
+    tresury: RAW.tresury, granary: RAW.granary, people: RAW.people, security: RAW.security,
+    reputation: RAW.reputation, population: RAW.population, tax: tPct, market: mPct,
+  };
+  const pt = (i, r) => {
+    const a = -Math.PI/2 + i*(2*Math.PI/n);
+    return [ (cx + r*Math.cos(a)).toFixed(1), (cy + r*Math.sin(a)).toFixed(1) ];
+  };
+  const ring = keys.map((_,i)=>pt(i,R).join(',')).join(' ');
+  const val = keys.map((k,i)=>{ const r = R * Math.max(0, Math.min(100, VAL[k]))/100; return pt(i,r).join(','); }).join(' ');
+  const grid = [0.25,0.5,0.75].map(f=>keys.map((_,i)=>pt(i,R*f).join(',')).join(' '))
+    .map(pts=>`<polygon points="${pts}" fill="none" stroke="#8a6a30" stroke-width="0.5" opacity="0.4"/>`).join('');
+  const axis = keys.map((_,i)=>`<line x1="${cx}" y1="${cy}" x2="${pt(i,R)[0]}" y2="${pt(i,R)[1]}" stroke="#8a6a30" stroke-width="0.5" opacity="0.5"/>`).join('');
+  const NAMES = { tresury:'银库', granary:'粮仓', people:'民心', security:'治安', reputation:'官声', population:'人口', tax:'税赋', market:'市集' };
+  const labels = keys.map((k,i)=>{ const lx = pt(i,R+13)[0], ly = pt(i,R+13)[1];
+    return `<text x="${lx}" y="${ly}" font-size="8.5" fill="#6a5a40" text-anchor="middle" font-family="serif">${NAMES[k]}</text>`; }).join('');
+  return `<svg viewBox="0 0 120 120" class="oct-radar" xmlns="http://www.w3.org/2000/svg">
+    ${grid}${axis}
+    <polygon points="${ring}" fill="none" stroke="#8a6a30" stroke-width="1.2"/>
+    <polygon points="${val}" fill="rgba(47,106,82,0.25)" stroke="var(--frame)" stroke-width="1.6"/>
+    ${labels}
+  </svg>`;
+}
+// 决策状态栏：事件选择时置顶，平时隐藏（八维雷达 + 全数值，替代常驻状态栏）
+function showDecisionBar(){
+  const db = $('decisionBar'); const gs = state.gs; if(!db || !gs) return;
+  // 八维：六项数值 + 税赋 + 市集（市集、税赋显示原系数，标注量程）
+  const valsHtml = VALUE_KEYS_.map(k =>
+    `<span>${esc(VALUE_NAMES[k]||k)} <b>${Math.round(gs.values[k])}</b></span>`).join('') +
+    `<span>税赋 <b>${Math.round((gs.taxRate!=null?gs.taxRate:1.0)*100)}%</b></span>` +
+    `<span>市集 <b>${Math.round((gs.marketRate!=null?gs.marketRate:1.0)*100)}%</b></span>` +
+    `<span>仁政 <b>${gs.personality.x}</b></span>` +
+    `<span>清廉 <b>${gs.personality.y}</b></span>`;
+  db.innerHTML = octRadarSVG(gs) + `<div class="vals">${valsHtml}</div>`;
+  db.classList.add('on');
+  // 决策栏已接管全部数值，隐藏常驻状态栏避免重复展示
+  const sb = $('statusBox'); if(sb) sb.classList.add('off');
+}
+function hideDecisionBar(){
+  const db = $('decisionBar'); if(db) db.classList.remove('on');
+  const sb = $('statusBox'); if(sb) sb.classList.remove('off');
 }
 function refreshStatus(){
   const gs = state.gs; if(!gs){ $('statusBox').innerHTML=''; return; }
@@ -2889,18 +4275,87 @@ function refreshStatus(){
   }
   const valsHtml = VALUE_KEYS_.map(k =>
     `<span>${esc(VALUE_NAMES[k]||k)} <b>${Math.round(gs.values[k])}</b></span>`).join('');
-  $('statusBox').innerHTML = `<div class="idline"><b>${ORIGIN_NAMES[gs.origin]}出身</b> · 第 ${gs.year} 年 ${gs.month} 月${rankPill(gs)}</div>` +
+  $('statusBox').innerHTML = `<div class="idline"><b>${bgInfo(gs.origin).name} · ${bgInfo(gs.origin).shadow}出身</b> · 第 ${gs.year} 年 ${gs.month} 月${rankPill(gs)}</div>` +
     `<div class="vals">${valsHtml}</div>` +
     `<div class="meta-line">仁政 ${gs.personality.x}　清廉 ${gs.personality.y}　税赋 ${Math.round(gs.taxRate*100)}%</div>`;
   refreshScene();
 }
-// 背景场景联动：数值 + 最近事件 → 动态 SVG 场景
+// ===================== 背景音乐 =====================
+// 按治理阶段（繁华度三档 + 官声高位的"太平"档）选曲；每阶段多首轮播，
+// 一首播完（onended）才切下一首，阶段切换不打断当前曲，等它放完再进新阶段的歌。
+function bgmStageOf(gs){
+  if(!gs) return 0;
+  const prosperity = Math.max(0, Math.min(1, (gs.values.population + gs.values.people + gs.values.tresury) / 300));
+  if(prosperity >= 0.92 && gs.values.reputation >= 75) return 3;   // 太平：富庶 + 官声鼎盛
+  if(prosperity >= 0.8)  return 2;                                 // 鼎盛
+  if(prosperity >= 0.55) return 1;                                 // 起色
+  return 0;                                                        // 草创
+}
+function bgmPool(stage){
+  const tracks = BGM_TRACKS_[stage] || [];
+  // 该阶段没曲目时向下取最近的可用阶段（确保永远有得播）
+  if(tracks.length) return tracks;
+  for(let s = stage; s >= 0; s--){ const t = BGM_TRACKS_[s]||[]; if(t.length) return t; }
+  for(let s = stage; s < BGM_STAGE_COUNT_; s++){ const t = BGM_TRACKS_[s]||[]; if(t.length) return t; }
+  return [];
+}
+function bgmUpdate(){
+  const el = $('bgm'); if(!el || !state.gs) return;
+  const stage = bgmStageOf(state.gs);
+  if(stage === state._bgmStage) return;   // 阶段未变，不打断当前曲
+  state._bgmStage = stage;
+  const pool = bgmPool(stage);
+  if(!pool.length) return;
+  let i = state._bgmNext[stage] || 0;
+  if(i >= pool.length) i = 0;
+  const t = pool[i];
+  el.src = t.data;
+  el.volume = 0.5;
+  const p = el.play && el.play();
+  if(p && p.catch) p.catch(function(){});   // 自动播放被浏览器拦截时静默（用户点界面后再触发）
+}
+// 一首播完：本阶段播下一首（轮播），并顺手同步阶段（阶段可能已变）
+function bgmNext(){
+  if(!state.gs) return;
+  const stage = state._bgmStage;
+  const pool = bgmPool(stage);
+  if(pool.length){
+    let i = (state._bgmNext[stage] || 0) + 1;
+    if(i >= pool.length) i = 0;
+    state._bgmNext[stage] = i;
+    const el = $('bgm');
+    el.src = pool[i].data;
+    const p = el.play && el.play();
+    if(p && p.catch) p.catch(function(){});
+  }
+  bgmUpdate();   // 若阶段已变，这里补一次切换（不打断正在播的，只是把游标对准新阶段）
+}
+function toggleBgm(){
+  state._bgmMuted = !state._bgmMuted;
+  const el = $('bgm'), btn = $('bgm-toggle');
+  if(el) el.muted = state._bgmMuted;
+  if(btn) btn.classList.toggle('off', state._bgmMuted);
+  if(!state._bgmMuted && el){ const p = el.play && el.play(); if(p && p.catch) p.catch(function(){}); }
+}
+function bgmStart(){
+  const el = $('bgm');
+  if(!el) return;
+  el.addEventListener('ended', bgmNext);
+  el.muted = state._bgmMuted;
+  bgmUpdate();
+  // 首次用户交互（点选开局/政令等）时若尚未播起来，补一次 play
+  const kick = function(){ if(el.paused){ const p = el.play && el.play(); if(p && p.catch) p.catch(function(){}); } };
+  document.addEventListener('pointerdown', kick, { once:true });
+}
 function refreshScene(){
   const gs = state.gs; const sc = document.getElementById('scene');
   if(!gs || !sc){ if(sc) sc.innerHTML=''; return; }
+  // 新开档首次重绘摇一次种子，同局内每月重绘沿用同一种子，画面不跳变
+  if(state.sceneSeed === undefined) state.sceneSeed = Math.random() * 100000;
   // 新版：背景层全量重绘 + 人物层 diff（保住 DOM，动画才连续）+ 挂 rAF 动画
-  SceneRenderer.refreshScene(gs, { lastEventTitle: state.sceneEvent || '' });
+  SceneRenderer.refreshScene(gs, { lastEventTitle: state.sceneEvent || '', seed: state.sceneSeed });
   if(SceneAnimator) SceneAnimator.rebuildRefs();
+  bgmUpdate();   // 数值/阶段变化 → 同步 BGM（不打断当前曲）
 }
 function setEvent(t){
   const el = $('eventText');
@@ -2928,7 +4383,7 @@ function saveGame(){
     state: state.gs.serialize(),
     currentEventId: state.curEv ? state.curEv.id : null,
     pendingAction: state.actPanel,
-    origin: state.gs.origin, ts: Date.now(),
+    origin: state.gs.origin, sceneSeed: state.sceneSeed, ts: Date.now(),
   }));
 }
 function loadSave(){
@@ -2942,15 +4397,73 @@ function loadSave(){
 
 // ===================== 主流程 =====================
 function newGame(origin){
+  // 兼容测试/旧代码传入出身(jinshi/juren/juanguan)：映射到背景；合法背景直接透传
+  const bg = (origin in BACKGROUNDS) ? origin : (LEGACY_ORIGIN_TO_BACKGROUND[origin] || 'wild');
+  if(!state.introBg && typeof document !== 'undefined' && document.body && window.SceneRenderer && window.SceneRenderer.renderIntroScene){
+    // 首次进入（非重开）：先播水墨开场动画，播完再真正开局
+    hideStartPanel();
+    state.introBg = bg;
+    playIntro(bg);
+    return;
+  }
   hideStartPanel();
-  state.gs = new GameState_(origin); state.demoDone=false; state.curEv=null;
-  state.sceneEvent=null;
+  state.gs = new GameState_(bg); state.demoDone=false; state.curEv=null;
+  state.sceneEvent=null; state.sceneSeed=undefined;   // 新开档重新摇场景种子
+  refreshStatus(); nextTurn({recap:false});
+}
+// ===== 水墨古风开场：随机择地后全屏播放，播完自动进入政令界面 =====
+const INTRO_LINES = {
+  wild:   { title: '蛮荒未化之地', name: '青阳县 · 蛮荒',   sub: '四境未辟，捐官至此，草创维艰' },
+  ruin:   { title: '战后破败之地', name: '青阳县 · 战后',   sub: '残垣犹在，捐官至此，百废待兴' },
+  county: { title: '中规中矩县城', name: '青阳县 · 县城',   sub: '举人赴任，一县寻常，守成有方' },
+  city:   { title: '繁华大都市',   name: '青阳县 · 都会',   sub: '进士及第，烟花十里，大展身手' },
+};
+function playIntro(bg){
+  const p = $('intro'); if(!p) return;
+  const L = INTRO_LINES[bg] || INTRO_LINES.wild;
+  const poster = (INTRO_BG && INTRO_BG[bg]) ? INTRO_BG[bg] : null;
+  p.innerHTML =
+    (poster
+      ? `<img class="intro-bg" alt="" src="${poster}">`
+      : `<div class="intro-scene">${SceneRenderer.renderIntroScene(bg)}</div>`) +
+    `<div class="intro-mask"></div>` +
+    `<div class="intro-caption">大衍朝 · 青阳志 · 卷一</div>` +
+    `<div class="intro-name">${L.name}</div>` +
+    `<div class="intro-sub">${L.sub}</div>` +
+    `<div class="intro-skip" id="introSkip" onclick="skipIntro()">轻点任意处 · 进入游戏 ▸</div>`;
+  p.classList.add('on');
+  $('introSkip') && ($('introSkip').style.display = 'block');
+  p.onclick = function(){ if(p.classList.contains('on')) skipIntro(); };
+  // 播完自动进入游戏（约 2.6s；被 skipIntro 抢先则直接无视）
+  clearTimeout(state._introTimer);
+  state._introTimer = setTimeout(function(){ if(state.introBg) finishIntro(); }, 2600);
+}
+function skipIntro(){ if(state.introBg) finishIntro(); }
+function finishIntro(){
+  clearTimeout(state._introTimer);
+  const bg = state.introBg; if(!bg) return;
+  state.introBg = null;
+  const p = $('intro');
+  if(p){
+    // 渐变淡出：先加 .off 触发 opacity 过渡（保留 .on 让 display:block 直到动画播完），
+    // 约 620ms 后再真正摘除海报层并清空，避免海报瞬间被划走的生硬切换。
+    p.classList.add('off');
+    setTimeout(function(){
+      p.classList.remove('on');
+      p.classList.remove('off');
+      p.innerHTML = '';
+    }, 620);
+  }
+  // 真正开局：延续 newGame 中断点之后的流程
+  state.gs = new GameState_(bg); state.demoDone=false; state.curEv=null;
+  state.sceneEvent=null; state.sceneSeed=undefined;
   refreshStatus(); nextTurn({recap:false});
 }
 function continueGame(save){
   hideStartPanel();
   state.gs = GameState_.deserialize(save.state);
   state.demoDone=false; state.curEv=null; state.actPanel=false;
+  state.sceneSeed = (save.sceneSeed !== undefined) ? save.sceneSeed : undefined;   // 读档沿用原种子，无则重摇
   refreshStatus();
   if(save.currentEventId){
     const ev = state.sys.find(save.currentEventId);
@@ -3010,8 +4523,10 @@ function showActionPanel(){
   const pages = Math.max(1, Math.ceil(avail.length/6));
   if(state.page>=pages) state.page=pages-1;
   const slice = avail.slice(state.page*6, (state.page+1)*6);
-  // 背景：当前治下场景全屏（与开局页同风格）
-  const sc = gs ? SceneRenderer.renderScene(gs, { lastEventTitle: state.sceneEvent || '' }) : '';
+  // 背景：当前治下场景全屏（界画风，随故事线×发展阶段×月份变化，不再单一）
+  const sc = gs ? (SceneRenderer.renderDecreeBG
+      ? SceneRenderer.renderDecreeBG(gs, { lastEventTitle: state.sceneEvent || '' })
+      : SceneRenderer.renderScene(gs, { lastEventTitle: state.sceneEvent || '' })) : '';
   let h = `<div class="start-scene">${sc}</div>` +
     `<div class="start-scrim"></div>` +
     `<div class="act-card"><h2>第 ${gs.year} 年 ${gs.month} 月 · 政令</h2>`;
@@ -3034,7 +4549,7 @@ function showActionPanel(){
   const p = $('actionPanel');
   p.innerHTML = h;
   p.classList.add('on');
-  hidePreview();
+  hidePreview(); hideDecisionBar();
   setTip(''); saveGame();
 }
 function actPage(d){ state.page+=d; showActionPanel(); }
@@ -3064,35 +4579,57 @@ function showEvent(ev){
   msg += `\n${ev.text}\n`;
   setEvent(msg);
   renderChoices();
-  showPreview('<div class="pv-tag">预观 · 请点选一项</div>');
+  showPreview('<div class="pv-tag">预观 · 请点选一项</div><div class="pv-holder"><div class="pv-q">？</div><div class="pv-hint">你的决定将导致后续剧情的变化</div></div>');
+  showDecisionBar();
   setTip('点选一项预观其果，再按继续定夺 ↓'); saveGame();
 }
 // 渲染选项按钮 + 底部"继续"按钮（未点选项时禁用）
 function renderChoices(){
   const ev = state.curEv; if(!ev) return;
   const gs = state.gs;
+  const hint = caseHintHTML(ev);
   $('choices').innerHTML =
-    ev.choices.map((c,i)=>rankBtnHTML(i, c.text, fmtChoice(c), gs, i===state.selChoice)).join('') +
+    (hint ? hint : '') +
+    ev.choices.map((c,i)=>{
+      const blocked = choiceBlocked(ev, c);
+      return rankBtnHTML(i, c.text, fmtChoice(c), gs, i===state.selChoice, blocked);
+    }).join('') +
     `<button class="btn gold" id="confirmBtn" onclick="choose()"${state.selChoice==null?' disabled':''}>继续 ▶</button>`;
 }
 // 点击某选项：仅预览场景+高亮，不真正选择；点"继续"才确定
 function selectChoice(i){
   const ev = state.curEv; if(!ev || !ev.choices[i]) return;
+  if(choiceBlocked(ev, ev.choices[i])){ setTip('此策所需人力/财力不足，暂不可行'); return; }
   state.selChoice = i;
   renderChoices();
   previewChoice(i);
   setTip('已预观该策之果，点「继续」定夺 ↓');
 }
-// 确定选择当前高亮项（由"继续"按钮触发）
+// 确定选择当前高亮项（由"继续"按钮触发）；断案事件按误判规则结算
 function choose(){
   if(!state.curEv || state.demoDone) return;
   const i = state.selChoice; if(i==null) return;
   const ev = state.curEv; const c = ev.choices[i]; if(!c) return;
-  state.gs.applyChoice(c);
-  if(c.resultText) setEvent(ev.text + '\n\n【后果】' + c.resultText);
+  if(choiceBlocked(ev, c)) return;
+  // 误判判定：不查案/草率结案的选项，按概率可能误判（后果替代正常效果）
+  let misjudged = false;
+  if(c.misjudge && Math.random() < (c.misjudge.chance||0)) misjudged = true;
+  if(misjudged){
+    state.gs.applyChoice({ effects: c.misjudge.effects });
+    if(c.misjudge.resultText) setEvent(ev.text + '\n\n【后果】' + c.misjudge.resultText);
+  } else {
+    state.gs.applyChoice(c);
+    if(c.resultText) setEvent(ev.text + '\n\n【后果】' + c.resultText);
+  }
+  // 刑名统计：凡断案类事件，计入年度考课刑名分
+  if(isCaseEvent(ev)){
+    state.gs.stats.casesTotal = (state.gs.stats.casesTotal||0) + 1;
+    if(c.effects.caseSolved && !misjudged) state.gs.stats.casesSolved = (state.gs.stats.casesSolved||0) + 1;
+  }
   if(c.chain) state.gs.enqueueChain(c.chain);
   refreshStatus();
   hidePreview();
+  hideDecisionBar();
   $('choices').innerHTML='';
   setTimeout(advance, 350);
 }
@@ -3105,7 +4642,39 @@ function fmtChoice(c){
   for(const k of VALUE_KEYS_){ if(ev[k]) p.push(`${VALUE_NAMES[k]}${ev[k]>0?'+':''}${ev[k]}`); }
   if(c.effects.personality?.x) p.push(`仁政${c.effects.personality.x>0?'+':''}${c.effects.personality.x}`);
   if(c.effects.personality?.y) p.push(`清廉${c.effects.personality.y>0?'+':''}${c.effects.personality.y}`);
+  if(c.misjudge) p.push(`⚠恐误判`);
   return p.join('　');
+}
+// 某选项当前是否可选（断案事件：查案需人力财力，不足则置灰禁用）
+function choiceBlocked(ev, c){
+  const gs = state.gs; if(!gs) return true;
+  const need = c.need || {};
+  if(need.values){
+    for(const k of Object.keys(need.values)){
+      if(gs.values[k] < (need.values[k]||0)) return true;
+    }
+  }
+  if(need.personality?.x !== undefined){
+    const p = need.personality.x;
+    if(p >= 0 && gs.personality.x < p) return true;
+    if(p < 0 && gs.personality.x > p) return true;
+  }
+  if(need.personality?.y !== undefined){
+    const p = need.personality.y;
+    if(p >= 0 && gs.personality.y < p) return true;
+    if(p < 0 && gs.personality.y > p) return true;
+  }
+  return false;
+}
+// 是否为「刑名」类事件（计入年度考课刑名分）
+function isCaseEvent(ev){
+  return !!(ev && ev.type === 'justice');
+}
+// 断案提示条：查案需人力财力，不查恐误判（仅当事件确有「查案需资源/误判风险」机制时显示）
+function caseHintHTML(ev){
+  if(!ev || ev.type !== 'justice') return '';
+  if(!ev.choices.some(c => c.misjudge || c.need)) return '';
+  return '<div class="case-hint">此案若要查个水落石出，需人力、耗钱财；若草草了断，恐有误判之虞——是查是拖，大人三思。</div>';
 }
 // 场景预览：模拟"选择该选项后"的数值 → 渲染对应场景到中间大块
 function previewChoice(i){
@@ -3141,7 +4710,8 @@ function advance(){
       state.demoDone=true; state.curEv=null;
       refreshStatus();
       setEvent(`【结局】${end.ending}\n\n${end.desc}\n\n任期档案：\n` +
-        gs.examHistory.map(h=>`${h.year}年 考课 ${h.grade}（${h.score}分）`).join('\n'));
+        gs.examHistory.map(h=>`${h.year}年 考课 ${h.grade}（${h.score}分）`).join('\n') +
+        `\n\n${BGM_CREDITS_}`);
       $('choices').innerHTML = '<button class="btn" onclick="location.reload()">重新开堂 ▶</button>';
       setTip('任期已满 · 新晋接印');
       hidePreview();
@@ -3167,13 +4737,10 @@ function renderStartCard(){
   const card = $('startCard'); if(!card) return;
   let h = '<h2>青阳县令上任</h2><h3>大衍朝 · 治县三载，考课定前程</h3>';
   if(save && !save.termEnded)
-    h += `<button class="btn gold" onclick="continueGame(loadSave())">继续上任（${ORIGIN_NAMES[save.origin]} · 第${save.year}年${save.month}月）</button>`;
-  [['jinshi','进士出身　银库55 民心50 官声60'],
-   ['juren','举人出身　银库45 民心65 官声45'],
-   ['juanguan','捐官出身　银库70 民心40 官声35']].forEach(([o,t])=>{
-    h += `<button class="btn" onclick="newGame('${o}')">${t}</button>`;
-  });
-  if(save) h += '<div class="start-note">选择出身将覆盖旧存档</div>';
+    h += `<button class="btn gold" onclick="continueGame(loadSave())">继续上任（${bgInfo(save.origin).name} · 第${save.year}年${save.month}月）</button>`;
+  h += '<button class="btn" onclick="newGame(rollBackground())">赴任（随机择一地）</button>';
+  h += '<div class="start-note">蛮荒 / 战后 / 县城 / 都市 四地随机而定，出身随之而定</div>';
+  h += '<div class="start-note">背景音乐 Kevin MacLeod (incompetech.com) · CC BY 4.0</div>';
   card.innerHTML = h;
 }
 function hideStartPanel(){
@@ -3182,13 +4749,14 @@ function hideStartPanel(){
 }
 function showStart(){
   $('eventText').innerHTML = '';
-  $('choices').innerHTML=''; hidePreview(); setTip('');
+  $('choices').innerHTML=''; hidePreview(); hideDecisionBar(); setTip('');
   showStartPanel();
 }
 // ===================== 启动 =====================
 $('recap').addEventListener('click', skipRecap);
 state.sys = EventSystem_.load(JSON.stringify(EVENTS_DATA));
 state.as = ActionSystem_.load(JSON.stringify(ACTIONS_DATA));
+bgmStart();   // 挂 BGM：阶段切换 + 一首播完切下一首 + 首次点击补播
 showStart();
 </script>
 </body>
