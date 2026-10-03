@@ -1,11 +1,7 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { marked } from 'marked'
 import { searchNotes, tagsOf, categoryCounts } from '../data/notes.js'
-import { setPageMeta } from '../data/meta.js'
-import FeedbackWidget from '../components/FeedbackWidget.vue'
-import { notesQa } from '../data/notes-qa.js'
 
 // 关键词 + 标签筛选（这两个是「输入」，不放进地址栏）
 const keyword = ref('')
@@ -29,27 +25,12 @@ function switchCat(cat) {
   tagFilter.value = '全部'
 }
 
-// 当前选中的笔记放到地址栏 ?note=id → 可以分享链接、可以用浏览器后退
 const route = useRoute()
 const router = useRouter()
 
-const activeId = computed(() => {
-  const q = route.query.note
-  if (typeof q === 'string' && filtered.value.some((n) => n.id === q)) return q
-  return filtered.value[0]?.id ?? null
-})
-
-const activeNote = computed(
-  () => filtered.value.find((n) => n.id === activeId.value) ?? filtered.value[0] ?? null
-)
-const activeQa = computed(() => (activeNote.value ? notesQa[activeNote.value.id] || [] : []))
-
-const rendered = computed(() =>
-  activeNote.value ? marked.parse(activeNote.value.body) : ''
-)
-
+// 点击笔记 → 单开一页（微信左滑/返回键/底部按钮都能回列表）
 function selectNote(id) {
-  router.push({ query: { ...route.query, note: id } })
+  router.push({ name: 'note', params: { id } })
 }
 
 function resetAll() {
@@ -67,32 +48,6 @@ function highlight(text) {
   const re = new RegExp(`(${words.map(escapeRegExp).join('|')})`, 'ig')
   return text.replace(re, '<mark>$1</mark>')
 }
-
-// 标签页标题跟着当前这篇笔记走：本来所有笔记共用「知识库」一个标题，
-// 收藏了某一篇再打开会分不清是哪篇。flush:'post' 让它覆盖路由里的通用标题。
-watch(
-  activeNote,
-  (n) => {
-    if (!n) return
-    setPageMeta({
-      title: `${n.title} · 知识库`,
-      desc: `笔记：${n.title}${
-        n.tags?.length ? '｜标签：' + n.tags.join('、') : ''
-      }｜约 ${n.minutes} 分钟`,
-      path: '/knowledge',
-    })
-  },
-  { immediate: true, flush: 'post' }
-)
-
-// 切换标签时，如果当前选中的笔记被筛掉了，就自动跳到第一条
-watch(filtered, (list) => {
-  if (!list.length) return
-  const q = route.query.note
-  if (typeof q !== 'string' || !list.some((n) => n.id === q)) {
-    router.replace({ query: { ...route.query, note: list[0].id } })
-  }
-})
 </script>
 
 <template>
@@ -176,8 +131,6 @@ watch(filtered, (list) => {
             <li v-for="n in filtered" :key="n.id">
               <button
                 class="kb-item"
-                :class="{ active: activeId === n.id }"
-                :aria-current="activeId === n.id ? 'true' : undefined"
                 @click="selectNote(n.id)"
               >
                 <span class="kb-item-date">{{ n.date }}</span>
@@ -192,30 +145,6 @@ watch(filtered, (list) => {
           </ul>
         </aside>
 
-        <!-- 右侧：正文 -->
-        <article v-if="activeNote" class="kb-body">
-          <header class="kb-head">
-            <h2 class="kb-title">{{ activeNote.title }}</h2>
-            <p class="kb-meta">
-              {{ activeNote.date }}
-              <span v-for="t in activeNote.tags" :key="t" class="kb-tag">#{{ t }}</span>
-              · 约 {{ activeNote.minutes }} 分钟阅读
-            </p>
-          </header>
-          <div class="markdown" v-html="rendered"></div>
-
-          <!-- 评论式问答：站长预写的「你可能想问」，不是真实访客留言 -->
-          <section v-if="activeQa.length" class="note-qa" aria-label="关于本篇的常见问题">
-            <h3 class="note-qa-title">关于这篇，你可能想问</h3>
-            <p class="note-qa-hint">以下为站长预写的常见问答；真实反馈请用底部的反馈按钮。</p>
-            <details v-for="item in activeQa" :key="item.q" class="note-qa-item">
-              <summary>{{ item.q }}</summary>
-              <p>{{ item.a }}</p>
-            </details>
-          </section>
-
-          <FeedbackWidget page="知识库" :item="activeNote.id" />
-        </article>
       </div>
     </template>
 
@@ -289,8 +218,7 @@ watch(filtered, (list) => {
 /* ---- 两栏布局 ---- */
 .kb-layout {
   display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 24px;
+  grid-template-columns: 1fr;
   margin-top: 28px;
 }
 .kb-list {
@@ -300,10 +228,6 @@ watch(filtered, (list) => {
   padding: 16px;
   box-shadow: var(--shadow-soft);
   align-self: start;
-  position: sticky;
-  top: 92px;
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
 }
 .kb-filters {
   display: flex;
@@ -334,6 +258,9 @@ watch(filtered, (list) => {
 
 .kb-list ul {
   list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
 }
 .kb-item {
   display: flex;
@@ -393,143 +320,6 @@ watch(filtered, (list) => {
   color: var(--color-text-muted);
 }
 
-/* ---- 正文 ---- */
-.kb-body {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 36px 40px;
-  box-shadow: var(--shadow-soft);
-  min-width: 0;
-}
-.kb-head {
-  padding-bottom: 18px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--color-border);
-}
-.kb-title {
-  font-size: 1.55rem;
-  margin-bottom: 8px;
-}
-.kb-meta {
-  font-size: 0.82rem;
-  color: var(--color-text-muted);
-}
-.kb-tag {
-  color: var(--color-green);
-  font-weight: 600;
-  margin-left: 8px;
-}
-
-/* Markdown 排版 */
-.markdown {
-  color: var(--color-text-muted);
-  line-height: 1.85;
-}
-.markdown :deep(h1) {
-  font-size: 1.35rem;
-  color: var(--color-text);
-  margin: 28px 0 12px;
-}
-.markdown :deep(h1:first-child) {
-  margin-top: 0;
-}
-.markdown :deep(h2) {
-  font-size: 1.1rem;
-  color: var(--color-text);
-  margin: 26px 0 10px;
-}
-.markdown :deep(h3) {
-  font-size: 1rem;
-  color: var(--color-text);
-  margin: 20px 0 8px;
-}
-.markdown :deep(p) {
-  margin: 10px 0;
-}
-.markdown :deep(ul),
-.markdown :deep(ol) {
-  margin: 10px 0 10px 22px;
-}
-.markdown :deep(li) {
-  margin: 4px 0;
-}
-.markdown :deep(strong) {
-  color: var(--color-text);
-}
-.markdown :deep(a) {
-  color: var(--color-primary);
-  text-decoration: underline;
-}
-.markdown :deep(blockquote) {
-  border-left: 3px solid var(--color-green);
-  padding: 4px 0 4px 16px;
-  margin: 14px 0;
-  color: var(--color-text-muted);
-  font-style: italic;
-}
-.markdown :deep(table) {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 16px 0;
-  font-size: 0.9rem;
-  display: block;
-  overflow-x: auto;
-}
-.markdown :deep(th),
-.markdown :deep(td) {
-  border: 1px solid var(--color-border);
-  padding: 8px 12px;
-  text-align: left;
-}
-.markdown :deep(th) {
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-weight: 600;
-}
-.markdown :deep(pre) {
-  background: var(--color-bg);
-  padding: 16px 18px;
-  border-radius: 12px;
-  overflow-x: auto;
-  margin: 16px 0;
-  border: 1px solid var(--color-border);
-}
-.markdown :deep(code) {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.88em;
-  background: var(--color-bg);
-  padding: 2px 6px;
-  border-radius: 6px;
-  border: 1px solid var(--color-border);
-}
-.markdown :deep(pre code) {
-  background: none;
-  border: none;
-  padding: 0;
-}
-
-/* ---- 空状态 ---- */
-.empty {
-  margin-top: 40px;
-  padding: 56px 24px;
-  text-align: center;
-  background: var(--color-surface);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius);
-}
-.empty-title {
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: 6px;
-}
-.empty-desc {
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
-  margin-bottom: 20px;
-}
-
 @media (max-width: 860px) {
   .kb-layout {
     grid-template-columns: 1fr;
@@ -538,60 +328,5 @@ watch(filtered, (list) => {
     position: static;
     max-height: none;
   }
-  .kb-body {
-    padding: 24px 20px;
-  }
-}
-</style>
-
-<!-- 评论式问答样式（窄屏也好点：summary 整行可点） -->
-<style scoped>
-.note-qa {
-  margin-top: 36px;
-  padding-top: 20px;
-  border-top: 1px solid var(--color-border);
-}
-.note-qa-title {
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  margin-bottom: 4px;
-}
-.note-qa-hint {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  margin-bottom: 12px;
-}
-.note-qa-item {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  margin-bottom: 10px;
-  background: var(--color-surface);
-}
-.note-qa-item summary {
-  cursor: pointer;
-  padding: 13px 16px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  list-style: none;
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  gap: 8px;
-}
-.note-qa-item summary::before {
-  content: '›';
-  color: var(--color-green);
-  font-weight: 700;
-  transition: transform 0.2s;
-}
-.note-qa-item[open] summary::before {
-  transform: rotate(90deg);
-}
-.note-qa-item p {
-  padding: 0 16px 14px 40px;
-  margin: 0;
-  font-size: 0.92rem;
-  line-height: 1.75;
-  color: var(--color-text-muted);
 }
 </style>

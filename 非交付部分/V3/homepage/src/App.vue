@@ -6,6 +6,7 @@ import SiteFooter from './components/SiteFooter.vue'
 import ChatBot from './components/ChatBot.vue'
 import PixelWave from './components/PixelWave.vue'
 import SiteIntro from './components/SiteIntro.vue'
+import { useBackGuard } from './composables/useBackGuard.js'
 import { setPageMeta } from './data/meta.js'
 import { bgm } from './data/music.js'
 import { useSiteBgm } from './composables/useSiteBgm.js'
@@ -88,6 +89,8 @@ function flashThemeTransition() {
 }
 
 onMounted(() => {
+  // 禁双指缩放兜底：iOS Safari 对 viewport user-scalable 不完全尊重，手势事件拦截
+  document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false })
   applyTheme(theme.value, false)
   // 没手动选过的人：跟随系统深浅色实时变化
   if (window.matchMedia) {
@@ -119,6 +122,8 @@ provide('toggleTheme', toggleTheme)
 // 控制（播放/暂停/音量）在音乐页；行为规则见 composables/useSiteBgm.js。
 const bgmAudioEl = ref(null)
 const { attach: attachBgm, onTimeUpdate: onBgmTimeUpdate } = useSiteBgm()
+// 微信内「滑动退出」防护：第一层误滑先拦一次，再滑才退出
+useBackGuard()
 
 const mainEl = ref(null)
 function skipToMain(e) {

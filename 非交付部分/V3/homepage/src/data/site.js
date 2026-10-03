@@ -92,7 +92,7 @@ export const projects = [
   {
     id: 'carrot-agent',
     icon: '🥕',
-    title: '设计并做出自己的 Agent 软件',
+    title: '设计并做出自己的 Agent 软件 —— carrot',
     short: '从改装 Claude Code 到复现 Codex，再到融合出自己的 carrot agent——一条完整的造软件之路',
     desc: '先把一款 Claude Code 桌面应用改装到能日用，再用同样思路复现了一个简易 Codex，最后把两边学到的东西合起来，做出属于自己的 agent 软件 <strong>carrot</strong>。',
     tech: 'Node.js / Claude Agent SDK / Electron / Playwright MCP / sqlite',
@@ -125,6 +125,11 @@ export const projects = [
 - **目标面板 + 工具箱 + 快捷指令栏**：GOALS.md 界面化、MCP 模组可视化、六个一键技能按钮
 - **手机远程操控**：出门在外也能遥控电脑上的 carrot——手机浏览器直达公网隧道入口，不用装 App。指令在手机上发、活在电脑上干，多端同时在线、会话实时同步：电脑跑着构建，我在别处用手机看它的排障汇报、接着下一条指令（项目图集里那张 iPhone 与 MacBook 同屏同一个会话的实拍就是日常工作的样子）
 
+### fork 漂移与 MCP 仓库（让 carrot 长期活着的两条后勤线）
+carrot 是 fork 深改出来的：上游在更新、我的定制在累积，这两件事不想清楚，改得越多将来越难受。
+- **fork 漂移管理**：上游出新版本，最怕的就是一键跟进而自己的定制被冲掉。所以把「我的改动 vs 上游新版本」的差异当成正经事来对齐——上游改了什么、我改过哪里，两边比对着合并：上游的新能力进得来，我的定制一条不丢（图集里那张「更新防护链：实时官方日志 + fork 漂移预检」就是这条线的日常界面）
+- **MCP 配置仓库**：给 carrot 接工具不写死在代码里——把社区现成的 MCP servers 收进一份集中管理的配置清单，想让 carrot 会什么，清单里加一条：浏览器的 22 个工具就是这么接进来的，以后要会新东西，也是加一条配置的事
+
 ### 一路踩的坑（挑几个真的疼的）
 - **Playwright MCP 三连坑**：--browser 参数写 headless-shell 静默失效回落；--browser chromium 要的完整版 1247 没装就是起不来；macOS unix socket 路径上限 104 字节，playwright 默认目录 115 字节必挂——三个坑一个不响，全靠日志一点点挖
 - **SDK 四个坑**：上下文用量只能在消息循环活着时查、连接一关再查就炸；自动压缩阈值三条配置路径全无效；SDK init 返回里根本没有窗口大小字段——**别猜字段名，实测为准**
@@ -138,7 +143,7 @@ export const projects = [
     highlights: [
       '从改装到原创的完整三步历程',
       '六个真实踩坑与修法，全部留痕',
-      '记忆系统 / 浏览器能力 / 手机远程操控',
+      '记忆系统 / MCP 配置仓库 / 手机远程操控 / fork 漂移管理',
     ],
   },  {
     id: 'carbon-brain',

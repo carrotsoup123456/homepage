@@ -4,6 +4,7 @@ import PlayView from '../views/PlayView.vue'
 import AboutView from '../views/AboutView.vue'
 import ProjectDetailView from '../views/ProjectDetailView.vue'
 import KnowledgeView from '../views/KnowledgeView.vue'
+import NoteView from '../views/NoteView.vue'
 import MusicView from '../views/MusicView.vue'
 import ContactView from '../views/ContactView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
@@ -39,6 +40,13 @@ const routes = [
     name: 'knowledge',
     component: KnowledgeView,
     meta: { title: '知识库', desc: '我的学习笔记与技术复盘，支持关键词搜索与标签筛选。' },
+  },
+  {
+    path: '/knowledge/note/:id',
+    name: 'note',
+    component: NoteView,
+    props: true,
+    meta: { title: '笔记', desc: '一篇知识库笔记的完整内容。' },
   },
   {
     path: '/music',

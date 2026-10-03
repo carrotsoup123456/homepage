@@ -1876,3 +1876,77 @@ mark {
   font-weight: 600;
   white-space: nowrap;
 }
+
+
+/* ---- 移动端：跑马灯与交界带的叶形分隔符错开 ----
+   交界带上侵 55px，分隔符位于带宽中段；跑马灯底部留出安全距离 */
+@media (max-width: 768px) {
+  .marquee {
+    padding-bottom: 70px;
+  }
+}
+
+/* ---- 全站禁双指缩放（保留单指滚动） ---- */
+body {
+  touch-action: pan-y;
+}
+
+/* ---- 第二界面底部的返回按钮 ---- */
+.back-bar {
+  display: flex;
+  justify-content: center;
+  padding: 14px 0 36px;
+}
+.back-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 34px;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-green, #4a7c59);
+  background: var(--color-surface, #fff);
+  color: var(--color-green, #4a7c59);
+  font: inherit;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.back-bar-btn:active {
+  transform: scale(0.97);
+}
+@media (hover: hover) {
+  .back-bar-btn:hover {
+    background: var(--color-green, #4a7c59);
+    color: #fff;
+  }
+}
+.back-bar-arrow {
+  font-size: 1.25em;
+  line-height: 1;
+  margin-top: -2px;
+}
+
+/* ---- 微信「再滑一次退出」提示 ---- */
+.wechat-exit-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(28, 30, 26, 0.92);
+  color: #fff;
+  padding: 11px 20px;
+  border-radius: 999px;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+  z-index: 2600;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+.wechat-exit-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

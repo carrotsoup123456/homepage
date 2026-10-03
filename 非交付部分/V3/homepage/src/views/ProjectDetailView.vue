@@ -6,6 +6,7 @@ import { projects } from '../data/site.js'
 import { setPageMeta } from '../data/meta.js'
 import { imgSize } from '../data/image-sizes.js'
 import FeedbackWidget from '../components/FeedbackWidget.vue'
+import BackBar from '../components/BackBar.vue'
 import NotFoundView from './NotFoundView.vue'
 
 const route = useRoute()
@@ -151,6 +152,9 @@ onBeforeUnmount(() => {
       </section>
 
       <FeedbackWidget page="项目详情" :item="project.id" />
+
+    <!-- 读完不用滚回顶部：底部返回 -->
+    <BackBar to="/" label="返回上一页" />
     </template>
 
     <template v-else>
