@@ -31,6 +31,7 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   mq?.removeEventListener?.('change', onMqChange)
+  clearTimeout(settleTimer)
   if (wheelRaf) cancelAnimationFrame(wheelRaf)
 })
 
@@ -60,6 +61,7 @@ function centerItem(idx, smooth = true) {
 
 // 滚动中实时找离中心最近的项 = 激活态（rAF 节流）
 let wheelRaf = 0
+let settleTimer = null
 function onWheelScroll() {
   if (wheelRaf) return
   wheelRaf = requestAnimationFrame(() => {
@@ -77,7 +79,20 @@ function onWheelScroll() {
         best = i
       }
     })
-    activeIdx.value = best
+    // 高亮实时跟手：真身下标 = 绝对下标 % N（副本区与真身同步点亮）
+    activeIdx.value = best % N
+    // 停稳后（160ms 无新滚动）若落在首/尾副本区，无感平移回中份对应位置。
+    // 不能在惯性滚动中改 scrollLeft（会掐断原生惯性），debounce 等停稳再做。
+    clearTimeout(settleTimer)
+    if (best < N || best >= 2 * N) {
+      settleTimer = setTimeout(() => {
+        const twin = itemEls.value[(best % N) + N]
+        const cur = itemEls.value[best]
+        if (twin && cur && wheelEl.value) {
+          wheelEl.value.scrollLeft += twin.offsetLeft - cur.offsetLeft
+        }
+      }, 160)
+    }
   })
 }
 
