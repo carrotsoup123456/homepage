@@ -14,10 +14,11 @@ const router = useRouter()
 // 点非中心项=把它滚到中心选中；点中心项=跳转页面。
 const isMobile = ref(false)
 let mq = null
-const activeIdx = ref(0)
+const activeIdx = ref(0) // 当前居中项的「真身」下标（0-5）
 const wheelEl = ref(null)
 const itemEls = ref([])
 
+// 无限循环所需的 N / loopItems / ringDist 定义在 navItems 之后（见下）
 function onMqChange(e) {
   isMobile.value = e.matches
 }
@@ -30,25 +31,34 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   mq?.removeEventListener?.('change', onMqChange)
+  clearTimeout(openTimer)
   if (wheelRaf) cancelAnimationFrame(wheelRaf)
 })
 
-// 打开菜单时：把当前页对应的项滚到中心（不加动画，直接落位）
-watch(menuOpen, async (open) => {
+// 打开菜单时：把当前页对应的项滚到中心（不加动画，直接落位）。
+// 注意：菜单展开的 padding 有 0.35s 过渡，期间 li 的 offsetLeft 还在变，
+// 立即定位会偏左、被 snap 吸到错误项——等过渡结束再落位。
+let openTimer = null
+watch(menuOpen, (open) => {
+  clearTimeout(openTimer)
   if (!open || !isMobile.value) return
-  await nextTick()
-  const idx = navItems.findIndex((it) => isActive(it))
-  if (idx >= 0) centerItem(idx, false)
+  openTimer = setTimeout(() => {
+    const idx = navItems.findIndex((it) => isActive(it))
+    if (idx >= 0) centerItem(idx, false)
+  }, 380)
 })
 
+// 定位：idx 是真身下标，滚动到中份对应项
 function centerItem(idx, smooth = true) {
-  const el = itemEls.value[idx]
+  const el = itemEls.value[idx + N]
   const box = wheelEl.value
   if (!el || !box) return
-  box.scrollTo({
-    left: el.offsetLeft + el.offsetWidth / 2 - box.clientWidth / 2,
-    behavior: smooth ? 'smooth' : 'auto',
-  })
+  const left = el.offsetLeft + el.offsetWidth / 2 - box.clientWidth / 2
+  if (typeof box.scrollTo === 'function') {
+    box.scrollTo({ left, behavior: smooth ? 'smooth' : 'auto' })
+  } else {
+    box.scrollLeft = left // 测试环境（jsdom）没有 scrollTo，直接落位
+  }
   activeIdx.value = idx
 }
 
@@ -76,18 +86,60 @@ function onWheelScroll() {
 }
 
 // 点非中心项：滚到中心选中；点中心项：进入该页面
-function tapItem(idx, item) {
-  if (activeIdx.value === idx) {
+// loopIdx 是 3 份循环列表中的绝对下标；真身 = loopIdx % N
+function tapItem(loopIdx, item) {
+  const real = loopIdx % N
+  if (activeIdx.value === real) {
     menuOpen.value = false
     router.push(item.to)
   } else {
-    centerItem(idx)
+    centerItem(real)
   }
 }
 
-// 主题切换（由 App.vue 注入，见 provide/inject）
-const theme = inject('theme')
-const toggleTheme = inject('toggleTheme')
+// 主题切换（由 App.vue 注入，见 provide/inject）；
+// 默认值兜底：测试/独立挂载等没有父级 provide 的场合不至于点击报错
+const theme = inject('theme', ref('light'))
+const toggleTheme = inject('toggleTheme', () => {})
+
+// 主题切换的「圆形扩散 / 原路收回」动画（View Transitions API）：
+// 亮→暗：新主题从开关位置圆形扩散覆盖全屏；
+// 暗→亮：旧主题（暗色）从全屏圆形收回开关位置，露出下面的亮色。
+// 不支持 VT 的浏览器自动退回为普通切换（App.vue 里原有 350ms 颜色过渡兜底）。
+function toggleThemeReveal(e) {
+  const btn = e?.currentTarget || null
+  const r = btn ? btn.getBoundingClientRect() : null
+  const x = r ? r.left + r.width / 2 : window.innerWidth - 30
+  const y = r ? r.top + r.height / 2 : 40
+  const darkNow = theme.value === 'dark'
+  if (typeof document.startViewTransition !== 'function') {
+    toggleTheme()
+    return
+  }
+  const html = document.documentElement
+  html.classList.remove('vt-reveal', 'vt-retract')
+  const vt = document.startViewTransition(() => {
+    toggleTheme()
+  })
+  vt.ready.then(() => {
+    const endR = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y))
+    html.classList.add(darkNow ? 'vt-retract' : 'vt-reveal')
+    if (darkNow) {
+      // 暗→亮：暗色画面（旧）原路收回
+      html.animate(
+        { clipPath: [`circle(${endR}px at ${x}px ${y}px)`, `circle(0px at ${x}px ${y}px)`] },
+        { duration: 560, easing: 'ease-in-out', pseudoElement: '::view-transition-old(root)' }
+      )
+    } else {
+      // 亮→暗：新主题从开关位置扩散
+      html.animate(
+        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${endR}px at ${x}px ${y}px)`] },
+        { duration: 560, easing: 'ease-in-out', pseudoElement: '::view-transition-new(root)' }
+      )
+    }
+  }).catch(() => {})
+  vt.finished.finally(() => html.classList.remove('vt-reveal', 'vt-retract'))
+}
 
 // ---- 全站背景音乐开关（audio 挂在 App.vue，单例状态）----
 import { useSiteBgm } from '../composables/useSiteBgm.js'
@@ -124,6 +176,17 @@ const navItems = [
   { label: '试玩', to: '/play', icon: icons.game },
   { label: '联系', to: '/contact', icon: icons.mail },
 ]
+
+// 无限循环：同一列菜单渲染 3 份（中份 [6..11] 是真身区），滚进首/尾
+// 副本区时无感跳回中份——左划右划都没有尽头。三档大小：中心最大高亮、
+// 左右相邻第二档、再往外最小（视口内共 5 颗胶囊）。
+const N = navItems.length
+const loopItems = [...navItems, ...navItems, ...navItems]
+// 环形距离：a、b 都是真身下标
+function ringDist(a, b) {
+  const d = Math.abs(a - b) % N
+  return Math.min(d, N - d)
+}
 
 
 // 当前页高亮：既用于样式（.active），也用于读屏（aria-current）
@@ -174,14 +237,15 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
         :class="{ open: menuOpen }"
         @scroll.passive="onWheelScroll"
       >
+        <!-- 3 份循环列表：滚进首尾副本无感跳回中份，实现没有尽头的循环条带 -->
         <li
-          v-for="(item, i) in navItems"
-          :key="item.to"
+          v-for="(item, i) in loopItems"
+          :key="i"
           :ref="(el) => (itemEls[i] = el)"
           class="wheel-item"
-          :class="{ center: activeIdx === i }"
+          :class="{ center: ringDist(i % N, activeIdx) === 0, near: ringDist(i % N, activeIdx) === 1, far: ringDist(i % N, activeIdx) >= 2 }"
         >
-          <button type="button" class="wheel-btn" :aria-current="activeIdx === i ? 'true' : undefined" @click="tapItem(i, item)">
+          <button type="button" class="wheel-btn" :aria-current="ringDist(i % N, activeIdx) === 0 ? 'true' : undefined" @click="tapItem(i, item)">
             <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path v-for="(d, j) in item.icon" :key="j" :d="d" />
             </svg>
@@ -210,7 +274,7 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
           class="theme-toggle"
           type="button"
           data-testid="theme-toggle"
-          @click="toggleTheme"
+          @click="toggleThemeReveal($event)"
           :aria-label="theme === 'dark' ? '切换为浅色模式' : '切换为深色模式'"
           :aria-pressed="theme === 'dark'"
         >
@@ -264,7 +328,7 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
             class="theme-toggle"
             type="button"
             data-testid="theme-toggle"
-            @click="toggleTheme"
+            @click="toggleThemeReveal($event)"
             :aria-label="theme === 'dark' ? '切换为浅色模式' : '切换为深色模式'"
             :aria-pressed="theme === 'dark'"
           >

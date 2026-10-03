@@ -47,6 +47,18 @@ let hintTimer = null
 const showBubble = computed(() => !open.value && !hintSeen.value && (hintWindow.value || fabHover.value))
 const showHint = computed(() => !open.value && !hintSeen.value)
 
+// 小标「我的数字分身」：向上滚动时展开（圆 + 文字），向下滚动时收成纯圆。
+// 阈值 6px 防抖；对话面板开着时永远收起（变 ✕）。
+const fabExpanded = ref(true)
+let lastScrollY = 0
+function onFabScroll() {
+  const y = window.scrollY
+  const dy = y - lastScrollY
+  if (dy > 6) fabExpanded.value = false
+  else if (dy < -6) fabExpanded.value = true
+  lastScrollY = y
+}
+
 // 输入框上方的固定问题栏：能力目录 + 访客最感兴趣 + 八卦类（一行横滚）
 // 横滚对触摸天然友好；桌面滚轮在横向有滚动余地时转成横向滚动，不会滚不动。
 const quickQuestions = [
@@ -272,12 +284,15 @@ function onKeydown(e) {
 }
 onMounted(() => {
   document.addEventListener('keydown', onKeydown)
+  lastScrollY = window.scrollY
+  window.addEventListener('scroll', onFabScroll, { passive: true })
   hintTimer = setTimeout(() => {
     hintWindow.value = false
   }, 8000)
 })
 onBeforeUnmount(() => {
   clearTimeout(hintTimer)
+  window.removeEventListener('scroll', onFabScroll)
   document.removeEventListener('keydown', onKeydown)
   stopTyping()
 })
@@ -298,6 +313,8 @@ onBeforeUnmount(() => {
     @blur="fabHover = false"
   >
     <span aria-hidden="true">{{ open ? '✕' : '💬' }}</span>
+    <!-- 小标：向上滚动展开、向下滚动收成纯圆（对话开着时始终收起） -->
+    <span class="bot-fab-label" :class="{ on: fabExpanded && !open }">我的数字分身</span>
     <!-- 首访呼吸引导点 -->
     <span v-if="showHint" class="bot-fab-dot" aria-hidden="true"></span>
   </button>
@@ -430,9 +447,13 @@ onBeforeUnmount(() => {
   position: fixed;
   right: 24px;
   bottom: 92px; /* 回顶按钮在 28px，分身叠在它上方 */
-  width: 52px;
+  display: flex;
+  align-items: center;
+  min-width: 52px;
+  width: auto;
   height: 52px;
-  border-radius: 50%;
+  padding: 0;
+  border-radius: 999px; /* 圆形（收起）/ 胶囊（展开） */
   border: none;
   background: var(--color-green);
   color: #fff;
@@ -441,6 +462,22 @@ onBeforeUnmount(() => {
   box-shadow: 0 8px 22px rgba(46, 125, 79, 0.4);
   z-index: 90;
   transition: transform 0.15s;
+}
+/* 小标「我的数字分身」：向上滚动展开、向下滚动收成纯圆 */
+.bot-fab-label {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transition: max-width 0.38s var(--ease, ease), opacity 0.3s ease, margin 0.38s var(--ease, ease);
+}
+.bot-fab-label.on {
+  max-width: 130px;
+  opacity: 1;
+  margin: 0 18px 0 7px;
 }
 .bot-fab:hover {
   transform: translateY(-3px);

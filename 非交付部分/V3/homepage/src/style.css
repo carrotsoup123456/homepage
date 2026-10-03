@@ -1991,7 +1991,7 @@ body {
     -webkit-overflow-scrolling: touch;
   }
   .nav-wheel.open {
-    max-height: 168px;
+    max-height: 150px;
     /* 两侧留白 = 让第一个/最后一个按钮也能吸附到屏幕中心 */
     padding: 16px calc(50vw - 62px) 10px;
     overflow-x: auto;
@@ -2005,40 +2005,61 @@ body {
     scroll-snap-align: center;
     scroll-snap-stop: always; /* 一次滑动只切换一项 */
   }
+  /* 细长胶囊（横排 图标+文字），三档大小：center 最大高亮 / near 第二档 / far 最小 */
   .wheel-btn {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 7px;
-    min-width: 124px;
-    padding: 15px 18px 12px;
-    border-radius: 18px;
-    border: 1.5px solid var(--color-green, #4a7c59);
+    justify-content: center;
+    gap: 6px;
+    height: 30px;
+    min-width: 78px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1.5px solid color-mix(in srgb, var(--color-green, #4a7c59) 70%, transparent);
     background: var(--color-surface, #fff);
     color: var(--color-green, #4a7c59);
     font: inherit;
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
     cursor: pointer;
-    /* 中心项放大高亮、两侧缩小变淡的环绕视觉 */
-    transform: scale(0.82);
-    opacity: 0.55;
-    transition: transform 0.25s var(--ease, ease), opacity 0.25s var(--ease, ease), background 0.25s, color 0.25s;
+    opacity: 0.45;
+    transition: min-width 0.28s var(--ease, ease), height 0.28s var(--ease, ease), font-size 0.28s var(--ease, ease), opacity 0.28s var(--ease, ease), background 0.28s, color 0.28s, box-shadow 0.28s;
     -webkit-tap-highlight-color: transparent;
   }
+  .wheel-btn .nav-ico {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 auto;
+  }
+  /* 第二档：紧邻中心的左右两颗 */
+  .wheel-item.near .wheel-btn {
+    height: 35px;
+    min-width: 96px;
+    font-size: 13.5px;
+    opacity: 0.75;
+  }
+  .wheel-item.near .nav-ico {
+    width: 17px;
+    height: 17px;
+  }
+  /* 第一档：中心项最大、绿底高亮 */
   .wheel-item.center .wheel-btn {
-    transform: scale(1.12);
+    height: 40px;
+    min-width: 118px;
+    font-size: 15px;
+    font-weight: 700;
     opacity: 1;
     background: var(--color-green, #4a7c59);
+    border-color: var(--color-green, #4a7c59);
     color: #fff;
-    box-shadow: 0 6px 18px color-mix(in srgb, var(--color-green, #4a7c59) 35%, transparent);
+    box-shadow: 0 5px 16px color-mix(in srgb, var(--color-green, #4a7c59) 38%, transparent);
   }
   .wheel-item.center .nav-ico {
-    transform: none;
-  }
-  .wheel-btn .nav-ico {
-    width: 26px;
-    height: 26px;
+    width: 19px;
+    height: 19px;
   }
 
   /* 音乐/主题开关行：随菜单一起展开 */
@@ -2101,3 +2122,15 @@ body {
   line-height: 1.6;
   margin-top: 6px;
 }
+
+/* ==================== 主题切换：圆形扩散 / 原路收回 ==================== */
+/* View Transitions 快照层级：扩散时新画面在上；收回时旧画面在上 */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html.vt-reveal::view-transition-old(root) { z-index: 1; }
+html.vt-reveal::view-transition-new(root) { z-index: 2147483646; }
+html.vt-retract::view-transition-old(root) { z-index: 2147483646; }
+html.vt-retract::view-transition-new(root) { z-index: 1; }

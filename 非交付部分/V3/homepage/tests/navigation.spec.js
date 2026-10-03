@@ -116,20 +116,92 @@ describe('v6.27 移动端体验完善', () => {
     expect(hint.text()).toContain('→')
   })
 
-  it('移动端（matchMedia 命中）渲染横向轮播菜单而非竖排列表', async () => {
+  it('移动端渲染无限循环轮播：3 份列表 + 三档胶囊', async () => {
     vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
     const { default: SiteHeader } = await import('../src/components/SiteHeader.vue')
     const router = makeRouter()
     const w = mount(SiteHeader, { global: { plugins: [router] } })
     await flushPromises()
     expect(w.find('.nav-wheel').exists()).toBe(true)
-    expect(w.findAll('.wheel-item').length).toBe(6)
+    // 6 个栏目 × 3 份循环列表 = 18 项
+    expect(w.findAll('.wheel-item').length).toBe(18)
     expect(w.find('.nav-links').exists()).toBe(false) // 桌面版列表不出
-    // 打开菜单：当前页（首页）居中高亮
     await w.find('.nav-toggle').trigger('click')
     await flushPromises()
+    // 打开菜单：当前页（首页）居中高亮
     expect(w.find('.wheel-item.center').exists()).toBe(true)
     vi.unstubAllGlobals()
+  })
+
+  it('v6.29：轮播三档胶囊（center/near/far）与循环点按跳转', async () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
+    const { default: SiteHeader } = await import('../src/components/SiteHeader.vue')
+    const router = makeRouter()
+    const w = mount(SiteHeader, { global: { plugins: [router] } })
+    await flushPromises()
+    await w.find('.nav-toggle').trigger('click')
+    await flushPromises()
+    const items = w.findAll('.wheel-item')
+    const centers = items.filter((it) => it.classes().includes('center'))
+    const nears = items.filter((it) => it.classes().includes('near'))
+    const fars = items.filter((it) => it.classes().includes('far'))
+    // 三档：1 中心 + 2 相邻 + 3 边缘（每份）
+    expect(centers.length).toBe(3)
+    expect(nears.length).toBe(6)
+    expect(fars.length).toBe(9)
+    // 点中份的「音乐」（i=9，真身 3）：非中心 → 滚动选中（不跳转）
+    await items[9].find('.wheel-btn').trigger('click')
+    await flushPromises()
+    expect(w.vm.$.setupState.activeIdx).toBe(3)
+    // 再点同一项：中心 → 跳转音乐页
+    await items[9].find('.wheel-btn').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/music')
+    vi.unstubAllGlobals()
+  })
+
+  it('v6.29：主题圆形扩散在不支持 VT 的环境退回普通切换', async () => {
+    const { default: SiteHeader } = await import('../src/components/SiteHeader.vue')
+    const { ref } = await import('vue')
+    const router = makeRouter()
+    const themeRef = ref('light')
+    const w = mount(SiteHeader, {
+      global: {
+        plugins: [router],
+        provide: {
+          theme: themeRef,
+          toggleTheme: () => {
+            themeRef.value = themeRef.value === 'dark' ? 'light' : 'dark'
+          },
+        },
+      },
+    })
+    await flushPromises()
+    const btn = w.findAll('.theme-toggle')[0]
+    expect(themeRef.value).toBe('light')
+    await btn.trigger('click')
+    await flushPromises()
+    expect(themeRef.value).toBe('dark') // fallback 直接切换成功
+  })
+
+  it('v6.29：数字分身带小标，向下滚动收成圆、向上滚动展开', async () => {
+    const { default: ChatBot } = await import('../src/components/ChatBot.vue')
+    const w = mount(ChatBot, { attachTo: document.body })
+    const label = w.find('.bot-fab-label')
+    expect(label.exists()).toBe(true)
+    expect(label.text()).toBe('我的数字分身')
+    expect(label.classes()).toContain('on') // 初始展开
+    // 向下滚 100px：收缩
+    window.scrollY = 100
+    window.dispatchEvent(new Event('scroll'))
+    await flushPromises()
+    expect(label.classes()).not.toContain('on')
+    // 向上滚回：展开
+    window.scrollY = 20
+    window.dispatchEvent(new Event('scroll'))
+    await flushPromises()
+    expect(label.classes()).toContain('on')
+    w.unmount()
   })
 
   it('项目图随段落：carrot 各小节图入位，图集区只留未认领的', async () => {
