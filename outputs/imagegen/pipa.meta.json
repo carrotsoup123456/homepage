@@ -1,0 +1,12 @@
+{
+  "prompt": "Flat illustration, a traditional Chinese pipa instrument with strings turning into glowing audio waveform and equalizer bars, ink-wash clouds behind, brown-gold and jade palette, fusion of traditional and electronic, no text, album-cover style square art",
+  "providerId": "dth",
+  "providerName": "DeepFoundry",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/pipa.png",
+  "status": "succeeded",
+  "durationMs": 33806,
+  "warnings": []
+}

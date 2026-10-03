@@ -1,0 +1,12 @@
+{
+  "prompt": "Flat illustration, moonlit night, a lone poet silhouette holding a wine jug gazing at the moon, misty ink-wash mountains, dark plum-brown palette with cream highlights, no text, album-cover style square art",
+  "providerId": "dth",
+  "providerName": "DeepFoundry",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/libai.png",
+  "status": "succeeded",
+  "durationMs": 25175,
+  "warnings": []
+}

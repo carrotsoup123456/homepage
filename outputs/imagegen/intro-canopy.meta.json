@@ -1,0 +1,12 @@
+{
+  "prompt": "Aerial view looking down at lush rounded tropical rainforest canopy tops emerging through drifting white mist, deep emerald and yellow-green tones, fog weaving between tree crowns, a few tall palm trees, soft volumetric light rays, cinematic painterly realism, moody and immersive, no text, no watermark.",
+  "providerId": "dth",
+  "providerName": "DeepFoundry",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/intro-canopy.png",
+  "status": "succeeded",
+  "durationMs": 25688,
+  "warnings": []
+}

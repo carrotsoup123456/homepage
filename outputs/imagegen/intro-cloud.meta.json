@@ -1,0 +1,12 @@
+{
+  "prompt": "Aerial view from above a thick sea of soft fluffy cumulus clouds at golden hour, warm grey and cream beige tones, gentle diffused sunlight, cinematic volumetric clouds filling the entire frame, soft painterly realism, dreamy atmosphere, no text, no watermark, no people.",
+  "providerId": "dth",
+  "providerName": "DeepFoundry",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/intro-cloud.png",
+  "status": "succeeded",
+  "durationMs": 25810,
+  "warnings": []
+}

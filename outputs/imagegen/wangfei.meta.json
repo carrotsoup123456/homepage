@@ -1,0 +1,12 @@
+{
+  "prompt": "Flat illustration, dramatic stage spotlight beams cutting through haze, a silhouette with electric guitar, purple and magenta rock concert lighting, high energy, no text, album-cover style square art",
+  "providerId": "dth",
+  "providerName": "DeepFoundry",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/wangfei.png",
+  "status": "succeeded",
+  "durationMs": 26428,
+  "warnings": []
+}

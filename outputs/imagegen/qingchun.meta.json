@@ -1,0 +1,12 @@
+{
+  "prompt": "Flat illustration, late-night city street with glowing neon signs reading as abstract shapes, youthful energy, a running silhouette with a backpack, cyan and warm orange contrast, no text, album-cover style square art",
+  "providerId": "dth",
+  "providerName": "DeepFoundry",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/qingchun.png",
+  "status": "succeeded",
+  "durationMs": 26793,
+  "warnings": []
+}

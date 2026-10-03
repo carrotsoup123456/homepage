@@ -1,0 +1,12 @@
+{
+  "prompt": "Flat illustration, two friends' silhouettes walking apart on a rainy night street, one looking back, warm streetlamp glow against deep blue rain, melancholic but warm, no text, album-cover style square art",
+  "providerId": "dth",
+  "providerName": "DeepFoundry",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/sunyou.png",
+  "status": "succeeded",
+  "durationMs": 26613,
+  "warnings": []
+}

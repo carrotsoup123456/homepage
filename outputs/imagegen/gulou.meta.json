@@ -1,0 +1,12 @@
+{
+  "prompt": "Flat illustration, old Beijing hutong at golden dusk with the Drum Tower silhouette in the distance, a lone walker with headphones, pigeons in the sky, muted green and warm amber palette, folk song mood, no text, album-cover style square art",
+  "providerId": "dth",
+  "providerName": "DeepFoundry",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/gulou.png",
+  "status": "succeeded",
+  "durationMs": 47852,
+  "warnings": []
+}

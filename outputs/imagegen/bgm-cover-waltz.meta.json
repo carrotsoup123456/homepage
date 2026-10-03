@@ -1,0 +1,12 @@
+{
+  "prompt": "Vintage oil painting style square album cover for an orchestral waltz. A grand ballroom with a glowing crystal chandelier, elegant dancers in silhouette spinning in formal dress, warm golden and deep amber tones, soft brushstrokes, romantic 19th century atmosphere, no text, no watermark.",
+  "providerId": "dth",
+  "providerName": "DeepFoundry",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/bgm-cover-waltz.png",
+  "status": "succeeded",
+  "durationMs": 83646,
+  "warnings": []
+}

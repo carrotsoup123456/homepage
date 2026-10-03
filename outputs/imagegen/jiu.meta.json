@@ -1,0 +1,12 @@
+{
+  "prompt": "Flat illustration, round dinner table with warm lamplight, shared wine glasses and dishes, cozy gathering atmosphere seen from above at an angle, olive and amber palette, no text, album-cover style square art",
+  "providerId": "dth",
+  "providerName": "DeepFoundry",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/jiu.png",
+  "status": "succeeded",
+  "durationMs": 28504,
+  "warnings": []
+}

@@ -1,0 +1,12 @@
+{
+  "prompt": "Flat illustration, futuristic alien garden at dusk, glowing neon plants and a small earth-like cottage among them, cyberpunk nostalgia, deep teal and green palette, no text, album-cover style square art",
+  "providerId": "dth",
+  "providerName": "DeepFoundry",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/diqiu.png",
+  "status": "succeeded",
+  "durationMs": 27353,
+  "warnings": []
+}

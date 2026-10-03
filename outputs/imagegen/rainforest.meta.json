@@ -1,0 +1,12 @@
+{
+  "prompt": "Flat illustration, peaceful forest in gentle rain, layered dark green canopy, soft rain streaks, tiny mushrooms and moss, a calm dreamy atmosphere, deep forest green palette, no text, album-cover style square art",
+  "providerId": "dth",
+  "providerName": "DeepFoundry",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/rainforest.png",
+  "status": "succeeded",
+  "durationMs": 64937,
+  "warnings": []
+}

@@ -1,0 +1,12 @@
+{
+  "prompt": "Flat illustration, ancient Chinese wuxia inn at night turned into a dance floor, paper lanterns as disco lights, a DJ table made of wooden barrels, crimson and gold palette, playful mix of ancient and modern, no text, album-cover style square art",
+  "providerId": "dth",
+  "providerName": "DeepFoundry",
+  "modelId": "Deepexi-Image-1.0",
+  "adapter": "openai_compatible_images",
+  "endpointHost": "tokenhub.deepexios.cn",
+  "outputPath": "outputs/imagegen/kezhan.png",
+  "status": "succeeded",
+  "durationMs": 41529,
+  "warnings": []
+}

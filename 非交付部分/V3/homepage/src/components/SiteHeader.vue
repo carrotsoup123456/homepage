@@ -18,6 +18,8 @@ let mq = null
 const activeIdx = ref(0) // 当前居中栏目的真身下标（0-5）
 const trackX = ref(0) // 槽位整体视觉偏移：拖动中跟手，松手后动画到 -delta*STEP
 const dragging = ref(false) // 拖动态：关掉过渡，跟手
+const normalizing = ref(false) // 归一化帧：重排+瞬移，必须禁过渡（否则会看到二次滑动）
+const snapDur = ref(320) // 吸附动画时长：按跨格数加长（跨 3 格约 0.48s，看得清经过）
 const STEP = 124 // 槽位间距（视口内 3 整颗 + 2 露边 = 5 颗胶囊）
 const WIN = 11 // 窗口槽位数（中心 ±5）
 
@@ -60,10 +62,14 @@ function onTouchStart(e) {
     clearTimeout(normalizeTimer)
     normalizeTimer = null
     if (pendingDelta) {
+      normalizing.value = true
       activeIdx.value = mod(activeIdx.value + pendingDelta, N)
       pendingDelta = 0
+      trackX.value = 0
+      nextTick(() => { normalizing.value = false })
+    } else {
+      trackX.value = 0
     }
-    trackX.value = 0
   }
   touchStartX = t.clientX
   startTrackX = trackX.value
@@ -87,7 +93,7 @@ function onTouchMove(e) {
 function onTouchEnd() {
   dragging.value = false
   let delta = Math.round(-trackX.value / STEP)
-  if (Math.abs(velocity) > 0.55) delta += velocity > 0 ? -1 : 1 // 甩一下多跨一格
+  if (Math.abs(velocity) > 0.8) delta += velocity > 0 ? -1 : 1 // 真甩一下才多跨一格（阈值高，避免轻扫误触发）
   delta = Math.max(-(WIN >> 1), Math.min(WIN >> 1, delta))
   go(delta)
 }
@@ -193,13 +199,35 @@ function go(delta) {
     trackX.value = 0
     return
   }
+  const n = Math.min(Math.abs(delta), WIN >> 1)
+  snapDur.value = 300 + 90 * (n - 1) // 跨 1 格 0.30s；跨 3 格 0.48s——每格都看得清「经过」
   trackX.value = -delta * STEP
   pendingDelta = delta
   normalizeTimer = setTimeout(() => {
+    normalizing.value = true
     activeIdx.value = mod(activeIdx.value + pendingDelta, N)
     pendingDelta = 0
     trackX.value = 0
-  }, 330)
+    nextTick(() => { normalizing.value = false })
+  }, snapDur.value + 40)
+}
+
+// 槽位离视觉中心的距离（px）：拖动中实时变化
+function slotDist(k) {
+  return Math.abs((k - 5) * STEP + trackX.value)
+}
+// 连续插值样式：中间最大（118px 档），向两侧平滑缩小到最小（≈78px 档）、渐隐。
+// scale 并入 transform，拖动时按钮大小实时跟手，不是死档位。
+function slotStyle(k) {
+  const x = (k - 5) * STEP + trackX.value
+  const d = Math.min(Math.abs(x) / STEP, 2.5) // 距中心格数，2.5 格外封顶
+  const s = 1 - (d / 2.5) * 0.34 // scale 1 → 0.66（118 → 78px）
+  const op = 1 - (d / 2.5) * 0.55 // 透明度 1 → 0.45
+  return {
+    transform: 'translateX(' + x + 'px) scale(' + s.toFixed(3) + ')',
+    opacity: op.toFixed(3),
+    transitionDuration: dragging.value || normalizing.value ? '0ms' : snapDur.value + 'ms',
+  }
 }
 
 // 点槽位：中心=进入页面；旁边=滚到中心（与拖动共用 go）
@@ -271,10 +299,10 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
           v-for="(it, k) in windowItems"
           :key="k"
           class="wheel-item"
-          :class="{ center: k === 5, near: Math.abs(k - 5) === 1, far: Math.abs(k - 5) >= 2, 'no-anim': dragging }"
-          :style="{ transform: 'translateX(' + ((k - 5) * STEP + trackX) + 'px)' }"
+          :class="{ center: slotDist(k) < STEP / 2, near: slotDist(k) >= STEP / 2 && slotDist(k) < STEP * 1.5, far: slotDist(k) >= STEP * 1.5, 'no-anim': dragging || normalizing }"
+          :style="slotStyle(k)"
         >
-          <button type="button" class="wheel-btn" :aria-current="k === 5 ? 'true' : undefined" @click="tapSlot(k)">
+          <button type="button" class="wheel-btn" :aria-current="slotDist(k) < STEP / 2 ? 'true' : undefined" @click="tapSlot(k)">
             <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path v-for="(d, j) in it.icon" :key="j" :d="d" />
             </svg>

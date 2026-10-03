@@ -155,14 +155,20 @@ describe('v6.27 移动端体验完善', () => {
     // 左方向（首尾相连）：左邻是队尾「联系」，再左「试玩」——越过队首接队尾
     expect(labels[4]).toContain('联系')
     expect(labels[3]).toContain('试玩')
+    // 大小连续缩放：中心 scale=1（118px 档），边缘 scale≈0.66（78px 档）
+    const st5 = items[5].attributes('style')
+    const st0 = items[0].attributes('style')
+    expect(st5).toContain('scale(1')
+    expect(st0).toContain('scale(0.66')
     // 点槽 7（内容=知识库，真身 2）：滚到中心（trackX 动画中）
     await items[7].find('.wheel-btn').trigger('click')
     await flushPromises()
     expect(w.vm.$.setupState.trackX).toBe(-2 * 124)
-    // 330ms 归一化后：activeIdx = 2（知识库），trackX 回 0
-    await new Promise((r) => setTimeout(r, 380))
+    // 吸附动画（跨 2 格 = 390ms）+ 40ms 后归一化：activeIdx = 2（知识库），trackX 回 0
+    await new Promise((r) => setTimeout(r, 480))
     expect(w.vm.$.setupState.activeIdx).toBe(2)
     expect(w.vm.$.setupState.trackX).toBe(0)
+    expect(w.vm.$.setupState.normalizing).toBe(false)
     // 归一化后中心是知识库，再点中心槽 → 跳转
     await w.findAll('.wheel-item')[5].find('.wheel-btn').trigger('click')
     await flushPromises()
