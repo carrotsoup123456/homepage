@@ -19,6 +19,7 @@ const activeIdx = ref(0) // 当前居中栏目的真身下标（0-5）
 const trackX = ref(0) // 槽位整体视觉偏移：拖动中跟手，松手后动画到 -delta*STEP
 const dragging = ref(false) // 拖动态：关掉过渡，跟手
 const normalizing = ref(false) // 归一化帧：重排+瞬移，必须禁过渡（否则会看到二次滑动）
+const gliding = ref(false) // 惯性滑行态：rAF 驱动+沿途吸收，同样禁过渡
 const snapDur = ref(320) // 吸附动画时长：按跨格数加长（跨 3 格约 0.48s，看得清经过）
 const STEP = 124 // 槽位间距（视口内 3 整颗 + 2 露边 = 5 颗胶囊）
 const WIN = 11 // 窗口槽位数（中心 ±5）
@@ -36,6 +37,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   mq?.removeEventListener?.('change', onMqChange)
   clearTimeout(normalizeTimer)
+  cancelMomentum()
 })
 
 // 打开菜单：当前页的栏目直接落位到中心槽（transform 方案无过渡等待）
@@ -57,20 +59,8 @@ let velocity = 0
 let suppressClick = false
 function onTouchStart(e) {
   const t = e.touches[0]
-  // 若上一轮吸附动画还没归一化，先就地完成归一化再开始拖
-  if (normalizeTimer) {
-    clearTimeout(normalizeTimer)
-    normalizeTimer = null
-    if (pendingDelta) {
-      normalizing.value = true
-      activeIdx.value = mod(activeIdx.value + pendingDelta, N)
-      pendingDelta = 0
-      trackX.value = 0
-      nextTick(() => { normalizing.value = false })
-    } else {
-      trackX.value = 0
-    }
-  }
+  // 抓住滚轮：惯性/未归一化的吸附一律就地消化（瞬移无感），从当前位置继续拖
+  if (momentumRaf || normalizeTimer || pendingDelta) go(0)
   touchStartX = t.clientX
   startTrackX = trackX.value
   velocity = 0
@@ -83,8 +73,10 @@ function onTouchMove(e) {
   const t = e.touches[0]
   trackX.value = startTrackX + (t.clientX - touchStartX)
   const now = performance.now()
-  if (now > lastMoveT) {
-    velocity = (t.clientX - lastMoveX) / (now - lastMoveT)
+  const dt = now - lastMoveT
+  if (dt >= 4) {
+    // 指数平滑：单帧抖动不改写整体速度，快甩/轻拖都能识别
+    velocity = velocity * 0.6 + ((t.clientX - lastMoveX) / dt) * 0.4
     lastMoveX = t.clientX
     lastMoveT = now
   }
@@ -92,8 +84,52 @@ function onTouchMove(e) {
 }
 function onTouchEnd() {
   dragging.value = false
+  // 只有真正的快甩（>0.75px/ms）才惯性滑行；普通拖动/轻扫就地吸附——拖多少走多少
+  if (Math.abs(velocity) > 0.75) startMomentum(velocity)
+  else snapToNearest()
+}
+
+// ---- 惯性滑行：松手后按末速度自然滑行、按帧衰减，慢下来后就近吸附 ----
+let momentumRaf = 0
+function cancelMomentum() {
+  if (momentumRaf) cancelAnimationFrame(momentumRaf)
+  momentumRaf = 0
+  gliding.value = false
+}
+function startMomentum(v0) {
+  cancelMomentum()
+  gliding.value = true
+  let last = performance.now()
+  const step = (now) => {
+    const dt = Math.min(now - last, 40)
+    last = now
+    trackX.value += v0 * dt
+    v0 *= Math.pow(0.93, dt / 16.7) // 每帧衰减 7%：快甩滑 2-3 格即止，不飘
+    absorbOverflow()
+    if (Math.abs(v0) > 0.045) momentumRaf = requestAnimationFrame(step)
+    else {
+      momentumRaf = 0
+      gliding.value = false
+      snapToNearest()
+    }
+  }
+  momentumRaf = requestAnimationFrame(step)
+}
+// 沿途吸收：trackX 每越出一格就消化一格（内容重排+瞬移回中带，窗口永不露馅）
+function absorbOverflow() {
+  while (Math.abs(trackX.value) >= STEP) {
+    if (trackX.value < 0) {
+      // 内容左移过一格：视觉中心已是右侧邻项 → activeIdx 前进一格，轨道回退一格（视觉等效）
+      activeIdx.value = mod(activeIdx.value + 1, N)
+      trackX.value += STEP
+    } else {
+      activeIdx.value = mod(activeIdx.value - 1, N)
+      trackX.value -= STEP
+    }
+  }
+}
+function snapToNearest() {
   let delta = Math.round(-trackX.value / STEP)
-  if (Math.abs(velocity) > 0.8) delta += velocity > 0 ? -1 : 1 // 真甩一下才多跨一格（阈值高，避免轻扫误触发）
   delta = Math.max(-(WIN >> 1), Math.min(WIN >> 1, delta))
   go(delta)
 }
@@ -194,9 +230,18 @@ const windowItems = computed(() =>
 let normalizeTimer = null
 let pendingDelta = 0
 function go(delta) {
+  cancelMomentum()
   clearTimeout(normalizeTimer)
+  normalizeTimer = null
+  // 若上一轮吸附还没归一化：先就地完成（同步瞬移），再执行新动作——连续快速操作不丢步
+  if (pendingDelta) {
+    normalizing.value = true
+    activeIdx.value = mod(activeIdx.value + pendingDelta, N)
+    pendingDelta = 0
+  }
   if (!delta) {
     trackX.value = 0
+    if (normalizing.value) nextTick(() => { normalizing.value = false })
     return
   }
   const n = Math.min(Math.abs(delta), WIN >> 1)
@@ -220,13 +265,15 @@ function slotDist(k) {
 // scale 并入 transform，拖动时按钮大小实时跟手，不是死档位。
 function slotStyle(k) {
   const x = (k - 5) * STEP + trackX.value
-  const d = Math.min(Math.abs(x) / STEP, 2.5) // 距中心格数，2.5 格外封顶
+  const g = Math.max(-2.5, Math.min(2.5, x / STEP)) // 距中心格数（带方向），±2.5 封顶
+  const d = Math.abs(g)
   const s = 1 - (d / 2.5) * 0.34 // scale 1 → 0.66（118 → 78px）
   const op = 1 - (d / 2.5) * 0.55 // 透明度 1 → 0.45
+  const rot = -g * 38 // 3D 滚轮：按钮贴在圆筒面上，边缘向外侧转，中心正对用户
   return {
-    transform: 'translateX(' + x + 'px) scale(' + s.toFixed(3) + ')',
+    transform: 'perspective(620px) translateX(' + x + 'px) rotateY(' + rot.toFixed(2) + 'deg) scale(' + s.toFixed(3) + ')',
     opacity: op.toFixed(3),
-    transitionDuration: dragging.value || normalizing.value ? '0ms' : snapDur.value + 'ms',
+    transitionDuration: dragging.value || normalizing.value || gliding.value ? '0ms' : snapDur.value + 'ms',
   }
 }
 
@@ -238,6 +285,7 @@ function tapSlot(k) {
   }
   const delta = k - 5
   if (delta === 0) {
+    go(0) // 若有未归一化的吸附/惯性，先就地消化，保证中心项就是眼前这颗
     menuOpen.value = false
     router.push(windowItems.value[5].to)
   } else {
@@ -299,7 +347,7 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
           v-for="(it, k) in windowItems"
           :key="k"
           class="wheel-item"
-          :class="{ center: slotDist(k) < STEP / 2, near: slotDist(k) >= STEP / 2 && slotDist(k) < STEP * 1.5, far: slotDist(k) >= STEP * 1.5, 'no-anim': dragging || normalizing }"
+          :class="{ center: slotDist(k) < STEP / 2, near: slotDist(k) >= STEP / 2 && slotDist(k) < STEP * 1.5, far: slotDist(k) >= STEP * 1.5, 'no-anim': dragging || normalizing || gliding }"
           :style="slotStyle(k)"
         >
           <button type="button" class="wheel-btn" :aria-current="slotDist(k) < STEP / 2 ? 'true' : undefined" @click="tapSlot(k)">
