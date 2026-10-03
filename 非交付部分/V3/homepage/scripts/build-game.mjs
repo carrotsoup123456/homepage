@@ -49,10 +49,23 @@ let out = html.replace(RE, (_, b64) => {
   return `assets-g/${file}`
 })
 
+// ---- 1b. 抽出 base64 音频（新版游戏的 BGM，外链 .m4a 不转码） ----
+let audioN = 0
+const RE_A = /data:audio\/mp4;base64,([A-Za-z0-9+/=]+)/g
+out = out.replace(RE_A, (_, b64) => {
+  const hash = createHash('sha1').update(b64).digest('hex').slice(0, 12)
+  const file = `aud-${hash}.m4a`
+  keep.add(file)
+  const path = join(ASSET_DIR, file)
+  if (!existsSync(path)) writeFileSync(path, Buffer.from(b64, 'base64'))
+  audioN++
+  return `assets-g/${file}`
+})
+
 // ---- 2. 清理源文件里已不存在的旧图（增量构建不残留垃圾） ----
 let removed = 0
 for (const f of readdirSync(ASSET_DIR)) {
-  if (f.endsWith('.webp') && !keep.has(f)) {
+  if (/\.(webp|m4a)$/.test(f) && !keep.has(f)) {
     unlinkSync(join(ASSET_DIR, f))
     removed++
   }
