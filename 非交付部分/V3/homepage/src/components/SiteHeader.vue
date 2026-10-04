@@ -31,11 +31,6 @@ function openNav(to) {
   router.push(to)
 }
 
-// 访客足迹（v6.35）：与页脚共用同一计数徽章（同 page_id，SVG 不受 ORB 影响）
-const visitVisible = ref(false)
-const BADGE_URL =
-  'https://visitor-badge.laobi.icu/badge?page_id=carrotsoup-homepage'
-
 // 主题切换（由 App.vue 注入，见 provide/inject）；
 // 默认值兜底：测试/独立挂载等没有父级 provide 的场合不至于点击报错
 const theme = inject('theme', ref('light'))
@@ -190,16 +185,6 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
             <span class="cd-hole" aria-hidden="true"></span>
           </button>
           <span class="tonearm" aria-hidden="true"></span>
-        </span>
-        <span v-show="visitVisible" class="visitor-chip">
-          👣
-          <img
-            class="visit-badge"
-            :src="BADGE_URL"
-            alt="本站累计访问次数"
-            @load="visitVisible = true"
-            @error="visitVisible = false"
-          />
         </span>
         <button
           class="theme-toggle"

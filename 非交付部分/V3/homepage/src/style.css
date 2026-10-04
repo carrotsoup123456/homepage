@@ -2059,27 +2059,6 @@ body {
     cursor: pointer;
   }
 
-  /* 访客足迹 chip（v6.35）：与页脚共用同一计数徽章（visitor-badge，SVG 免 ORB） */
-  .visitor-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    height: 28px;
-    padding: 0 10px;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--color-green, #4a7c59) 45%, transparent);
-    background: color-mix(in srgb, var(--color-green, #4a7c59) 8%, var(--color-surface, #fff));
-    font-size: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-  }
-  .visit-badge {
-    height: 18px;
-    display: inline-block;
-    vertical-align: middle;
-    border-radius: 3px;
-  }
-
   /* ---- CD 机（v6.34）：唱片 = BGM 封面，播放旋转；播音杆随播放搭上/摆开 ---- */
   .cd-player {
     position: relative;
