@@ -157,7 +157,7 @@ function skipToMain(e) {
     loop
     preload="auto"
     @timeupdate="onBgmTimeUpdate"
-    aria-label="全站背景音乐：雨中森林"
+    aria-label="全站背景音乐：圆舞曲"
   ></audio>
 </template>
 
