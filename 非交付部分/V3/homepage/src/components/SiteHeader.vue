@@ -8,22 +8,10 @@ const toggleBtn = ref(null)
 const route = useRoute()
 const router = useRouter()
 
-// ---- 移动端横向轮播菜单（仅 <=768px；桌面保持原布局）----
-// 真无限循环：不用原生滚动（没有滚动条、没有物理边界）。11 个固定槽位
-// 绕着当前项旋转，六个栏目首尾相连——拖动跟手、松手吸附，两侧永远有下一格。
-// 中心槽点击=进入页面；点旁边=滚到中心。（windowItems/go/tapSlot 定义在
-// navItems 之后，见下；函数声明提升，此处即可安全调用）
+// ---- 移动端导航菜单（仅 <=768px；桌面保持原布局）----
+// 两行三列按钮网格：点按直达页面，当前页高亮。不做轮播——简单可靠。
 const isMobile = ref(false)
 let mq = null
-const activeIdx = ref(0) // 当前居中栏目的真身下标（0-5）
-const trackX = ref(0) // 槽位整体视觉偏移：拖动中跟手，松手后动画到 -delta*STEP
-const dragging = ref(false) // 拖动态：关掉过渡，跟手
-const normalizing = ref(false) // 归一化帧：重排+瞬移，必须禁过渡（否则会看到二次滑动）
-const gliding = ref(false) // 惯性滑行态：rAF 驱动+沿途吸收，同样禁过渡
-const snapDur = ref(320) // 吸附动画时长：按跨格数加长（跨 3 格约 0.48s，看得清经过）
-const STEP = 124 // 槽位间距（视口内 3 整颗 + 2 露边 = 5 颗胶囊）
-const WIN = 11 // 窗口槽位数（中心 ±5）
-
 function onMqChange(e) {
   isMobile.value = e.matches
 }
@@ -36,102 +24,11 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   mq?.removeEventListener?.('change', onMqChange)
-  clearTimeout(normalizeTimer)
-  cancelMomentum()
 })
-
-// 打开菜单：当前页的栏目直接落位到中心槽（transform 方案无过渡等待）
-watch(menuOpen, (open) => {
-  if (!open) return
-  const idx = navItems.findIndex((it) => isActive(it))
-  if (idx >= 0) activeIdx.value = idx
-  trackX.value = 0
-  pendingDelta = 0
-  clearTimeout(normalizeTimer)
-})
-
-// ---- 触摸拖动 ----
-let touchStartX = 0
-let startTrackX = 0
-let lastMoveX = 0
-let lastMoveT = 0
-let velocity = 0
-let suppressClick = false
-function onTouchStart(e) {
-  const t = e.touches[0]
-  // 抓住滚轮：惯性/未归一化的吸附一律就地消化（瞬移无感），从当前位置继续拖
-  if (momentumRaf || normalizeTimer || pendingDelta) go(0)
-  touchStartX = t.clientX
-  startTrackX = trackX.value
-  velocity = 0
-  lastMoveX = t.clientX
-  lastMoveT = performance.now()
-  suppressClick = false
-  dragging.value = true
-}
-function onTouchMove(e) {
-  const t = e.touches[0]
-  trackX.value = startTrackX + (t.clientX - touchStartX)
-  const now = performance.now()
-  const dt = now - lastMoveT
-  if (dt >= 4) {
-    // 指数平滑：单帧抖动不改写整体速度，快甩/轻拖都能识别
-    velocity = velocity * 0.6 + ((t.clientX - lastMoveX) / dt) * 0.4
-    lastMoveX = t.clientX
-    lastMoveT = now
-  }
-  if (Math.abs(trackX.value - startTrackX) > 8) suppressClick = true
-}
-function onTouchEnd() {
-  dragging.value = false
-  // 只有真正的快甩（>0.75px/ms）才惯性滑行；普通拖动/轻扫就地吸附——拖多少走多少
-  if (Math.abs(velocity) > 0.75) startMomentum(velocity)
-  else snapToNearest()
-}
-
-// ---- 惯性滑行：松手后按末速度自然滑行、按帧衰减，慢下来后就近吸附 ----
-let momentumRaf = 0
-function cancelMomentum() {
-  if (momentumRaf) cancelAnimationFrame(momentumRaf)
-  momentumRaf = 0
-  gliding.value = false
-}
-function startMomentum(v0) {
-  cancelMomentum()
-  gliding.value = true
-  let last = performance.now()
-  const step = (now) => {
-    const dt = Math.min(now - last, 40)
-    last = now
-    trackX.value += v0 * dt
-    v0 *= Math.pow(0.93, dt / 16.7) // 每帧衰减 7%：快甩滑 2-3 格即止，不飘
-    absorbOverflow()
-    if (Math.abs(v0) > 0.045) momentumRaf = requestAnimationFrame(step)
-    else {
-      momentumRaf = 0
-      gliding.value = false
-      snapToNearest()
-    }
-  }
-  momentumRaf = requestAnimationFrame(step)
-}
-// 沿途吸收：trackX 每越出一格就消化一格（内容重排+瞬移回中带，窗口永不露馅）
-function absorbOverflow() {
-  while (Math.abs(trackX.value) >= STEP) {
-    if (trackX.value < 0) {
-      // 内容左移过一格：视觉中心已是右侧邻项 → activeIdx 前进一格，轨道回退一格（视觉等效）
-      activeIdx.value = mod(activeIdx.value + 1, N)
-      trackX.value += STEP
-    } else {
-      activeIdx.value = mod(activeIdx.value - 1, N)
-      trackX.value -= STEP
-    }
-  }
-}
-function snapToNearest() {
-  let delta = Math.round(-trackX.value / STEP)
-  delta = Math.max(-(WIN >> 1), Math.min(WIN >> 1, delta))
-  go(delta)
+// 网格按钮点按：进页面 + 收菜单
+function openNav(to) {
+  menuOpen.value = false
+  router.push(to)
 }
 
 // 主题切换（由 App.vue 注入，见 provide/inject）；
@@ -214,86 +111,6 @@ const navItems = [
   { label: '联系', to: '/contact', icon: icons.mail },
 ]
 
-// 无限循环：同一列菜单渲染 3 份（中份 [6..11] 是真身区），滚进首/尾
-// 副本区时无感跳回中份——左划右划都没有尽头。三档大小：中心最大高亮、
-// 左右相邻第二档、再往外最小（视口内共 5 颗胶囊）。
-const N = navItems.length
-function mod(a, b) {
-  return ((a % b) + b) % b
-}
-// 窗口内容：槽 5 = 当前项，向两边循环取栏目（下标对 6 取模 → 首尾相连）
-const windowItems = computed(() =>
-  Array.from({ length: WIN }, (_, k) => navItems[mod(activeIdx.value + k - 5, N)])
-)
-
-// 滚动 delta 格：先动画过去，330ms 后内容归一化（重排 + 瞬移回中心，视觉无感）
-let normalizeTimer = null
-let pendingDelta = 0
-function go(delta) {
-  cancelMomentum()
-  clearTimeout(normalizeTimer)
-  normalizeTimer = null
-  // 若上一轮吸附还没归一化：先就地完成（同步瞬移），再执行新动作——连续快速操作不丢步
-  if (pendingDelta) {
-    normalizing.value = true
-    activeIdx.value = mod(activeIdx.value + pendingDelta, N)
-    pendingDelta = 0
-  }
-  if (!delta) {
-    trackX.value = 0
-    if (normalizing.value) nextTick(() => { normalizing.value = false })
-    return
-  }
-  const n = Math.min(Math.abs(delta), WIN >> 1)
-  snapDur.value = 300 + 90 * (n - 1) // 跨 1 格 0.30s；跨 3 格 0.48s——每格都看得清「经过」
-  trackX.value = -delta * STEP
-  pendingDelta = delta
-  normalizeTimer = setTimeout(() => {
-    normalizing.value = true
-    activeIdx.value = mod(activeIdx.value + pendingDelta, N)
-    pendingDelta = 0
-    trackX.value = 0
-    nextTick(() => { normalizing.value = false })
-  }, snapDur.value + 40)
-}
-
-// 槽位离视觉中心的距离（px）：拖动中实时变化
-function slotDist(k) {
-  return Math.abs((k - 5) * STEP + trackX.value)
-}
-// 连续插值样式：中间最大（118px 档），向两侧平滑缩小到最小（≈78px 档）、渐隐。
-// scale 并入 transform，拖动时按钮大小实时跟手，不是死档位。
-function slotStyle(k) {
-  const x = (k - 5) * STEP + trackX.value
-  const g = Math.max(-2.5, Math.min(2.5, x / STEP)) // 距中心格数（带方向），±2.5 封顶
-  const d = Math.abs(g)
-  const s = 1 - (d / 2.5) * 0.34 // scale 1 → 0.66（118 → 78px）
-  const op = 1 - (d / 2.5) * 0.55 // 透明度 1 → 0.45
-  const rot = -g * 38 // 3D 滚轮：按钮贴在圆筒面上，边缘向外侧转，中心正对用户
-  return {
-    transform: 'perspective(620px) translateX(' + x + 'px) rotateY(' + rot.toFixed(2) + 'deg) scale(' + s.toFixed(3) + ')',
-    opacity: op.toFixed(3),
-    transitionDuration: dragging.value || normalizing.value || gliding.value ? '0ms' : snapDur.value + 'ms',
-  }
-}
-
-// 点槽位：中心=进入页面；旁边=滚到中心（与拖动共用 go）
-function tapSlot(k) {
-  if (suppressClick) {
-    suppressClick = false
-    return
-  }
-  const delta = k - 5
-  if (delta === 0) {
-    go(0) // 若有未归一化的吸附/惯性，先就地消化，保证中心项就是眼前这颗
-    menuOpen.value = false
-    router.push(windowItems.value[5].to)
-  } else {
-    go(delta)
-  }
-}
-
-
 // 当前页高亮：既用于样式（.active），也用于读屏（aria-current）
 function isActive(item) {
   return item.exact ? route.path === item.to : route.path.startsWith(item.to)
@@ -333,28 +150,20 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
       >
         ☰
       </button>
-      <!-- 移动端：横向轮播（transform 驱动，无滚动条，六栏目真首尾相连） -->
-      <ul
-        v-if="isMobile"
-        id="primary-nav"
-        class="nav-wheel"
-        :class="{ open: menuOpen }"
-        @touchstart.passive="onTouchStart"
-        @touchmove.passive="onTouchMove"
-        @touchend.passive="onTouchEnd"
-      >
-        <li
-          v-for="(it, k) in windowItems"
-          :key="k"
-          class="wheel-item"
-          :class="{ center: slotDist(k) < STEP / 2, near: slotDist(k) >= STEP / 2 && slotDist(k) < STEP * 1.5, far: slotDist(k) >= STEP * 1.5, 'no-anim': dragging || normalizing || gliding }"
-          :style="slotStyle(k)"
-        >
-          <button type="button" class="wheel-btn" :aria-current="slotDist(k) < STEP / 2 ? 'true' : undefined" @click="tapSlot(k)">
+      <!-- 移动端：两行三列按钮网格 -->
+      <ul v-if="isMobile" id="primary-nav" class="nav-grid" :class="{ open: menuOpen }">
+        <li v-for="item in navItems" :key="item.to">
+          <button
+            type="button"
+            class="grid-btn"
+            :class="{ active: isActive(item) }"
+            :aria-current="isActive(item) ? 'page' : undefined"
+            @click="openNav(item.to)"
+          >
             <svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path v-for="(d, j) in it.icon" :key="j" :d="d" />
+              <path v-for="(d, j) in item.icon" :key="j" :d="d" />
             </svg>
-            <span>{{ it.label }}</span>
+            <span>{{ item.label }}</span>
           </button>
         </li>
       </ul>

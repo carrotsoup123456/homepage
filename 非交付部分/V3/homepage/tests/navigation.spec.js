@@ -116,63 +116,27 @@ describe('v6.27 移动端体验完善', () => {
     expect(hint.text()).toContain('→')
   })
 
-  it('移动端渲染无限循环轮播：3 份列表 + 三档胶囊', async () => {
+  it('v6.33：移动端菜单为两行三列按钮网格，点按直达', async () => {
     vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
     const { default: SiteHeader } = await import('../src/components/SiteHeader.vue')
     const router = makeRouter()
     const w = mount(SiteHeader, { global: { plugins: [router] } })
     await flushPromises()
-    expect(w.find('.nav-wheel').exists()).toBe(true)
-    // 11 个槽位（中心 ±5），六个栏目循环取用
-    expect(w.findAll('.wheel-item').length).toBe(11)
+    expect(w.find('.nav-grid').exists()).toBe(true)
     expect(w.find('.nav-links').exists()).toBe(false) // 桌面版列表不出
+    const btns = w.findAll('.grid-btn')
+    expect(btns.length).toBe(6) // 六个栏目 = 两行三列（布局由 CSS grid 承担）
+    expect(btns[0].text()).toContain('首页')
+    expect(btns[5].text()).toContain('联系')
     await w.find('.nav-toggle').trigger('click')
     await flushPromises()
-    // 打开菜单：当前页（首页）居中高亮
-    expect(w.find('.wheel-item.center').exists()).toBe(true)
-    vi.unstubAllGlobals()
-  })
-
-  it('v6.32：轮播 11 槽位三档 + 循环取栏 + 点按跳转', async () => {
-    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
-    const { default: SiteHeader } = await import('../src/components/SiteHeader.vue')
-    const router = makeRouter()
-    const w = mount(SiteHeader, { global: { plugins: [router] } })
+    // 当前页（首页）高亮
+    expect(btns[0].classes()).toContain('active')
+    // 点「音乐」直达并收起菜单
+    await btns[3].trigger('click')
     await flushPromises()
-    await w.find('.nav-toggle').trigger('click')
-    await flushPromises()
-    const items = w.findAll('.wheel-item')
-    // 三档：1 中心 + 2 相邻 + 8 边缘
-    expect(items.filter((it) => it.classes().includes('center')).length).toBe(1)
-    expect(items.filter((it) => it.classes().includes('near')).length).toBe(2)
-    expect(items.filter((it) => it.classes().includes('far')).length).toBe(8)
-    // 窗口内容首尾相连：中心是首页(0)，槽 6..10 = 关于/知识库/音乐/试玩/联系
-    const labels = items.map((it) => it.text())
-    expect(labels[5]).toContain('首页')
-    // 右方向：关于 → 知识库 → 音乐 → 试玩 → 联系（槽 10 是队尾）
-    expect(labels[6]).toContain('关于')
-    expect(labels[10]).toContain('联系')
-    // 左方向（首尾相连）：左邻是队尾「联系」，再左「试玩」——越过队首接队尾
-    expect(labels[4]).toContain('联系')
-    expect(labels[3]).toContain('试玩')
-    // 大小连续缩放：中心 scale=1（118px 档），边缘 scale≈0.66（78px 档）
-    const st5 = items[5].attributes('style')
-    const st0 = items[0].attributes('style')
-    expect(st5).toContain('scale(1')
-    expect(st0).toContain('scale(0.66')
-    // 点槽 7（内容=知识库，真身 2）：滚到中心（trackX 动画中）
-    await items[7].find('.wheel-btn').trigger('click')
-    await flushPromises()
-    expect(w.vm.$.setupState.trackX).toBe(-2 * 124)
-    // 吸附动画（跨 2 格 = 390ms）+ 40ms 后归一化：activeIdx = 2（知识库），trackX 回 0
-    await new Promise((r) => setTimeout(r, 480))
-    expect(w.vm.$.setupState.activeIdx).toBe(2)
-    expect(w.vm.$.setupState.trackX).toBe(0)
-    expect(w.vm.$.setupState.normalizing).toBe(false)
-    // 归一化后中心是知识库，再点中心槽 → 跳转
-    await w.findAll('.wheel-item')[5].find('.wheel-btn').trigger('click')
-    await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/knowledge')
+    expect(router.currentRoute.value.path).toBe('/music')
+    expect(w.vm.$.setupState.menuOpen).toBe(false)
     vi.unstubAllGlobals()
   })
 

@@ -1975,72 +1975,57 @@ body {
     white-space: nowrap;
   }
 
-  /* —— 轮播窗口：不是滚动容器（overflow hidden，没有滚动条、没有边界），
-     11 个槽位绕中心旋转，六个栏目首尾相连；大小按离中心的距离连续缩放 —— */
-  .nav-wheel {
+  /* —— 移动端菜单：两行三列按钮网格 —— */
+  .nav-grid {
     flex-basis: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px 8px;
     list-style: none;
     max-height: 0;
-    padding: 0 0;
+    padding: 0 16px;
     margin: 0;
     overflow: hidden;
     visibility: hidden;
-    transition: max-height 0.35s var(--ease, ease), visibility 0.35s;
-    touch-action: pan-y; /* 横向手势留给轮播自己处理，竖向照常滚页面 */
+    transition: max-height 0.35s var(--ease, ease), visibility 0.35s, padding 0.35s var(--ease, ease);
   }
-  .nav-wheel.open {
-    max-height: 150px;
-    padding: 18px 0 10px;
+  .nav-grid.open {
+    max-height: 170px;
+    padding: 14px 16px 10px;
     visibility: visible;
   }
-  /* 槽位：translateX+scale 同一 transform；时长由内联 style 按跨格数动态给 */
-  .wheel-item {
-    flex: 0 0 124px; /* 槽位宽 = 槽间距 */
-    display: flex;
-    justify-content: center;
-    transition: transform 320ms cubic-bezier(0.25, 0.9, 0.3, 1), opacity 320ms cubic-bezier(0.25, 0.9, 0.3, 1);
-    will-change: transform, opacity;
-  }
-  .wheel-item.no-anim {
-    transition: none; /* 拖动跟手 / 归一化重排（瞬移，不给二次滑动） */
-  }
-  /* 细长胶囊（横排 图标+文字）。统一最大档尺寸 118×40，
-     大小由槽位的 scale 连续缩放：紧邻 ≈102px、边缘 ≈78px，中间平滑过渡 */
-  .wheel-btn {
+  /* 胶囊按钮：图标 + 文字，占满格子；当前页绿底高亮 */
+  .grid-btn {
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    height: 40px;
-    min-width: 118px;
-    padding: 0 18px;
+    width: 100%;
+    height: 42px;
     border-radius: 999px;
     border: 1.5px solid color-mix(in srgb, var(--color-green, #4a7c59) 70%, transparent);
     background: var(--color-surface, #fff);
     color: var(--color-green, #4a7c59);
     font: inherit;
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
     letter-spacing: 0.02em;
     white-space: nowrap;
     cursor: pointer;
     transition: background 0.25s, color 0.25s, box-shadow 0.25s;
     -webkit-tap-highlight-color: transparent;
   }
-  .wheel-btn .nav-ico {
-    width: 19px;
-    height: 19px;
+  .grid-btn .nav-ico {
+    width: 17px;
+    height: 17px;
     flex: 0 0 auto;
   }
-  /* 视觉中心那颗：绿底高亮（center class 由视觉距离判定，拖动过半即换） */
-  .wheel-item.center .wheel-btn {
+  .grid-btn.active {
     background: var(--color-green, #4a7c59);
     border-color: var(--color-green, #4a7c59);
     color: #fff;
+    font-weight: 700;
     box-shadow: 0 5px 16px color-mix(in srgb, var(--color-green, #4a7c59) 38%, transparent);
   }
 
