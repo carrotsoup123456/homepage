@@ -218,7 +218,7 @@ function toTop() {
   color: var(--color-on-primary);
   font-size: 1.3rem;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 8px 20px rgba(60, 84, 104, 0.3);
   transition: transform 0.15s, background 0.2s;
   z-index: 50;
 }

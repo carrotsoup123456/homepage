@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { contacts } from '../data/site.js'
+import IconGlyph from '../components/IconGlyph.vue'
 // 表单出口统一放在 src/data/feedback.js（说明见该文件顶部注释）
 import { sendToFormSubmit } from '../data/feedback.js'
 
@@ -54,7 +55,7 @@ async function handleSubmit() {
           :href="c.href || '#'"
           :target="c.href ? '_blank' : '_self'"
         >
-          <span>{{ c.icon }}</span>
+          <IconGlyph :name="c.icon" />
           <span>{{ c.label }}</span>
         </a>
       </div>

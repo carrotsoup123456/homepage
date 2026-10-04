@@ -205,7 +205,8 @@ const dur = computed(() => fmt(timeDur.value))
 .p-main {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  /* 主色底上的文字用专用变量：深色主题主色偏亮（亮蓝），白字对比度不够 */
+  color: var(--color-on-primary);
   font-size: 14px;
 }
 .p-progress {

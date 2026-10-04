@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { site, skills, projects, experiences, education, contacts } from '../data/site.js'
 import { imgSize } from '../data/image-sizes.js'
 import FeedbackWidget from '../components/FeedbackWidget.vue'
+import IconGlyph from '../components/IconGlyph.vue'
 import SectionBand from '../components/SectionBand.vue'
 
 // 资源路径（兼容 GitHub Pages 的 base 前缀）
@@ -431,7 +432,7 @@ onUnmounted(() => {
     <section id="experience" class="section">
       <div class="container">
         <div v-reveal>
-          <p class="eyebrow">Beyond Code</p>
+          <p class="eyebrow">Beyond Classroom</p>
           <span class="sec-no" aria-hidden="true">02</span>
           <h2 class="section-title">经历</h2>
           <p class="section-desc">舞台、商赛与模拟联合国——课堂之外的成长。</p>
@@ -497,7 +498,7 @@ onUnmounted(() => {
             :key="c.label"
             class="btn btn-outline"
             :href="c.href"
-            >{{ c.icon }} {{ c.label }}</a
+            ><IconGlyph :name="c.icon" /> {{ c.label }}</a
           >
         </div>
 

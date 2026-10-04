@@ -32,6 +32,17 @@
   --accent-soft: rgba(60, 84, 104, 0.1);
   --color-on-primary: #ffffff; /* 主色底上的文字色 */
 
+  /* 第二套令牌别名：音乐页 / 知识库分栏 / 页头 BGM 开关在引用 --accent / --ink /
+     --ink-soft / --line / --panel / --bg，但这些名字此前在 Vue 应用里从未定义
+     （只在独立的 game-src/weiguan-yifang.html 里定义过），导致这些组件的
+     背景 / 边框 / 文字色全部失效。这里统一映射回 --color-* 系列，深浅主题自动跟随。 */
+  --accent: var(--color-primary);
+  --ink: var(--color-text);
+  --ink-soft: var(--color-text-muted);
+  --line: var(--color-border);
+  --panel: var(--color-surface);
+  --bg: var(--color-bg);
+
   --max-width: 1140px;
   --header-h: 74px; /* 头部高度：导航条与移动菜单共用，避免两处写死同一个数字 */
   --section-gap: 112px;
@@ -72,8 +83,7 @@
   --accent-soft: rgba(169, 198, 218, 0.12);
   --color-on-primary: #0e120d; /* 深色主题主色偏亮 → 用深色文字保证对比度 */
   --shadow: 0 20px 55px rgba(0, 0, 0, 0.5);
-  --shadow-soft: 0 8px 26px rgba(0, 0, 0, 0.35);
-}
+  --shadow-soft: 0 8px 26px rgba(0, 0, 0, 0.35);}
 
 /* 手动切换主题时短暂挂载（App.vue 挂 class、380ms 后摘掉）：全站颜色平滑过渡。
    不常驻：常驻 transition 会让滚动/动画在低端机上掉帧。 */
@@ -1769,7 +1779,8 @@ mark {
 .kb-cat.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  /* 主色底上的文字用专用变量：深色主题主色偏亮，白字对比度不够 */
+  color: var(--color-on-primary);
 }
 .kb-cat-count {
   font-size: 12px;

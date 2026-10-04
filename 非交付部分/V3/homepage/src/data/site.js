@@ -91,7 +91,7 @@ export const projects = [
 
   {
     id: 'carrot-agent',
-    icon: '🥕',
+    icon: 'carrot',
     title: '设计并做出自己的 Agent 软件 —— carrot',
     short: '从改装 Claude Code 到复现 Codex，再到融合出自己的 carrot agent——一条完整的造软件之路',
     desc: '先把一款 Claude Code 桌面应用改装到能日用，再用同样思路复现了一个简易 Codex，最后把两边学到的东西合起来，做出属于自己的 agent 软件 <strong>carrot</strong>。',
@@ -147,7 +147,7 @@ carrot 是 fork 深改出来的：上游在更新、我的定制在累积，这�
     ],
   },  {
     id: 'carbon-brain',
-    icon: '🧠',
+    icon: 'brain',
     title: 'Carbon Brain',
     short: '用机器学习估算 DAC 材料吸附饱和度（团队项目，我任组长）',
     desc: '基于 Polyam-N-Cu<sup>2+</sup> 新型 DAC 吸附材料，尝试用监督学习估算材料当前吸附饱和度，目标是让装置在「吸附」与「再生」之间**按需切换**，而不是按固定时间切换。',
@@ -189,7 +189,7 @@ carrot 是 fork 深改出来的：上游在更新、我的定制在累积，这�
   },
   {
     id: 'stock-quant',
-    icon: '📈',
+    icon: 'chart',
     title: '基于监督学习的股票量化软件',
     short: 'A 股机器学习选股流程，从数据地基到回测与可视化',
     desc: '一套完整的 A 股机器学习量化流程：从原始行情整理成特征数据集，训练模型预测「未来若干天能否跑赢全市场」，再做回测与可视化界面。',
@@ -224,7 +224,7 @@ carrot 是 fork 深改出来的：上游在更新、我的定制在累积，这�
     highlights: ['28 因子特征工程', '分类 / 回归双线迭代', '回测口径与局限如实记录'],
   },  {
     id: 'weiguan-yifang',
-    icon: '🏯',
+    icon: 'castle',
     title: '《为官一方》古风县令治理模拟',
     short: '对标《设身处地》的原创县治模拟游戏，已有可双击运行的成品',
     desc: '一款古代县令治理模拟游戏：<strong>你是青阳县令</strong>，一方百姓、一位青天，还是一身骂名——都由你的每一次抉择写成。已完成可双击运行的 macOS 版本。',
@@ -267,7 +267,7 @@ carrot 是 fork 深改出来的：上游在更新、我的定制在累积，这�
   },
   {
     id: 'todo-panel',
-    icon: '📌',
+    icon: 'pin',
     title: 'TO-DO Panel 桌面面板定制',
     short: '给开源桌面面板加数据写入通道、日历页与课表导入，从 1.1 深度定制到 1.2.5（上游：xiaopu-ai/TO-DO Panel）',
     desc: 'TO-DO Panel 是一个常驻 macOS / Windows 屏幕顶部的本地工作台（MIT 开源）。我在自己机器上对它做了一路深度定制：先加了<strong>可靠的数据写入通道</strong>，再自己长出<strong>日历页、学期课表导入、今日课程 + 未来七天首页、三档截止提醒</strong>，把它从一个通用面板改成了自己的学业中枢。',
@@ -355,8 +355,8 @@ export const education = [
 
 // ---- 联系 ----
 export const contacts = [
-  { icon: '📧', label: 'carrotsoup@qq.com', href: 'mailto:carrotsoup@qq.com' },
-  { icon: '📞', label: '电话 / 微信 / QQ：13420089540', href: 'tel:13420089540' },
+  { icon: 'mail', label: 'carrotsoup@qq.com', href: 'mailto:carrotsoup@qq.com' },
+  { icon: 'phone', label: '电话 / 微信 / QQ：13420089540', href: 'tel:13420089540' },
 ]
 
 // ---- 知识库 / 笔记 ----
