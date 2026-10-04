@@ -4,7 +4,6 @@ import { RouterLink } from 'vue-router'
 import { site, skills, projects, experiences, education, contacts } from '../data/site.js'
 import { imgSize } from '../data/image-sizes.js'
 import FeedbackWidget from '../components/FeedbackWidget.vue'
-import IconGlyph from '../components/IconGlyph.vue'
 import SectionBand from '../components/SectionBand.vue'
 
 // 资源路径（兼容 GitHub Pages 的 base 前缀）
@@ -498,7 +497,7 @@ onUnmounted(() => {
             :key="c.label"
             class="btn btn-outline"
             :href="c.href"
-            ><IconGlyph :name="c.icon" /> {{ c.label }}</a
+            >{{ c.icon }} {{ c.label }}</a
           >
         </div>
 

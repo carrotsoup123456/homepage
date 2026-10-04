@@ -83,7 +83,8 @@
   --accent-soft: rgba(169, 198, 218, 0.12);
   --color-on-primary: #0e120d; /* 深色主题主色偏亮 → 用深色文字保证对比度 */
   --shadow: 0 20px 55px rgba(0, 0, 0, 0.5);
-  --shadow-soft: 0 8px 26px rgba(0, 0, 0, 0.35);}
+  --shadow-soft: 0 8px 26px rgba(0, 0, 0, 0.35);
+}
 
 /* 手动切换主题时短暂挂载（App.vue 挂 class、380ms 后摘掉）：全站颜色平滑过渡。
    不常驻：常驻 transition 会让滚动/动画在低端机上掉帧。 */

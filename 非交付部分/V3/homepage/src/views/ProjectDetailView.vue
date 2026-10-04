@@ -7,7 +7,6 @@ import { projects } from '../data/site.js'
 import { setPageMeta } from '../data/meta.js'
 import { imgSize } from '../data/image-sizes.js'
 import FeedbackWidget from '../components/FeedbackWidget.vue'
-import IconGlyph from '../components/IconGlyph.vue'
 import BackBar from '../components/BackBar.vue'
 import NotFoundView from './NotFoundView.vue'
 
@@ -106,7 +105,7 @@ onBeforeUnmount(() => {
     <template v-if="project">
       <button type="button" class="back-link" @click="backHome">← 返回首页</button>
       <section class="detail-hero" v-reveal>
-        <IconGlyph class="detail-icon" :name="project.icon" />
+        <div class="detail-icon">{{ project.icon }}</div>
         <div>
           <h1 class="page-title">{{ project.title }}</h1>
           <div class="detail-tags">
@@ -228,7 +227,6 @@ onBeforeUnmount(() => {
 }
 .detail-icon {
   font-size: 3rem;
-  color: var(--color-green);
 }
 .page-title {
   font-size: 1.9rem;

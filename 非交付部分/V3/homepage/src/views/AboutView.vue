@@ -1,7 +1,6 @@
 <script setup>
 import { ref } from 'vue'
 import { site, skillDetails, projects, education, contacts } from '../data/site.js'
-import IconGlyph from '../components/IconGlyph.vue'
 
 // 技能卡片：点击展开「我拿它做过什么」。同一时间只展开一张，避免页面被撑得过长。
 const openId = ref(null)
@@ -12,17 +11,17 @@ function toggle(id) {
 // 「现在在做什么」——真实在推进的三件事
 const nowList = [
   {
-    icon: 'castle',
+    icon: '🏯',
     title: '打磨一款模拟游戏',
     text: '《为官一方》的立项文档与可玩原型都已完成，正在做数值平衡校准与美术替换。',
   },
   {
-    icon: 'flask',
+    icon: '🧪',
     title: '把实验室的数据跑通',
     text: 'Carbon Brain 项目负责数据清洗与模型训练，目前跨日期泛化还是难题，正在补物理参数核对。',
   },
   {
-    icon: 'gear',
+    icon: '🛠️',
     title: '把重复劳动变成流程',
     text: '给日常用到的工具写技能与子 agent：改前先备份、改完必须验证，把踩过的坑固化成步骤。',
   },
@@ -77,7 +76,7 @@ const principles = [
       <h2 class="section-title">现在在做什么</h2>
       <div class="now-grid">
         <div v-for="item in nowList" :key="item.title" class="now-card">
-          <IconGlyph class="now-icon" :name="item.icon" />
+          <div class="now-icon" aria-hidden="true">{{ item.icon }}</div>
           <h3 class="now-title">{{ item.title }}</h3>
           <p class="now-text">{{ item.text }}</p>
         </div>
@@ -148,7 +147,7 @@ const principles = [
       <h2 class="section-title">我做过的东西</h2>
       <ul class="work-list">
         <li v-for="p in projects" :key="p.id" class="work-item">
-          <IconGlyph class="work-icon" :name="p.icon" />
+          <span class="work-icon" aria-hidden="true">{{ p.icon }}</span>
           <div class="work-body">
             <RouterLink class="work-title" :to="`/project/${p.id}`">{{ p.title }}</RouterLink>
             <p class="work-text">{{ p.short }}</p>
@@ -200,7 +199,7 @@ const principles = [
           :target="c.href ? '_blank' : '_self'"
           rel="noopener"
         >
-          <IconGlyph :name="c.icon" />
+          <span aria-hidden="true">{{ c.icon }}</span>
           <span>{{ c.label }}</span>
         </a>
       </div>
@@ -269,7 +268,6 @@ const principles = [
 }
 .now-icon {
   font-size: 1.6rem;
-  color: var(--color-green);
   margin-bottom: 10px;
 }
 .now-title {
@@ -414,7 +412,6 @@ const principles = [
 }
 .work-icon {
   font-size: 1.4rem;
-  color: var(--color-green);
   flex-shrink: 0;
 }
 .work-body {
