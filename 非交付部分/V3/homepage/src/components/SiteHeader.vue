@@ -77,6 +77,7 @@ function toggleThemeReveal(e) {
 
 // ---- 全站背景音乐开关（audio 挂在 App.vue，单例状态）----
 import { useSiteBgm } from '../composables/useSiteBgm.js'
+import { bgm } from '../data/music.js'
 const { playing, togglePlay } = useSiteBgm()
 
 // 导航图标：手绘 1.8px 线条小图（24 网格），随文字颜色变色（currentColor）。
@@ -169,21 +170,22 @@ watch(() => route.fullPath, () => { menuOpen.value = false })
       </ul>
       <!-- 移动端：音乐/主题开关独立一行（不混进轮播序列） -->
       <div v-if="isMobile" class="wheel-extras" :class="{ open: menuOpen }">
-        <button
-          type="button"
-          class="bgm-toggle"
-          :class="{ 'is-playing': playing }"
-          data-testid="bgm-toggle"
-          @click="togglePlay"
-          :aria-label="playing ? '暂停背景音乐' : '播放背景音乐'"
-          :aria-pressed="playing"
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M9 18V5l12-2v13" />
-            <circle cx="6" cy="18" r="3" />
-            <circle cx="18" cy="16" r="3" />
-          </svg>
-        </button>
+        <!-- CD 机：唱片=背景音乐封面（播放时旋转），播音杆播放时搭上、停止时摆开 -->
+        <span class="cd-player" :class="{ playing: playing }">
+          <button
+            type="button"
+            class="bgm-toggle cd"
+            :class="{ 'is-playing': playing }"
+            data-testid="bgm-toggle"
+            @click="togglePlay"
+            :aria-label="playing ? '暂停背景音乐' : '播放背景音乐'"
+            :aria-pressed="playing"
+          >
+            <img class="cd-disc" :src="bgm.cover" width="44" height="44" alt="" aria-hidden="true" />
+            <span class="cd-hole" aria-hidden="true"></span>
+          </button>
+          <span class="tonearm" aria-hidden="true"></span>
+        </span>
         <button
           class="theme-toggle"
           type="button"

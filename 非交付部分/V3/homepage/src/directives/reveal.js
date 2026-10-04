@@ -1,4 +1,13 @@
-// 全局自定义指令 v-reveal：元素进入视口时添加 .revealed 类实现渐入
+// 全局自定义指令 v-reveal：元素进入视口时添加 .revealed 类实现渐入。
+// 手机端例外：进入页面即全部显示（v6.34 用户反馈：下方内容要下滑/点按才出现）。
+const skipReveal =
+  (typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(max-width: 768px)').matches) ||
+  (typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+
 const observer = typeof IntersectionObserver !== 'undefined'
   ? new IntersectionObserver(
       (entries) => {
@@ -16,6 +25,10 @@ const observer = typeof IntersectionObserver !== 'undefined'
 export default {
   mounted(el, binding) {
     el.classList.add('reveal')
+    if (skipReveal) {
+      el.classList.add('revealed') // 手机端：直接显示，不等滚动
+      return
+    }
     // 支持自定义延迟
     if (binding.value) {
       el.style.transitionDelay = `${binding.value}ms`
@@ -45,7 +58,7 @@ export const revealStagger = {
     const revealAll = () =>
       children.forEach((child) => child.classList.add('revealed'))
 
-    if (typeof IntersectionObserver === 'undefined') {
+    if (skipReveal || typeof IntersectionObserver === 'undefined') {
       revealAll()
       return
     }

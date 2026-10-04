@@ -2058,6 +2058,88 @@ body {
     color: var(--color-green, #4a7c59);
     cursor: pointer;
   }
+
+  /* ---- CD 机（v6.34）：唱片 = BGM 封面，播放旋转；播音杆随播放搭上/摆开 ---- */
+  .cd-player {
+    position: relative;
+    display: inline-flex;
+  }
+  .cd-player .bgm-toggle {
+    padding: 0;
+    overflow: hidden; /* 唱片裁圆 */
+    opacity: 0.62;
+    transition: opacity 0.25s, box-shadow 0.25s, border-color 0.25s;
+  }
+  .cd-player .bgm-toggle.is-playing {
+    opacity: 1;
+    border-color: var(--color-green, #4a7c59);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-green, #4a7c59) 18%, transparent);
+  }
+  .cd-disc {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  /* 中孔：CD 唱片中轴 */
+  .cd-hole {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 11px;
+    height: 11px;
+    margin: -5.5px 0 0 -5.5px;
+    border-radius: 50%;
+    background: var(--color-surface, #fff);
+    border: 1.5px solid color-mix(in srgb, var(--color-green, #4a7c59) 55%, transparent);
+  }
+  /* 播放：封面唱片旋转（孔不转，真实 CD 中轴不动） */
+  .cd-player.playing .cd-disc {
+    animation: cd-spin 3.6s linear infinite;
+  }
+  /* 播音杆：右上支点，停止时向外摆开，播放时转进来搭在唱片边缘 */
+  .tonearm {
+    position: absolute;
+    right: -13px;
+    top: -7px;
+    width: 4px;
+    height: 36px;
+    border-radius: 2px;
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--color-green, #4a7c59) 85%, #7a8a80), color-mix(in srgb, var(--color-green, #4a7c59) 60%, #9aa89f));
+    transform-origin: 2px 3px;
+    transform: rotate(-36deg);
+    transition: transform 0.45s var(--ease, ease);
+  }
+  .tonearm::before {
+    /* 支点轴 */
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -1.5px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-green, #4a7c59) 70%, #333);
+  }
+  .tonearm::after {
+    /* 拾音头：搭在唱片上的那一端 */
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: -2.5px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--color-green, #4a7c59);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  }
+  .cd-player.playing .tonearm {
+    transform: rotate(4deg);
+  }
+  @keyframes cd-spin {
+    to { transform: rotate(360deg); }
+  }
 }
 
 /* 桌面端：汉堡注释与轮播都不出现（布局保持原样） */
