@@ -10,29 +10,8 @@ function onScroll() {
 
 onMounted(() => {
   window.addEventListener('scroll', onScroll, { passive: true })
-  loadBusuanzi()
 })
 
-// 访客足迹：不蒜子计数服务（GitHub Pages 纯静态站的标准做法，免自建后端）。
-// 脚本加载失败（服务不可用/被拦截）时把整行藏起来，不显示破相的"—"。
-const visitVisible = ref(false)
-function loadBusuanzi() {
-  const el = document.createElement('script')
-  el.src = 'https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js'
-  el.async = true
-  el.onload = () => {
-    // 不蒜子值是异步回填到 span 里的，等它填出数字再显示整行
-    const timer = setInterval(() => {
-      const uv = document.getElementById('busuanzi_value_site_uv')
-      if (uv && /^\d+$/.test(uv.textContent.trim())) {
-        visitVisible.value = true
-        clearInterval(timer)
-      }
-    }, 300)
-    setTimeout(() => clearInterval(timer), 8000)
-  }
-  document.head.appendChild(el)
-}
 onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
 // 注意：Vue 模板表达式里访问不到 window 全局对象，
@@ -186,10 +165,6 @@ function toTop() {
       </g>
     </svg>
     <p>© 2026 刘博康 · 个人主页 V3</p>
-    <p v-show="visitVisible" class="visit-count">
-      👣 第 <span id="busuanzi_value_site_uv"></span> 位访客 · 累计
-      <span id="busuanzi_value_site_pv"></span> 次访问
-    </p>
 
     <!-- 返回顶部按钮 -->
     <Transition name="fade">
@@ -221,13 +196,6 @@ function toTop() {
   box-shadow: 0 8px 20px rgba(60, 84, 104, 0.3);
   transition: transform 0.15s, background 0.2s;
   z-index: 50;
-}
-.visit-count {
-  margin-top: 6px;
-  font-size: 0.8rem;
-  /* footer 是固定深底（两个主题都 #14130e/#070a06），不能用主题 muted——
-     浅色主题下 #6e685b 在深底上只有 3.35:1。固定浅次要色：两底色上 7.6/8.1:1 */
-  color: #ada595;
 }
 .back-to-top:hover {
   transform: translateY(-3px);
