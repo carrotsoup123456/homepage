@@ -212,4 +212,43 @@ describe('v6.27 移动端体验完善', () => {
     await w.find('.back-link').trigger('click')
     expect(back).toHaveBeenCalled()
   })
+
+  it('访客反馈#1：亮点前置到标题下方 + 目录条分节跳转', async () => {
+    const { default: ProjectDetailView } = await import('../src/views/ProjectDetailView.vue')
+    const router = makeRouter()
+    await router.push('/project/carrot-agent')
+    const w = mount(ProjectDetailView, { global: { plugins: [router] } })
+    await flushPromises()
+    // ① 亮点区在 hero 之后、长文 body 之前（DOM 顺序）
+    const hero = w.find('.detail-hero')
+    const highlights = w.find('.detail-highlights')
+    expect(highlights.exists()).toBe(true)
+    expect(hero.element.nextElementSibling).toBe(highlights.element)
+    expect(
+      highlights.element.nextElementSibling.classList.contains('detail-toc') ||
+        highlights.element.nextElementSibling.classList.contains('detail-body')
+    ).toBe(true)
+    // ② 目录条：可见 chip 数 = 有标题的分节数（无标题引导段被 v-show 隐藏）
+    const chips = w.findAll('.toc-chip').filter((c) => c.isVisible())
+    expect(chips.length).toBe(6)
+    expect(chips[0].text()).toContain('第一步')
+    expect(chips.some((c) => c.text().includes('踩的坑'))).toBe(true)
+    // ③ 点击 chip：平滑滚动到对应节并高亮（jsdom 没有 scrollIntoView，stub 记录）
+    const calls = []
+    Element.prototype.scrollIntoView = function (opts) {
+      calls.push({ el: this, opts })
+    }
+    try {
+      // 过滤后的 chip[5]（"我学到的"）对应 sections[6]（第 0 块是无标题引导段）
+      await chips[5].trigger('click')
+      expect(calls.length).toBe(1)
+      expect(calls[0].el.id).toBe('sec-6')
+      expect(calls[0].opts.behavior).toBe('smooth')
+      expect(chips[5].classes()).toContain('active')
+    } finally {
+      delete Element.prototype.scrollIntoView
+    }
+    w.unmount()
+  })
+
 })

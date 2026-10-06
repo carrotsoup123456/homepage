@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
+import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { goBack } from '../composables/goBack.js'
 import { marked } from 'marked'
@@ -36,9 +36,46 @@ const sections = computed(() => {
       if (!h3) return im.anchor === 'intro'
       return plain.includes(im.anchor)
     })
-    return { html: chunk, imgs }
+    return { html: chunk, title: plain, imgs }
   })
 })
+
+// ---- 目录跳转（访客反馈 #1：长文加标题导航）----
+// 注意不能用 location.hash 锚点：站点本身是 hash 路由（#/project/xx），
+// 改 hash 会被 vue-router 吃掉导致跳页。用 JS 滚动。
+const secEls = []
+const activeSec = ref(-1)
+
+function setSecRef(el, i) {
+  if (el) secEls[i] = el
+}
+
+function jumpTo(i) {
+  const el = secEls[i]
+  if (!el) return
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  activeSec.value = i
+}
+
+// 滚动时高亮当前所在节（jsdom 没有 IntersectionObserver，测试环境跳过）
+let tocObserver = null
+onMounted(() => {
+  if (typeof IntersectionObserver === 'undefined' || !secEls.length) return
+  tocObserver = new IntersectionObserver(
+    (entries) => {
+      for (const en of entries) {
+        if (en.isIntersecting) {
+          const i = secEls.indexOf(en.target)
+          if (i >= 0) activeSec.value = i
+        }
+      }
+    },
+    // 视口上 1/3 处的一条"感应线"：标题滚过这条线就算"当前节"
+    { rootMargin: '-20% 0px -70% 0px', threshold: 0 }
+  )
+  secEls.forEach((el) => el && tocObserver.observe(el))
+})
+onBeforeUnmount(() => tocObserver?.disconnect())
 
 // 兜底图集：没被任何小节认领的图
 const galleryImages = computed(() => {
@@ -115,11 +152,41 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
+      <!-- 亮点速览（访客反馈 #1：从页尾前置到标题下，第一屏可见） -->
+      <section class="detail-highlights" v-reveal v-if="project.highlights.length">
+        <div class="skill-tags">
+          <span v-for="h in project.highlights" :key="h" class="skill-tag">✨ {{ h }}</span>
+        </div>
+      </section>
+
+      <!-- 目录条（访客反馈 #1：长文按标题跳转；不用 hash 锚点，hash 被 vue-router 占用） -->
+      <nav
+        class="detail-toc"
+        v-reveal
+        v-if="sections.filter((s) => s.title).length > 1"
+        aria-label="本页目录"
+      >
+        <span class="toc-label">📑 目录</span>
+        <div class="toc-chips">
+          <button
+            v-for="(sec, i) in sections"
+            v-show="sec.title"
+            :key="i"
+            type="button"
+            class="toc-chip"
+            :class="{ active: activeSec === i }"
+            @click="jumpTo(i)"
+          >
+            {{ sec.title }}
+          </button>
+        </div>
+      </nav>
+
       <section class="detail-body" v-reveal>
         <!-- 按小节渲染；每节后紧跟属于它的图（图随段落走） -->
         <template v-for="(sec, i) in sections" :key="i">
           <!-- v-html 需信任数据（本项目数据为本地硬编码，安全） -->
-          <div class="markdown md-chunk" v-html="sec.html"></div>
+          <div class="markdown md-chunk" :id="'sec-' + i" :ref="(el) => setSecRef(el, i)" v-html="sec.html"></div>
           <div v-if="sec.imgs.length" class="chunk-gallery" :class="{ wide: sec.imgs.length > 1 }">
             <figure v-for="(img, j) in sec.imgs" :key="img.src + j" class="gallery-item">
               <button
@@ -187,13 +254,6 @@ onBeforeUnmount(() => {
         </div>
       </transition>
 
-      <section class="detail-highlights" v-reveal v-if="project.highlights.length">
-        <h2 class="section-title">亮点</h2>
-        <div class="skill-tags">
-          <span v-for="h in project.highlights" :key="h" class="skill-tag">{{ h }}</span>
-        </div>
-      </section>
-
       <FeedbackWidget page="项目详情" :item="project.id" />
 
     <!-- 读完不用滚回顶部：底部返回 -->
@@ -253,6 +313,65 @@ onBeforeUnmount(() => {
 .detail-body {
   margin-bottom: 32px;
   color: var(--color-text);
+}
+/* 前置亮点：去掉旧大标题，胶囊行紧贴 hero */
+.detail-highlights {
+  margin-bottom: 24px;
+}
+.detail-highlights .skill-tags {
+  gap: 8px;
+}
+/* 目录条：横向滑动 chip，移动端友好 */
+.detail-toc {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding: 12px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+.toc-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  line-height: 30px;
+}
+.toc-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.toc-chip {
+  flex: 0 0 auto;
+  border: 1px solid var(--color-border);
+  background: var(--bg);
+  color: var(--color-text-muted);
+  border-radius: 999px;
+  padding: 5px 13px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.toc-chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.toc-chip.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+/* 目录跳转目标：留出顶栏高度，标题不被遮 */
+.md-chunk {
+  scroll-margin-top: 84px;
 }
 .detail-action {
   margin-bottom: 32px;
