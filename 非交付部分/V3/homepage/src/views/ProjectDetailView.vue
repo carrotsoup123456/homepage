@@ -185,6 +185,43 @@ onBeforeUnmount(() => {
       <section class="detail-body" v-reveal>
         <!-- 按小节渲染；每节后紧跟属于它的图（图随段落走） -->
         <template v-for="(sec, i) in sections" :key="i">
+          <!-- 访客反馈 #3「希望加图示」：carbon-brain 技术路线节配流程图 -->
+          <div
+            v-if="project.id === 'carbon-brain' && sec.title && sec.title.includes('技术路线')"
+            class="flow-diagram"
+            role="img"
+            aria-label="技术路线流程图：传感器原始数据经物理换算得到吸附量，构造 18 维特征后用 XGBoost 回归估算吸附饱和度，输出吸附/再生切换时机"
+          >
+            <div class="flow-node">
+              <span class="flow-emoji" aria-hidden="true">📥</span>
+              <span class="flow-name">传感器原始数据</span>
+              <span class="flow-note">时间/温度/湿度/CO₂/流量 · 单文件最大 2.5 万行</span>
+            </div>
+            <span class="flow-arrow" aria-hidden="true">→</span>
+            <div class="flow-node">
+              <span class="flow-emoji" aria-hidden="true">⚗️</span>
+              <span class="flow-name">物理换算</span>
+              <span class="flow-note">理想气体定律 → 摩尔流率 → 物料衡算 · 积分</span>
+            </div>
+            <span class="flow-arrow" aria-hidden="true">→</span>
+            <div class="flow-node">
+              <span class="flow-emoji" aria-hidden="true">🧮</span>
+              <span class="flow-name">特征工程</span>
+              <span class="flow-note">原始量 + 滚动均值/标准差 · 共 18 维</span>
+            </div>
+            <span class="flow-arrow" aria-hidden="true">→</span>
+            <div class="flow-node">
+              <span class="flow-emoji" aria-hidden="true">🌲</span>
+              <span class="flow-name">XGBoost 回归</span>
+              <span class="flow-note">约 3 万行样本参与训练</span>
+            </div>
+            <span class="flow-arrow" aria-hidden="true">→</span>
+            <div class="flow-node flow-node-out">
+              <span class="flow-emoji" aria-hidden="true">🎯</span>
+              <span class="flow-name">饱和度估算</span>
+              <span class="flow-note">回答「什么时候切换」：吸附 ⇄ 再生</span>
+            </div>
+          </div>
           <!-- v-html 需信任数据（本项目数据为本地硬编码，安全） -->
           <div class="markdown md-chunk" :id="'sec-' + i" :ref="(el) => setSecRef(el, i)" v-html="sec.html"></div>
           <div v-if="sec.imgs.length" class="chunk-gallery" :class="{ wide: sec.imgs.length > 1 }">
@@ -509,5 +546,55 @@ onBeforeUnmount(() => {
 .not-found {
   color: var(--color-text-muted);
   margin-bottom: 16px;
+}
+
+/* ===== 技术路线流程图（访客反馈 #3「希望加图示」）===== */
+.flow-diagram {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 6px;
+  margin: 4px 0 22px;
+}
+.flow-node {
+  flex: 1 1 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 12px 10px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+.flow-node-out {
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-border));
+  background: color-mix(in srgb, var(--color-accent) 7%, var(--color-surface-2));
+}
+.flow-emoji {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.flow-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.flow-note {
+  font-size: 0.74rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+.flow-arrow {
+  align-self: center;
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  padding: 0 2px;
+}
+/* 窄屏自动换行成竖排：箭头转向 */
+@media (max-width: 640px) {
+  .flow-arrow {
+    transform: rotate(90deg);
+    padding: 4px 0;
+  }
 }
 </style>

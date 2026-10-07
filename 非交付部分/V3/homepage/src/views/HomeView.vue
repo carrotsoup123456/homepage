@@ -67,25 +67,6 @@ function runCountUp() {
   requestAnimationFrame(tick)
 }
 
-// 森林萤火虫：随机位置 / 大小 / 漂移 / 时长
-const fireflies = Array.from({ length: 22 }, (_, i) => {
-  const size = +(4 + Math.random() * 5).toFixed(2)
-  return {
-    id: i,
-    style: {
-      left: `${(Math.random() * 100).toFixed(2)}%`,
-      top: `${(Math.random() * 100).toFixed(2)}%`,
-      width: `${size}px`,
-      height: `${size}px`,
-      '--dur': `${(7 + Math.random() * 8).toFixed(2)}s`,
-      '--delay': `${(Math.random() * 6).toFixed(2)}s`,
-      '--dx': `${((Math.random() - 0.5) * 70).toFixed(1)}px`,
-      '--dy': `${(-(24 + Math.random() * 70)).toFixed(1)}px`,
-      '--peak': `${(0.7 + Math.random() * 0.3).toFixed(2)}`,
-    },
-  }
-})
-
 // ---- Hero 分层视差 ----
 const heroEl = ref(null)
 let ticking = false
@@ -268,10 +249,7 @@ onUnmounted(() => {
     >
       <div class="hero-bg" aria-hidden="true"></div>
 
-      <!-- 氛围层：森林萤火虫 + 鼠标柔光 -->
-      <div class="fireflies" aria-hidden="true">
-        <span v-for="f in fireflies" :key="f.id" :style="f.style"></span>
-      </div>
+      <!-- 氛围层：鼠标柔光（萤火虫已按访客反馈 #2 去掉，动效收敛） -->
       <div class="hero-glow" aria-hidden="true"></div>
 
       <div class="container hero-inner">
@@ -368,6 +346,43 @@ onUnmounted(() => {
           还要变成自己的——手抄过 22 条误判心理学，把《纳瓦尔宝典》抄成习惯清单，
           也给人生设计过一套「自身 1.0」系统。<RouterLink to="/knowledge">读书笔记都在知识库</RouterLink>。
         </p>
+      </div>
+    </section>
+
+    <!-- ===================== 兴趣四宫格（访客反馈 #4：介绍方面偏少） ===================== -->
+    <section class="section interests-block" v-reveal>
+      <div class="container">
+        <p class="eyebrow">Interests</p>
+        <h2 class="section-title">热爱的事情</h2>
+        <p class="section-desc">
+          代码之外的时间被这几件事填满——每一样都做得很认真，点进去能看到实打实的内容。
+        </p>
+        <div class="interests-grid">
+          <RouterLink to="/music" class="interest-card">
+            <span class="interest-emoji" aria-hidden="true">🥁</span>
+            <h3 class="interest-name">架子鼓</h3>
+            <p class="interest-desc">从小学一路练到现在，十级。敲鼓比什么都解压。</p>
+            <span class="interest-meta">10 级 · 有演奏视频 →</span>
+          </RouterLink>
+          <RouterLink to="/project/stock-quant" class="interest-card">
+            <span class="interest-emoji" aria-hidden="true">📈</span>
+            <h3 class="interest-name">股票量化</h3>
+            <p class="interest-desc">不只是看盘：用 Python 写策略、做回测、写复盘笔记。</p>
+            <span class="interest-meta">1 套策略 · 持续迭代 →</span>
+          </RouterLink>
+          <RouterLink to="/play" class="interest-card">
+            <span class="interest-emoji" aria-hidden="true">🏯</span>
+            <h3 class="interest-name">游戏设计</h3>
+            <p class="interest-desc">把「当一天县令」做成了能玩的古风文字游戏。</p>
+            <span class="interest-meta">《为官一方》· 在线试玩 →</span>
+          </RouterLink>
+          <RouterLink to="/knowledge" class="interest-card">
+            <span class="interest-emoji" aria-hidden="true">📚</span>
+            <h3 class="interest-name">阅读</h3>
+            <p class="interest-desc">哲学、心理学、科普都读，读完就写笔记沉淀下来。</p>
+            <span class="interest-meta">读书笔记 · 持续更新 →</span>
+          </RouterLink>
+        </div>
       </div>
     </section>
 
@@ -511,5 +526,63 @@ onUnmounted(() => {
 <style scoped>
 .manifesto-media {
   position: relative;
+}
+
+/* ===== 兴趣四宫格（访客反馈 #4）===== */
+.interests-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-top: 28px;
+}
+@media (max-width: 900px) {
+  .interests-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 540px) {
+  .interests-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.interest-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease),
+    border-color 0.3s var(--ease);
+}
+.interest-card:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+  box-shadow: 0 12px 28px rgba(31, 45, 36, 0.12);
+}
+.interest-emoji {
+  font-size: 1.9rem;
+  line-height: 1;
+}
+.interest-name {
+  margin: 4px 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.interest-desc {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+}
+.interest-meta {
+  margin-top: auto;
+  padding-top: 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-accent, #2e5e44);
 }
 </style>

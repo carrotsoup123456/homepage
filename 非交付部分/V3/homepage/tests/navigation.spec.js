@@ -251,4 +251,50 @@ describe('v6.27 移动端体验完善', () => {
     w.unmount()
   })
 
+  it('访客反馈#2-#5：动效收敛 + 兴趣四宫格 + carbon-brain 流程图', async () => {
+    // HomeView 的视差 / 动效开关依赖 matchMedia，jsdom 没有实现
+    vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }))
+    try {
+    // ===== 反馈 #2：萤火虫层已移除（首页不再渲染 .fireflies） =====
+    const { default: HomeView } = await import('../src/views/HomeView.vue')
+    const router = makeRouter()
+    await router.push('/')
+    const home = mount(HomeView, { global: { plugins: [router] } })
+    await flushPromises()
+    expect(home.find('.fireflies').exists()).toBe(false)
+    // ===== 反馈 #4：兴趣四宫格——4 张卡、链接指向对应栏目 =====
+    const cards = home.findAll('.interest-card')
+    expect(cards.length).toBe(4)
+    const hrefs = cards.map((c) => c.attributes('href'))
+    expect(hrefs).toEqual(
+      expect.arrayContaining(['#/music', '#/project/stock-quant', '#/play', '#/knowledge'])
+    )
+    // 素材真实性：架子鼓卡写的是 10 级（数据源 site.js）
+    const drum = cards.find((c) => c.text().includes('架子鼓'))
+    expect(drum.text()).toContain('10 级')
+    home.unmount()
+
+    // ===== 反馈 #3：carbon-brain 技术路线节配流程图（5 节点） =====
+    const { default: ProjectDetailView } = await import('../src/views/ProjectDetailView.vue')
+    await router.push('/project/carbon-brain')
+    const detail = mount(ProjectDetailView, { global: { plugins: [router] } })
+    await flushPromises()
+    const flow = detail.find('.flow-diagram')
+    expect(flow.exists()).toBe(true)
+    expect(detail.findAll('.flow-node').length).toBe(5)
+    const flowText = flow.text()
+    expect(flowText).toContain('XGBoost')
+    expect(flowText).toContain('18 维')
+    expect(flowText).toContain('饱和度')
+    // 流程图应出现在「技术路线」节内（紧跟 md-chunk 之前、且该 chunk 标题是技术路线）
+    const diagramEl = flow.element
+    const chunk = diagramEl.nextElementSibling
+    expect(chunk.classList.contains('md-chunk')).toBe(true)
+    expect(chunk.textContent).toContain('技术路线')
+    detail.unmount()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
 })

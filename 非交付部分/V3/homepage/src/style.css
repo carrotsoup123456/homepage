@@ -727,7 +727,8 @@ html {
   letter-spacing: 0.06em;
   color: #f2ede1;
   white-space: nowrap;
-  animation: floaty 6s ease-in-out infinite;
+  /* 访客反馈 #2「动效有点花」：漂浮放缓，从 6s 到 12s，更安静 */
+  animation: floaty 12s ease-in-out infinite;
 }
 .float-tag::before {
   content: '';
@@ -883,53 +884,7 @@ html {
   z-index: 1;
 }
 
-.fireflies {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-.fireflies span {
-  position: absolute;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    #ffffff 0%,
-    #e8fff0 22%,
-    rgba(190, 255, 214, 0.85) 42%,
-    rgba(127, 194, 142, 0) 72%
-  );
-  box-shadow:
-    0 0 5px 1.5px rgba(226, 255, 238, 0.7),
-    0 0 16px 5px rgba(140, 210, 158, 0.34);
-  opacity: 0;
-  animation: firefly var(--dur, 8s) ease-in-out var(--delay, 0s) infinite;
-}
-@keyframes firefly {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 0, 0) scale(0.5);
-  }
-  12% {
-    opacity: var(--peak, 0.85);
-  }
-  45% {
-    opacity: var(--peak, 0.85);
-  }
-  80% {
-    opacity: calc(var(--peak, 0.85) * 0.2);
-  }
-  100% {
-    opacity: 0;
-    transform: translate3d(
-        calc(var(--dx, 24px) * -0.5),
-        calc(var(--dy, -48px) * 1.7),
-        0
-      )
-      scale(0.6);
-  }
-}
+/* 萤火虫层已按访客反馈 #2 移除（动效收敛）：.fireflies / @keyframes firefly 删除于 v6.40 */
 
 .hero-glow {
   position: absolute;
@@ -994,6 +949,29 @@ html {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
+}
+/* 访客反馈 #5「图片展示可以加点特效」：仅桌面端悬停生效——
+   卡片轻微上浮 + 图片微放大，与 #2 的全局动效收敛配套（一收一放） */
+@media (hover: hover) and (pointer: fine) {
+  .frame-card {
+    transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
+  }
+  .frame-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 32px rgba(31, 45, 36, 0.16);
+  }
+  .frame-card img {
+    transition: transform 0.45s var(--ease);
+  }
+  .frame-card:hover img {
+    transform: scale(1.03);
+  }
+  .gallery-btn img {
+    transition: transform 0.45s var(--ease);
+  }
+  .gallery-btn:hover img {
+    transform: scale(1.03);
+  }
 }
 .frame-card::after {
   content: '';
@@ -1467,8 +1445,9 @@ html {
 /* ---------------- 滚动渐入动画 ---------------- */
 .reveal {
   opacity: 0;
-  transform: translateY(26px);
-  transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+  /* 访客反馈 #2：渐入更克制（26px→12px、0.7s→0.45s），感觉「轻」而不是「动」 */
+  transform: translateY(12px);
+  transition: opacity 0.45s var(--ease), transform 0.45s var(--ease);
 }
 .reveal.revealed {
   opacity: 1;
@@ -1488,11 +1467,9 @@ html {
   .hero-tagline-v3,
   .hero-actions-v3,
   .hero-portrait-wrap,
-  .scroll-cue,
-  .fireflies span {
+  .scroll-cue {
     animation: none;
   }
-  .fireflies,
   .hero-glow {
     display: none;
   }
